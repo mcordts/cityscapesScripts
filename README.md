@@ -1,15 +1,8 @@
 # The Cityscapes Dataset
 
+We present a new large-scale dataset that contains a diverse set of stereo video sequences recorded in street scenes from 50 different cities, with high quality pixel-level annotations of 5 000 frames in addition to a larger set of 20 000 weakly annotated frames.
 
-
-## Contact
-
-Please feel free to contact us with any questions, suggestions or comments:
-
-* Marius Cordts, Mohamed Omran
-* mail@cityscapes-dataset.net
-* www.cityscapes-dataset.net
-
+Details and download are available at: www.cityscapes-dataset.net
 
 
 ## Dataset Structure
@@ -78,3 +71,10 @@ Thus, your code should produce images where each pixel's value corresponds to a 
 Note that our evaluation scripts are included in the scripts folder and can be used to test your approach on the validation set.
 For further details regarding the submission process, please consult our website.
 
+## Contact
+
+Please feel free to contact us with any questions, suggestions or comments:
+
+* Marius Cordts, Mohamed Omran
+* mail@cityscapes-dataset.net
+* www.cityscapes-dataset.net
