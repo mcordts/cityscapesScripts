@@ -1,6 +1,6 @@
 # The Cityscapes Dataset
 
-We present a new large-scale dataset that contains a diverse set of stereo video sequences recorded in street scenes from 50 different cities, with high quality pixel-level annotations of 5 000 frames in addition to a larger set of 20 000 weakly annotated frames.
+This repository contains scripts for inspection, preparation and evaluation of the Cityscapes dataset. This large-scale dataset contains a diverse set of stereo video sequences recorded in street scenes from 50 different cities, with high quality pixel-level annotations of 5 000 frames in addition to a larger set of 20 000 weakly annotated frames.
 
 Details and download are available at: www.cityscapes-dataset.net
 
@@ -32,11 +32,11 @@ Possible values of `type`
  - `disparity`     precomputed disparity depth maps. To obtain the disparity values, compute for each pixel p with p > 0: d = ( float(p) - 1. ) / 256., while a value p = 0 is an invalid measurement. Warning: the images are stored as 16-bit pngs, which is non-standard and not supported by all libraries.
  - `camera`        internal and external camera calibration.
 
-More types might be added over time and also not all types are initially available. Please let us know if you need any other metadata to run your approach.
+More types might be added over time and also not all types are initially available. Please let us know if you need any other meta-data to run your approach.
 
 Possible values of `split`
  - `train`       usually used for training, contains 2975 images with fine and coarse annotations
- - `val`         should be used for validation of hyperparameters, contains 500 image with fine and coarse annotations. Can also be used for training.
+ - `val`         should be used for validation of hyper-parameters, contains 500 image with fine and coarse annotations. Can also be used for training.
  - `test`        used for testing on our evaluation server. The annotations are not public, but we include annotations of ego-vehicle and rectification border for convenience.
  - `train_extra` can be optionally used for training, contains 19998 images with coarse annotations
 
