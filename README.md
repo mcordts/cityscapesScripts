@@ -65,7 +65,7 @@ Note that all files have a small documentation at the top. Most important files
 ## Evaluation
 
 Once you want to test your method on the test set, please run your approach on the provided test images and submit your results:
-https://www.cityscapes-dataset.com/submit/
+www.cityscapes-dataset.net/submit/
 For semantic labeling, we require the result format to match the format of our label images named `labelIDs`.
 Thus, your code should produce images where each pixel's value corresponds to a class ID as defined in `labels.py`.
 Note that our evaluation scripts are included in the scripts folder and can be used to test your approach on the validation set.
