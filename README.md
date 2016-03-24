@@ -15,7 +15,7 @@ The folder structure of the Cityscapes dataset is as follows:
 The meaning of the individual elements is:
  - `root`  the root folder of the Cityscapes dataset. Many of our scripts check if an environment variable `CITYSCAPES_DATASET` pointing to this folder exists and use this as the default choice.
  - `type`  the type/modality of data, e.g. `gtFine` for fine ground truth, or `leftImg8bit` for left 8-bit images.
- - `split` the split, i.e. train/val/test/train_extra. Note that not all kinds of data exist for all splits. Thus, do not be surprised to occasionally find empty folders.
+ - `split` the split, i.e. train/val/test/train_extra/demoVideo. Note that not all kinds of data exist for all splits. Thus, do not be surprised to occasionally find empty folders.
  - `city`  the city in which this part of the dataset was recorded.
  - `seq`   the sequence number using 6 digits.
  - `frame` the frame number using 6 digits. Note that in some cities very few, albeit very long sequences were recorded, while in some cities many short sequences were recorded, of which only the 19th frame is annotated.
@@ -39,6 +39,7 @@ Possible values of `split`
  - `val`         should be used for validation of hyper-parameters, contains 500 image with fine and coarse annotations. Can also be used for training.
  - `test`        used for testing on our evaluation server. The annotations are not public, but we include annotations of ego-vehicle and rectification border for convenience.
  - `train_extra` can be optionally used for training, contains 19998 images with coarse annotations
+ - `demoVideo`   video sequences that could be used for qualitative evaluation, no annotations are available for these videos
 
 
 
