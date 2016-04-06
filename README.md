@@ -58,6 +58,7 @@ Note that all files have a small documentation at the top. Most important files
  - `preparation/createTrainIdLabelImgs.py`           convert annotations in polygonal format to png images with label IDs, where pixels encode "train IDs" that you can define in `labels.py`.
  - `preparation/createTrainIdInstanceImgs.py`        convert annotations in polygonal format to png images with instance IDs, where pixels encode instance IDs composed of "train IDs".
  - `evaluation/evalPixelLevelSemanticLabeling.py`    script to evaluate pixel-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
+ - `evaluation/evalInstanceLevelSemanticLabeling.py` script to evaluate instance-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
  - `evaluation/setup.py`                             run `setup.py build_ext --inplace` to enable cython plugin for faster evaluation. Only tested for Ubuntu.
 
 
