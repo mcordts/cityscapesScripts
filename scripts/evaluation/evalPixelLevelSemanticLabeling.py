@@ -586,9 +586,9 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
                 continue
 
             mask = instanceNp==instId
-            instSize = mask.sum()
+            instSize = np.count_nonzero( mask )
 
-            tp = (predictionNp[mask] == labelId).sum()
+            tp = np.count_nonzero( predictionNp[mask] == labelId )
             fn = instSize - tp
 
             weight = args.avgClassSize[label.name] / float(instSize)
@@ -603,7 +603,7 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
             category = label.category
             if category in instanceStats["categories"]:
                 catTp = 0
-                catTp = np.logical_and(mask,categoryMasks[category]).sum()
+                catTp = np.count_nonzero( np.logical_and( mask , categoryMasks[category] ) )
                 catFn = instSize - catTp
 
                 catTpWeighted = float(catTp) * weight
@@ -619,8 +619,8 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         notIgnoredPixels = np.in1d( groundTruthNp , notIgnoredLabels , invert=True ).reshape(groundTruthNp.shape)
         erroneousPixels = np.logical_and( notIgnoredPixels , ( predictionNp != groundTruthNp ) )
         perImageStats[predictionImgFileName] = {}
-        perImageStats[predictionImgFileName]["nbNotIgnoredPixels"] = np.sum(notIgnoredPixels)
-        perImageStats[predictionImgFileName]["nbCorrectPixels"]    = np.sum(erroneousPixels)
+        perImageStats[predictionImgFileName]["nbNotIgnoredPixels"] = np.count_nonzero(notIgnoredPixels)
+        perImageStats[predictionImgFileName]["nbCorrectPixels"]    = np.count_nonzero(erroneousPixels)
 
     return nbPixels
 
