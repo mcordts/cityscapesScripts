@@ -337,8 +337,10 @@ def getInstanceIouScoreForCategory(category, confMatrix, instStats, args):
     # return IOU
     return float(tp) / denom
 
-# write JSON result file
-def writeJSONFile(confMatrix, classScores, classInstScores, categoryScores, categoryInstScores, perImageStats, args):
+
+# create a dictionary containing all relevant results
+def createResultDict( confMatrix, classScores, classInstScores, categoryScores, categoryInstScores, perImageStats, args ):
+    # write JSON result file
     wholeData = {}
     wholeData["confMatrix"] = confMatrix.tolist()
     wholeData["priors"] = {}
@@ -358,6 +360,9 @@ def writeJSONFile(confMatrix, classScores, classInstScores, categoryScores, cate
     if perImageStats:
         wholeData["perImageScores"] = perImageStats
 
+    return wholeData
+
+def writeJSONFile(wholeData, args):
     path = os.path.dirname(args.exportFile)
     ensurePath(path)
     writeDict2JSON(wholeData, args.exportFile)
@@ -522,10 +527,11 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
         print
 
     # write result file
-    writeJSONFile(confMatrix, classScoreList, classInstScoreList, categoryScoreList, categoryInstScoreList, perImageStats, args)
+    allResultsDict = createResultDict( confMatrix, classScoreList, classInstScoreList, categoryScoreList, categoryInstScoreList, perImageStats, args )
+    writeJSONFile( allResultsDict, args)
 
     # return confusion matrix
-    return confMatrix, instStats
+    return allResultsDict
 
 # Main evaluation method. Evaluates pairs of prediction and ground truth
 # images which are passed as arguments.
