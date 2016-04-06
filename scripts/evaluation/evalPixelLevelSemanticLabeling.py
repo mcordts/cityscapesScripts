@@ -117,7 +117,7 @@ else:
     args.cityscapesPath = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
 
 # Parameters that should be modified by user
-args.exportFile         = os.path.join( args.cityscapesPath , "evaluationResults" , "resultSemanticLabeling.json" )
+args.exportFile         = os.path.join( args.cityscapesPath , "evaluationResults" , "resultPixelLevelSemanticLabeling.json" )
 args.groundTruthSearch  = os.path.join( args.cityscapesPath , "gtFine" , "val" , "*", "*_gtFine_labelIds.png" )
 
 # Remaining params
