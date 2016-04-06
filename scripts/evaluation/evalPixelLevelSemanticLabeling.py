@@ -555,6 +555,8 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         printError("Image widths of " + predictionImgFileName + " and " + groundTruthImgFileName + " are not equal.")
     if (predictionImg.size[1] != groundTruthImg.size[1]):
         printError("Image heights of " + predictionImgFileName + " and " + groundTruthImgFileName + " are not equal.")
+    if ( len(predictionNp.shape) != 2 ):
+        printError("Predicted image has multiple channels.")
 
     imgWidth  = predictionImg.size[0]
     imgHeight = predictionImg.size[1]
