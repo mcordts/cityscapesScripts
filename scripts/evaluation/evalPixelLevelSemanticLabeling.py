@@ -1,12 +1,12 @@
 #!/usr/bin/python
 #
-# The evaluation script for semantic labeling.
+# The evaluation script for pixel-level semantic labeling.
 # We use this script to evaluate your approach on the test set.
 # You can use the script to evaluate on the validation set.
 #
 # Note that the script is a lot faster, if you enable cython support.
 # WARNING: Cython only tested for Ubuntu 64bit OS.
-# To enable cython, run 
+# To enable cython, run
 # setup.py build_ext --inplace
 #
 # To run this script, make sure that your results are images,
@@ -58,7 +58,7 @@ if CSUPPORT:
 # A file matches, if the filename follows the pattern
 # <city>_123456_123456*.png
 # for a ground truth filename
-# <city>_123456_123456_gtFine_labeIds.png
+# <city>_123456_123456_gtFine_labelIds.png
 def getPrediction( args, groundTruthFile ):
     # determine the prediction path, if the method is first called
     if not args.predictionPath:
@@ -92,7 +92,7 @@ def getPrediction( args, groundTruthFile ):
                 predictionFile = os.path.join(root, filename)
             else:
                 printError("Found multiple predictions for ground truth {}".format(groundTruthFile))
-                
+
     if not predictionFile:
         printError("Found no prediction for ground truth {}".format(groundTruthFile))
 
@@ -403,7 +403,7 @@ def printConfMatrix(confMatrix, args):
                 continue
             matrixFieldValue = getMatrixFieldValue(confMatrix, x, y, args)
             print getColorEntry(matrixFieldValue, args) + "\b{text:>{width}.2f}  ".format(width=args.printRow, text=matrixFieldValue) + args.nocol,
-        # print prior       
+        # print prior
         print getColorEntry(prior, args) + "\b{text:>{width}.4f} ".format(width=6, text=prior) + args.nocol,
         print
     # print line
