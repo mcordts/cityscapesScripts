@@ -4,6 +4,12 @@
 # We use this script to evaluate your approach on the test set.
 # You can use the script to evaluate on the validation set.
 #
+# Please check the description of the "getPrediction" method below 
+# and set the required environment variables as needed, such that 
+# this script can locate your results.
+# If the default implementation of the method works, then it's most likely
+# that our evaluation server will be able to process your results as well.
+#
 # Note that the script is a lot faster, if you enable cython support.
 # WARNING: Cython only tested for Ubuntu 64bit OS.
 # To enable cython, run
@@ -16,11 +22,6 @@
 # Thus, authors are not expected to predict these classes and all
 # pixels with a ground truth label that is ignored are ignored in
 # evaluation.
-#
-# Please check and adopt the method "getPrediction" below to make sure
-# that your results are found.
-# If the default implementation of the method works, then it's most likely
-# that our evaluation server will be able to find your results aswell.
 
 # python imports
 import os, sys
@@ -43,9 +44,9 @@ if CSUPPORT:
         CSUPPORT = False
 
 
-#########################
-# FILL OUT THIS METHOD!!!
-#########################
+###################################
+# PLEASE READ THESE INSTRUCTIONS!!!
+###################################
 # Provide the prediction file for the given ground truth file.
 #
 # The current implementation expects the results to be in a certain root folder.
