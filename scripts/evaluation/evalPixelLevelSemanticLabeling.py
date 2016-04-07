@@ -26,7 +26,7 @@
 # python imports
 from __future__ import print_function
 import os, sys
-import itertools, platform
+import platform
 import fnmatch
 
 try:
@@ -580,7 +580,7 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         confMatrix = addToConfusionMatrix.cEvaluatePair(predictionNp, groundTruthNp, confMatrix, args.evalLabels)
     else:
         # the slower python way
-        for (groundTruthImgPixel,predictionImgPixel) in itertools.izip(groundTruthImg.getdata(),predictionImg.getdata()):
+        for (groundTruthImgPixel,predictionImgPixel) in izip(groundTruthImg.getdata(),predictionImg.getdata()):
             if (not groundTruthImgPixel in args.evalLabels):
                 printError("Unknown label with id {:}".format(groundTruthImgPixel))
 

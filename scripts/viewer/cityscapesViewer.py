@@ -153,7 +153,7 @@ class CityscapesViewer(QtGui.QMainWindow):
 
         # Default label
         self.defaultLabel = 'static'
-        if not name2label.has_key( self.defaultLabel ):
+        if self.defaultLabel not in name2label:
             print('The {0} label is missing in the internal label definitions.'.format(self.defaultLabel))
             return
         # Last selected label
@@ -708,7 +708,7 @@ class CityscapesViewer(QtGui.QMainWindow):
             # The label of the object
             name      = assureSingleInstanceName( obj.label )
             # If we do not know a color for this label, warn the user
-            if not name2label.has_key( name ):
+            if name not in name2label:
                 print("The annotations contain unkown labels. This should not happen. Please inform the datasets authors. Thank you!")
                 print("Details: label '{}', file '{}'".format(name,self.currentLabelFile))
                 continue
