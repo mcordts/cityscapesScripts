@@ -67,7 +67,7 @@ class Annotation:
     # Read a json formatted polygon file and return the annotation
     def fromJsonFile(self, jsonFile):
         if not os.path.isfile(jsonFile):
-            print 'Given json file not found: {}'.format(jsonFile)
+            print('Given json file not found: {}'.format(jsonFile))
             return
         with open(jsonFile, 'r') as f:
             jsonText = f.read()
@@ -82,4 +82,4 @@ if __name__ == "__main__":
     obj.polygon.append( Point( 1 , 1 ) )
     obj.polygon.append( Point( 0 , 1 ) )
 
-    print obj
+    print(obj)

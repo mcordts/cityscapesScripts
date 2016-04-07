@@ -24,9 +24,15 @@
 # evaluation.
 
 # python imports
+from __future__ import print_function
 import os, sys
 import itertools, platform
 import fnmatch
+
+try:
+    from itertools import izip
+except ImportError:
+    izip = zip
 
 # Cityscapes imports
 sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
@@ -371,23 +377,23 @@ def writeJSONFile(wholeData, args):
 # Print confusion matrix
 def printConfMatrix(confMatrix, args):
     # print line
-    print "\b{text:{fill}>{width}}".format(width=15, fill='-', text=" "),
+    print("\b{text:{fill}>{width}}".format(width=15, fill='-', text=" "), end=' ')
     for label in args.evalLabels:
-        print "\b{text:{fill}>{width}}".format(width=args.printRow + 2, fill='-', text=" "),
-    print "\b{text:{fill}>{width}}".format(width=args.printRow + 3, fill='-', text=" "),
-    print
+        print("\b{text:{fill}>{width}}".format(width=args.printRow + 2, fill='-', text=" "), end=' ')
+    print("\b{text:{fill}>{width}}".format(width=args.printRow + 3, fill='-', text=" "))
+
     # print label names
-    print "\b{text:>{width}} |".format(width=13, text=""),
+    print("\b{text:>{width}} |".format(width=13, text=""), end=' ')
     for label in args.evalLabels:
-        print "\b{text:^{width}} |".format(width=args.printRow, text=id2label[label].name[0]),
-    print "\b{text:>{width}} |".format(width=6, text="Prior"),
-    print
+        print("\b{text:^{width}} |".format(width=args.printRow, text=id2label[label].name[0]), end=' ')
+    print("\b{text:>{width}} |".format(width=6, text="Prior"))
+
     # print line
-    print "\b{text:{fill}>{width}}".format(width=15, fill='-', text=" "),
+    print("\b{text:{fill}>{width}}".format(width=15, fill='-', text=" "), end=' ')
     for label in args.evalLabels:
-        print "\b{text:{fill}>{width}}".format(width=args.printRow + 2, fill='-', text=" "),
-    print "\b{text:{fill}>{width}}".format(width=args.printRow + 3, fill='-', text=" "),
-    print
+        print("\b{text:{fill}>{width}}".format(width=args.printRow + 2, fill='-', text=" "), end=' ')
+    print("\b{text:{fill}>{width}}".format(width=args.printRow + 3, fill='-', text=" "))
+
     # print matrix
     for x in range(0, confMatrix.shape[0]):
         if (not x in args.evalLabels):
@@ -402,48 +408,47 @@ def printConfMatrix(confMatrix, args):
         name = id2label[x].name
         if len(name) > 13:
             name = name[:13]
-        print "\b{text:>{width}} |".format(width=13,text=name),
+        print("\b{text:>{width}} |".format(width=13,text=name), end=' ')
         # print matrix content
         for y in range(0, len(confMatrix[x])):
             if (not y in args.evalLabels):
                 continue
             matrixFieldValue = getMatrixFieldValue(confMatrix, x, y, args)
-            print getColorEntry(matrixFieldValue, args) + "\b{text:>{width}.2f}  ".format(width=args.printRow, text=matrixFieldValue) + args.nocol,
+            print(getColorEntry(matrixFieldValue, args) + "\b{text:>{width}.2f}  ".format(width=args.printRow, text=matrixFieldValue) + args.nocol, end=' ')
         # print prior
-        print getColorEntry(prior, args) + "\b{text:>{width}.4f} ".format(width=6, text=prior) + args.nocol,
-        print
+        print(getColorEntry(prior, args) + "\b{text:>{width}.4f} ".format(width=6, text=prior) + args.nocol)
     # print line
-    print "\b{text:{fill}>{width}}".format(width=15, fill='-', text=" "),
+    print("\b{text:{fill}>{width}}".format(width=15, fill='-', text=" "), end=' ')
     for label in args.evalLabels:
-        print "\b{text:{fill}>{width}}".format(width=args.printRow + 2, fill='-', text=" "),
-    print "\b{text:{fill}>{width}}".format(width=args.printRow + 3, fill='-', text=" "),
+        print("\b{text:{fill}>{width}}".format(width=args.printRow + 2, fill='-', text=" "), end=' ')
+    print("\b{text:{fill}>{width}}".format(width=args.printRow + 3, fill='-', text=" "), end=' ')
 
 # Print intersection-over-union scores for all classes.
 def printClassScores(scoreList, instScoreList, args):
     if (args.quiet):
         return
-    print args.bold + "classes          IoU      nIoU" + args.nocol
-    print "--------------------------------"
+    print(args.bold + "classes          IoU      nIoU" + args.nocol)
+    print("--------------------------------")
     for label in args.evalLabels:
         if (id2label[label].ignoreInEval):
             continue
         labelName = str(id2label[label].name)
         iouStr = getColorEntry(scoreList[labelName], args) + "{val:>5.3f}".format(val=scoreList[labelName]) + args.nocol
         niouStr = getColorEntry(instScoreList[labelName], args) + "{val:>5.3f}".format(val=instScoreList[labelName]) + args.nocol
-        print "{:<14}: ".format(labelName) + iouStr + "    " + niouStr
+        print("{:<14}: ".format(labelName) + iouStr + "    " + niouStr)
 
 # Print intersection-over-union scores for all categorys.
 def printCategoryScores(scoreDict, instScoreDict, args):
     if (args.quiet):
         return
-    print args.bold + "categories       IoU      nIoU" + args.nocol
-    print "--------------------------------"
+    print(args.bold + "categories       IoU      nIoU" + args.nocol)
+    print("--------------------------------")
     for categoryName in scoreDict:
         if all( label.ignoreInEval for label in category2labels[categoryName] ):
             continue
         iouStr  = getColorEntry(scoreDict[categoryName], args) + "{val:>5.3f}".format(val=scoreDict[categoryName]) + args.nocol
         niouStr = getColorEntry(instScoreDict[categoryName], args) + "{val:>5.3f}".format(val=instScoreDict[categoryName]) + args.nocol
-        print "{:<14}: ".format(categoryName) + iouStr + "    " + niouStr
+        print("{:<14}: ".format(categoryName) + iouStr + "    " + niouStr)
 
 # Evaluate image lists pairwise.
 def evaluateImgLists(predictionImgList, groundTruthImgList, args):
@@ -455,7 +460,7 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
     nbPixels      = 0
 
     if not args.quiet:
-        print "Evaluating {} pairs of images...".format(len(predictionImgList))
+        print("Evaluating {} pairs of images...".format(len(predictionImgList)))
 
     # Evaluate all pairs of images and save them into a matrix
     for i in range(len(predictionImgList)):
@@ -469,10 +474,10 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
             printError('Number of analyzed pixels and entries in confusion matrix disagree: contMatrix {}, pixels {}'.format(confMatrix.sum(),nbPixels))
 
         if not args.quiet:
-            print "\rImages Processed: {}".format(i+1),
+            print("\rImages Processed: {}".format(i+1), end=' ')
             sys.stdout.flush()
     if not args.quiet:
-        print "\n"
+        print()
 
     # sanity check
     if confMatrix.sum() != nbPixels:
@@ -496,15 +501,15 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
 
     # Print IOU scores
     if (not args.quiet):
-        print
-        print
+        print()
+        print()
         printClassScores(classScoreList, classInstScoreList, args)
         iouAvgStr  = getColorEntry(getScoreAverage(classScoreList, args), args) + "{avg:5.3f}".format(avg=getScoreAverage(classScoreList, args)) + args.nocol
         niouAvgStr = getColorEntry(getScoreAverage(classInstScoreList , args), args) + "{avg:5.3f}".format(avg=getScoreAverage(classInstScoreList , args)) + args.nocol
-        print "--------------------------------"
-        print "Score Average : " + iouAvgStr + "    " + niouAvgStr
-        print "--------------------------------"
-        print
+        print("--------------------------------")
+        print("Score Average : " + iouAvgStr + "    " + niouAvgStr)
+        print("--------------------------------")
+        print()
 
     # Calculate IOU scores on category level from matrix
     categoryScoreList = {}
@@ -518,14 +523,14 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
 
     # Print IOU scores
     if (not args.quiet):
-        print
+        print()
         printCategoryScores(categoryScoreList, categoryInstScoreList, args)
         iouAvgStr = getColorEntry(getScoreAverage(categoryScoreList, args), args) + "{avg:5.3f}".format(avg=getScoreAverage(categoryScoreList, args)) + args.nocol
         niouAvgStr = getColorEntry(getScoreAverage(categoryInstScoreList, args), args) + "{avg:5.3f}".format(avg=getScoreAverage(categoryInstScoreList, args)) + args.nocol
-        print "--------------------------------"
-        print "Score Average : " + iouAvgStr + "    " + niouAvgStr
-        print "--------------------------------"
-        print
+        print("--------------------------------")
+        print("Score Average : " + iouAvgStr + "    " + niouAvgStr)
+        print("--------------------------------")
+        print()
 
     # write result file
     allResultsDict = createResultDict( confMatrix, classScoreList, classInstScoreList, categoryScoreList, categoryInstScoreList, perImageStats, args )
