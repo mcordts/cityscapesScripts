@@ -30,7 +30,7 @@ Possible values of `type`
  - `rightImg16bit` the right stereo views in 16-bit HDR format.
  - `timestamp`     the time of recording in ns. The first frame of each sequence always has a timestamp of 0.
  - `disparity`     precomputed disparity depth maps. To obtain the disparity values, compute for each pixel p with p > 0: d = ( float(p) - 1. ) / 256., while a value p = 0 is an invalid measurement. Warning: the images are stored as 16-bit pngs, which is non-standard and not supported by all libraries.
- - `camera`        internal and external camera calibration.
+ - `camera`        internal and external camera calibration. All internal parameters are given in pixels, external parameters in meters and radians.
 
 More types might be added over time and also not all types are initially available. Please let us know if you need any other meta-data to run your approach.
 
