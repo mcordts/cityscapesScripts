@@ -30,7 +30,8 @@ Possible values of `type`
  - `rightImg16bit` the right stereo views in 16-bit HDR format.
  - `timestamp`     the time of recording in ns. The first frame of each sequence always has a timestamp of 0.
  - `disparity`     precomputed disparity depth maps. To obtain the disparity values, compute for each pixel p with p > 0: d = ( float(p) - 1. ) / 256., while a value p = 0 is an invalid measurement. Warning: the images are stored as 16-bit pngs, which is non-standard and not supported by all libraries.
- - `camera`        internal and external camera calibration. All internal parameters are given in pixels, external parameters in meters and radians.
+ - `camera`        internal and external camera calibration. For details, please refer to [csCalibration.pdf](docs/csCalibration.pdf)
+ - `vehicle`       vehicle odometry, GPS coordinates, and outside temperature. For details, please refer to [csCalibration.pdf](docs/csCalibration.pdf)
 
 More types might be added over time and also not all types are initially available. Please let us know if you need any other meta-data to run your approach.
 
@@ -60,7 +61,6 @@ Note that all files have a small documentation at the top. Most important files
  - `evaluation/evalPixelLevelSemanticLabeling.py`    script to evaluate pixel-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
  - `evaluation/evalInstanceLevelSemanticLabeling.py` script to evaluate instance-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
  - `evaluation/setup.py`                             run `setup.py build_ext --inplace` to enable cython plugin for faster evaluation. Only tested for Ubuntu.
-
 
 
 
