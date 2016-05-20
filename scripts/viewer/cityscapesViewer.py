@@ -148,13 +148,13 @@ class CityscapesViewer(QtGui.QMainWindow):
             self.enableDisparity = False
         # check if pillow was important, otherwise no disparity visu possible
         if not 'PILLOW_VERSION' in globals():
-            print globals()
+            print(globals())
             self.enableDisparity = False
 
         # Default label
         self.defaultLabel = 'static'
-        if not name2label.has_key( self.defaultLabel ):
-            print 'The {0} label is missing in the internal label definitions.'.format(self.defaultLabel)
+        if self.defaultLabel not in name2label:
+            print('The {0} label is missing in the internal label definitions.'.format(self.defaultLabel))
             return
         # Last selected label
         self.lastLabel = self.defaultLabel
@@ -708,9 +708,9 @@ class CityscapesViewer(QtGui.QMainWindow):
             # The label of the object
             name      = assureSingleInstanceName( obj.label )
             # If we do not know a color for this label, warn the user
-            if not name2label.has_key( name ):
-                print "The annotations contain unkown labels. This should not happen. Please inform the datasets authors. Thank you!"
-                print "Details: label '{}', file '{}'".format(name,self.currentLabelFile)
+            if name not in name2label:
+                print("The annotations contain unkown labels. This should not happen. Please inform the datasets authors. Thank you!")
+                print("Details: label '{}', file '{}'".format(name,self.currentLabelFile))
                 continue
 
             poly = self.getPolygon(obj)
@@ -890,8 +890,8 @@ class CityscapesViewer(QtGui.QMainWindow):
         mousePosScaled.setY( min( mousePosScaled.y() , self.image.rect().bottom() ) )
 
         if not self.image.rect().contains( mousePosScaled.toPoint() ):
-            print self.image.rect()
-            print mousePosScaled.toPoint()
+            print(self.image.rect())
+            print(mousePosScaled.toPoint())
             self.mousePosScaled = None
             self.mousePosOrig = None
             self.updateMouseObject()

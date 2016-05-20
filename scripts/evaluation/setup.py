@@ -10,8 +10,8 @@ try:
     from distutils.core import setup
     from Cython.Build import cythonize
 except:
-    print "Unable to setup. Please use pip to install: cython"
-    print "sudo pip install cython"
+    print("Unable to setup. Please use pip to install: cython")
+    print("sudo pip install cython")
 import os
 import numpy
 

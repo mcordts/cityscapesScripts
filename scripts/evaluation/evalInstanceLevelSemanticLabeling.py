@@ -34,6 +34,7 @@
 # goes wrong.
 
 # python imports
+from __future__ import print_function
 import os, sys
 import fnmatch
 from copy import deepcopy
@@ -192,13 +193,13 @@ def getGtInstances(groundTruthList,args):
     # if there is a global statistics json, then load it
     if (os.path.isfile(args.gtInstancesFile)):
         if not args.quiet:
-            print "Loading ground truth instances from JSON."
+            print("Loading ground truth instances from JSON.")
         with open(args.gtInstancesFile) as json_file:
             gtInstances = json.load(json_file)
     # otherwise create it
     else:
         if (not args.quiet):
-            print "Creating ground truth instances from png files."
+            print("Creating ground truth instances from png files.")
         gtInstances = instances2dict(groundTruthList,not args.quiet)
         writeDict2JSON(gtInstances, args.gtInstancesFile)
 
@@ -217,7 +218,7 @@ def filterGtInstances(singleImageInstances,args):
 def matchGtWithPreds(predictionList,groundTruthList,gtInstances,args):
     matches = {}
     if not args.quiet:
-        print "Matching {} pairs of images...".format(len(predictionList))
+        print("Matching {} pairs of images...".format(len(predictionList)))
 
     count = 0
     for (pred,gt) in zip(predictionList,groundTruthList):
@@ -242,11 +243,11 @@ def matchGtWithPreds(predictionList,groundTruthList,gtInstances,args):
 
         count += 1
         if not args.quiet:
-            print "\rImages Processed: {}".format(count),
+            print("\rImages Processed: {}".format(count), end=' ')
             sys.stdout.flush()
 
     if not args.quiet:
-        print
+        print()
 
     return matches
 
@@ -581,9 +582,9 @@ def printResults(avgDict, args):
     if args.distanceAvailable:
         lineLen += 40
 
-    print
+    print()
     if not args.csv:
-        print "#"*lineLen
+        print("#"*lineLen)
     line  = bold
     line += "{:<15}".format("what"      ) + sep + col1
     line += "{:>15}".format("AP"        ) + sep
@@ -593,9 +594,9 @@ def printResults(avgDict, args):
         line += "{:>15}".format("AP_100m"   ) + sep
         line += "{:>15}".format("AP_50%50m" ) + sep
     line += noCol
-    print line
+    print(line)
     if not args.csv:
-        print "#"*lineLen
+        print("#"*lineLen)
 
     for (lI,labelName) in enumerate(args.instLabels):
         apAvg  = avgDict["classes"][labelName]["ap"]
@@ -613,7 +614,7 @@ def printResults(avgDict, args):
             line += getColorEntry(ap100m, args) + sep + "{:>15.3f}".format(ap100m) + sep
             line += getColorEntry(ap5050, args) + sep + "{:>15.3f}".format(ap5050) + sep
         line += noCol
-        print line
+        print(line)
 
     allApAvg  = avgDict["allAp"]
     allAp50o  = avgDict["allAp50%"]
@@ -623,7 +624,7 @@ def printResults(avgDict, args):
         allAp5050 = avgDict["allAp50%50m"]
 
     if not args.csv:
-            print "-"*lineLen
+            print("-"*lineLen)
     line  = "{:<15}".format("average") + sep + col1 
     line += getColorEntry(allApAvg , args) + sep + "{:>15.3f}".format(allApAvg)  + sep 
     line += getColorEntry(allAp50o , args) + sep + "{:>15.3f}".format(allAp50o)  + sep
@@ -632,8 +633,8 @@ def printResults(avgDict, args):
         line += getColorEntry(allAp100m, args) + sep + "{:>15.3f}".format(allAp100m) + sep
         line += getColorEntry(allAp5050, args) + sep + "{:>15.3f}".format(allAp5050) + sep
     line += noCol
-    print line
-    print
+    print(line)
+    print()
 
 def prepareJSONDataForResults(avgDict, aps, args):
     JSONData = {}
@@ -700,8 +701,8 @@ def main(argv):
             predictionImgList.append( getPrediction(gt,args) )
 
     # print some info for user
-    print "Note that this tool uses the file '{}' to cache the ground truth instances.".format(args.gtInstancesFile)
-    print "If anything goes wrong, or if you change the ground truth, please delete the file."
+    print("Note that this tool uses the file '{}' to cache the ground truth instances.".format(args.gtInstancesFile))
+    print("If anything goes wrong, or if you change the ground truth, please delete the file.")
 
     # evaluate
     evaluateImgLists(predictionImgList, groundTruthImgList, args)

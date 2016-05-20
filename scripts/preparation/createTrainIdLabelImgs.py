@@ -20,6 +20,7 @@
 #
 
 # python imports
+from __future__ import print_function
 import os, glob, sys
 
 # cityscapes imports
@@ -53,11 +54,11 @@ def main():
         printError( "Did not find any files. Please consult the README." )
 
     # a bit verbose
-    print "Processing {} annotation files".format(len(files))
+    print("Processing {} annotation files".format(len(files)))
 
     # iterate through files
     progress = 0
-    print "Progress: {:>3} %".format( progress * 100 / len(files) ) ,
+    print("Progress: {:>3} %".format( progress * 100 / len(files) ), end=' ')
     for f in files:
         # create the output filename
         dst = f.replace( "_polygons.json" , "_labelTrainIds.png" )
@@ -66,12 +67,12 @@ def main():
         try:
             json2labelImg( f , dst , "trainIds" )
         except:
-            print "Failed to convert: {}".format(f)
+            print("Failed to convert: {}".format(f))
             raise
 
         # status
         progress += 1
-        print "\rProgress: {:>3} %".format( progress * 100 / len(files) ) ,
+        print("\rProgress: {:>3} %".format( progress * 100 / len(files) ), end=' ')
         sys.stdout.flush()
 
 
