@@ -15,22 +15,22 @@ from collections import namedtuple
 try:
     from PIL import PILLOW_VERSION
 except:
-    print "Please install the module 'Pillow' for image processing, e.g."
-    print "pip install pillow"
+    print("Please install the module 'Pillow' for image processing, e.g.")
+    print("pip install pillow")
     sys.exit(-1)
 
 try:
     import PIL.Image     as Image
     import PIL.ImageDraw as ImageDraw
 except:
-    print "Failed to import the image processing packages."
+    print("Failed to import the image processing packages.")
     sys.exit(-1)
 
 # Numpy for datastructures
 try:
     import numpy as np
 except:
-    print "Failed to import numpy package."
+    print("Failed to import numpy package.")
     sys.exit(-1)
 
 # Cityscapes modules
@@ -38,12 +38,12 @@ try:
     from annotation   import Annotation
     from labels       import labels, name2label, id2label, trainId2label, category2labels
 except:
-    print "Failed to find all Cityscapes modules"
+    print("Failed to find all Cityscapes modules")
     sys.exit(-1)
 
 # Print an error message and quit
 def printError(message):
-    print 'ERROR: ', message
+    print('ERROR: ' + str(message))
     sys.exit(-1)
 
 # Class for colors

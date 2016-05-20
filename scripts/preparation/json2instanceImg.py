@@ -40,15 +40,15 @@ import os, sys, getopt
 try:
     from PIL import PILLOW_VERSION
 except:
-    print "Please install the module 'Pillow' for image processing, e.g."
-    print "pip install pillow"
+    print("Please install the module 'Pillow' for image processing, e.g.")
+    print("pip install pillow")
     sys.exit(-1)
 
 try:
     import PIL.Image     as Image
     import PIL.ImageDraw as ImageDraw
 except:
-    print "Failed to import the image processing packages."
+    print("Failed to import the image processing packages.")
     sys.exit(-1)
 
 
@@ -59,37 +59,37 @@ from labels     import labels, name2label
 
 # Print the information
 def printHelp():
-    print os.path.basename(sys.argv[0]), '[OPTIONS] inputJson outputImg'
-    print
-    print ' Reads labels as polygons in JSON format and converts them to instance images,'
-    print ' where each pixel has an ID that represents the ground truth class and the'
-    print ' individual instance of that class.'
-    print ''
-    print ' The pixel values encode both, class and the individual instance.'
-    print ' The integer part of a division by 1000 of each ID provides the class ID,'
-    print ' as described in labels.py. The remainder is the instance ID. If a certain'
-    print ' annotation describes multiple instances, then the pixels have the regular'
-    print ' ID of that class.'
-    print ''
-    print ' Example:'
-    print ' Let\'s say your labels.py assigns the ID 26 to the class "car".'
-    print ' Then, the individual cars in an image get the IDs 26000, 26001, 26002, ... .'
-    print ' A group of cars, where our annotators could not identify the individual'
-    print ' instances anymore, is assigned to the ID 26.'
-    print ''
-    print ' Note that not all classes distinguish instances (see labels.py for a full list).'
-    print ' The classes without instance annotations are always directly encoded with'
-    print ' their regular ID, e.g. 11 for "building".'
-    print
-    print 'Options:'
-    print ' -h                 Print this help'
-    print ' -t                 Use the "trainIDs" instead of the regular mapping. See "labels.py" for details.'
+    print('{} [OPTIONS] inputJson outputImg'.format(os.path.basename(sys.argv[0])))
+    print('')
+    print(' Reads labels as polygons in JSON format and converts them to instance images,')
+    print(' where each pixel has an ID that represents the ground truth class and the')
+    print(' individual instance of that class.')
+    print('')
+    print(' The pixel values encode both, class and the individual instance.')
+    print(' The integer part of a division by 1000 of each ID provides the class ID,')
+    print(' as described in labels.py. The remainder is the instance ID. If a certain')
+    print(' annotation describes multiple instances, then the pixels have the regular')
+    print(' ID of that class.')
+    print('')
+    print(' Example:')
+    print(' Let\'s say your labels.py assigns the ID 26 to the class "car".')
+    print(' Then, the individual cars in an image get the IDs 26000, 26001, 26002, ... .')
+    print(' A group of cars, where our annotators could not identify the individual')
+    print(' instances anymore, is assigned to the ID 26.')
+    print('')
+    print(' Note that not all classes distinguish instances (see labels.py for a full list).')
+    print(' The classes without instance annotations are always directly encoded with')
+    print(' their regular ID, e.g. 11 for "building".')
+    print('')
+    print('Options:')
+    print(' -h                 Print this help')
+    print(' -t                 Use the "trainIDs" instead of the regular mapping. See "labels.py" for details.')
 
 # Print an error message and quit
 def printError(message):
-    print 'ERROR: ', message
-    print
-    print 'USAGE:'
+    print('ERROR: {}'.format(message))
+    print('')
+    print('USAGE:')
     printHelp()
     sys.exit(-1)
 
@@ -104,7 +104,7 @@ def createInstanceImage(annotation, encoding):
     elif encoding == "trainIds":
         backgroundId = name2label['unlabeled'].trainId
     else:
-        print "Unknown encoding '{}'".format(encoding)
+        print("Unknown encoding '{}'".format(encoding))
         return None
 
     # this is the image that we want to create
@@ -158,7 +158,7 @@ def createInstanceImage(annotation, encoding):
         try:
             drawer.polygon( polygon, fill=id )
         except:
-            print "Failed to draw polygon with label {} and id {}: {}".format(label,id,polygon)
+            print("Failed to draw polygon with label {} and id {}: {}".format(label,id,polygon))
             raise
 
     return instanceImg

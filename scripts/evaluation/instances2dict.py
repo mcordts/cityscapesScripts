@@ -3,6 +3,7 @@
 # Convert instances from png files to a dictionary
 #
 
+from __future__ import print_function
 import os, sys
 
 # Cityscapes imports
@@ -18,7 +19,7 @@ def instances2dict(imageFileList, verbose=False):
         imageFileList = [imageFileList]
 
     if verbose:
-        print "Processing {} images...".format(len(imageFileList))
+        print("Processing {} images...".format(len(imageFileList)))
 
     for imageFileName in imageFileList:
         # Load image
@@ -43,11 +44,11 @@ def instances2dict(imageFileList, verbose=False):
         imgCount += 1
 
         if verbose:
-            print "\rImages Processed: {}".format(imgCount),
+            print("\rImages Processed: {}".format(imgCount), end=' ')
             sys.stdout.flush()
 
     if verbose:
-        print
+        print("")
 
     return instanceDict
 

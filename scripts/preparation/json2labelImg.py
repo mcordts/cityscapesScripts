@@ -23,15 +23,15 @@ import os, sys, getopt
 try:
     from PIL import PILLOW_VERSION
 except:
-    print "Please install the module 'Pillow' for image processing, e.g."
-    print "pip install pillow"
+    print("Please install the module 'Pillow' for image processing, e.g.")
+    print("pip install pillow")
     sys.exit(-1)
 
 try:
     import PIL.Image     as Image
     import PIL.ImageDraw as ImageDraw
 except:
-    print "Failed to import the image processing packages."
+    print("Failed to import the image processing packages.")
     sys.exit(-1)
 
 
@@ -42,20 +42,20 @@ from labels     import name2label
 
 # Print the information
 def printHelp():
-    print os.path.basename(sys.argv[0]), '[OPTIONS] inputJson outputImg'
-    print
-    print 'Reads labels as polygons in JSON format and converts them to label images,'
-    print 'where each pixel has an ID that represents the ground truth label.'
-    print
-    print 'Options:'
-    print ' -h                 Print this help'
-    print ' -t                 Use the "trainIDs" instead of the regular mapping. See "labels.py" for details.'
+    print('{} [OPTIONS] inputJson outputImg'.format(os.path.basename(sys.argv[0])))
+    print('')
+    print('Reads labels as polygons in JSON format and converts them to label images,')
+    print('where each pixel has an ID that represents the ground truth label.')
+    print('')
+    print('Options:')
+    print(' -h                 Print this help')
+    print(' -t                 Use the "trainIDs" instead of the regular mapping. See "labels.py" for details.')
 
 # Print an error message and quit
 def printError(message):
-    print 'ERROR: ', message
-    print
-    print 'USAGE:'
+    print('ERROR: {}'.format(message))
+    print('')
+    print('USAGE:')
     printHelp()
     sys.exit(-1)
 
@@ -72,7 +72,7 @@ def createLabelImage(annotation, encoding, outline=None):
     elif encoding == "color":
         background = name2label['unlabeled'].color
     else:
-        print "Unknown encoding '{}'".format(encoding)
+        print("Unknown encoding '{}'".format(encoding))
         return None
 
     # this is the image that we want to create
@@ -114,7 +114,7 @@ def createLabelImage(annotation, encoding, outline=None):
             else:
                 drawer.polygon( polygon, fill=val )
         except:
-            print "Failed to draw polygon with label {}".format(label)
+            print("Failed to draw polygon with label {}".format(label))
             raise
 
     return labelImg
