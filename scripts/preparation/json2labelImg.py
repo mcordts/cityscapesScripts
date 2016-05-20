@@ -43,10 +43,10 @@ from labels     import name2label
 # Print the information
 def printHelp():
     print('{} [OPTIONS] inputJson outputImg'.format(os.path.basename(sys.argv[0])))
-    print()
+    print('')
     print('Reads labels as polygons in JSON format and converts them to label images,')
     print('where each pixel has an ID that represents the ground truth label.')
-    print()
+    print('')
     print('Options:')
     print(' -h                 Print this help')
     print(' -t                 Use the "trainIDs" instead of the regular mapping. See "labels.py" for details.')
@@ -54,7 +54,7 @@ def printHelp():
 # Print an error message and quit
 def printError(message):
     print('ERROR: {}'.format(message))
-    print()
+    print('')
     print('USAGE:')
     printHelp()
     sys.exit(-1)

@@ -247,7 +247,7 @@ def matchGtWithPreds(predictionList,groundTruthList,gtInstances,args):
             sys.stdout.flush()
 
     if not args.quiet:
-        print()
+        print("")
 
     return matches
 
@@ -582,7 +582,7 @@ def printResults(avgDict, args):
     if args.distanceAvailable:
         lineLen += 40
 
-    print()
+    print("")
     if not args.csv:
         print("#"*lineLen)
     line  = bold
@@ -634,7 +634,7 @@ def printResults(avgDict, args):
         line += getColorEntry(allAp5050, args) + sep + "{:>15.3f}".format(allAp5050) + sep
     line += noCol
     print(line)
-    print()
+    print("")
 
 def prepareJSONDataForResults(avgDict, aps, args):
     JSONData = {}

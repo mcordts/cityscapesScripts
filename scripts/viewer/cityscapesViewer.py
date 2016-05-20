@@ -148,7 +148,6 @@ class CityscapesViewer(QtGui.QMainWindow):
             self.enableDisparity = False
         # check if pillow was important, otherwise no disparity visu possible
         if not 'PILLOW_VERSION' in globals():
-            print(globals())
             self.enableDisparity = False
 
         # Default label

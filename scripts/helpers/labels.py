@@ -157,12 +157,12 @@ def assureSingleInstanceName( name ):
 if __name__ == "__main__":
     # Print all the labels
     print("List of cityscapes labels:")
-    print()
+    print("")
     print("    {:>21} | {:>3} | {:>7} | {:>14} | {:>10} | {:>12} | {:>12}".format( 'name', 'id', 'trainId', 'category', 'categoryId', 'hasInstances', 'ignoreInEval' ))
     print("    " + ('-' * 98))
     for label in labels:
         print("    {:>21} | {:>3} | {:>7} | {:>14} | {:>10} | {:>12} | {:>12}".format( label.name, label.id, label.trainId, label.category, label.categoryId, label.hasInstances, label.ignoreInEval ))
-    print()
+    print("")
 
     print("Example usages:")
 

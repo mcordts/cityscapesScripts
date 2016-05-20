@@ -477,7 +477,7 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
             print("\rImages Processed: {}".format(i+1), end=' ')
             sys.stdout.flush()
     if not args.quiet:
-        print()
+        print("\n")
 
     # sanity check
     if confMatrix.sum() != nbPixels:
@@ -501,15 +501,15 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
 
     # Print IOU scores
     if (not args.quiet):
-        print()
-        print()
+        print("")
+        print("")
         printClassScores(classScoreList, classInstScoreList, args)
         iouAvgStr  = getColorEntry(getScoreAverage(classScoreList, args), args) + "{avg:5.3f}".format(avg=getScoreAverage(classScoreList, args)) + args.nocol
         niouAvgStr = getColorEntry(getScoreAverage(classInstScoreList , args), args) + "{avg:5.3f}".format(avg=getScoreAverage(classInstScoreList , args)) + args.nocol
         print("--------------------------------")
         print("Score Average : " + iouAvgStr + "    " + niouAvgStr)
         print("--------------------------------")
-        print()
+        print("")
 
     # Calculate IOU scores on category level from matrix
     categoryScoreList = {}
@@ -523,14 +523,14 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
 
     # Print IOU scores
     if (not args.quiet):
-        print()
+        print("")
         printCategoryScores(categoryScoreList, categoryInstScoreList, args)
         iouAvgStr = getColorEntry(getScoreAverage(categoryScoreList, args), args) + "{avg:5.3f}".format(avg=getScoreAverage(categoryScoreList, args)) + args.nocol
         niouAvgStr = getColorEntry(getScoreAverage(categoryInstScoreList, args), args) + "{avg:5.3f}".format(avg=getScoreAverage(categoryInstScoreList, args)) + args.nocol
         print("--------------------------------")
         print("Score Average : " + iouAvgStr + "    " + niouAvgStr)
         print("--------------------------------")
-        print()
+        print("")
 
     # write result file
     allResultsDict = createResultDict( confMatrix, classScoreList, classInstScoreList, categoryScoreList, categoryInstScoreList, perImageStats, args )

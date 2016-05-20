@@ -60,7 +60,7 @@ from labels     import labels, name2label
 # Print the information
 def printHelp():
     print('{} [OPTIONS] inputJson outputImg'.format(os.path.basename(sys.argv[0])))
-    print()
+    print('')
     print(' Reads labels as polygons in JSON format and converts them to instance images,')
     print(' where each pixel has an ID that represents the ground truth class and the')
     print(' individual instance of that class.')
@@ -80,7 +80,7 @@ def printHelp():
     print(' Note that not all classes distinguish instances (see labels.py for a full list).')
     print(' The classes without instance annotations are always directly encoded with')
     print(' their regular ID, e.g. 11 for "building".')
-    print()
+    print('')
     print('Options:')
     print(' -h                 Print this help')
     print(' -t                 Use the "trainIDs" instead of the regular mapping. See "labels.py" for details.')
@@ -88,7 +88,7 @@ def printHelp():
 # Print an error message and quit
 def printError(message):
     print('ERROR: {}'.format(message))
-    print()
+    print('')
     print('USAGE:')
     printHelp()
     sys.exit(-1)

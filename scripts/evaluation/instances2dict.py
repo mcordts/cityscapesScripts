@@ -48,7 +48,7 @@ def instances2dict(imageFileList, verbose=False):
             sys.stdout.flush()
 
     if verbose:
-        print()
+        print("")
 
     return instanceDict
 
