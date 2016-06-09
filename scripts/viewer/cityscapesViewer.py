@@ -146,7 +146,7 @@ class CityscapesViewer(QtGui.QMainWindow):
             self.colormap = matplotlib.cm.ScalarMappable( norm=norm , cmap=cmap )
         except:
             self.enableDisparity = False
-        # check if pillow was important, otherwise no disparity visu possible
+        # check if pillow was imported, otherwise no disparity visu possible
         if not 'PILLOW_VERSION' in globals():
             self.enableDisparity = False
 
