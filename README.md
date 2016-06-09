@@ -51,6 +51,7 @@ There are several scripts included with the dataset in a folder named `scripts`
  - `viewer`       view the images and the annotations
  - `preparation`  convert the ground truth annotations into a format suitable for your approach
  - `evaluation`   validate your approach
+ - `annotation`   the annotation tool used for labeling the dataset
 
 
 Note that all files have a small documentation at the top. Most important files
