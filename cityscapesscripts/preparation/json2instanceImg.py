@@ -125,6 +125,10 @@ def createInstanceImage(annotation, encoding):
         label   = obj.label
         polygon = obj.polygon
 
+        # If the object is deleted, skip it
+        if obj.deleted:
+            continue
+
         # if the label is not known, but ends with a 'group' (e.g. cargroup)
         # try to remove the s and see if that works
         # also we know that this polygon describes a group

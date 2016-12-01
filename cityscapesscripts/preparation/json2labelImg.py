@@ -89,6 +89,10 @@ def createLabelImage(annotation, encoding, outline=None):
         label   = obj.label
         polygon = obj.polygon
 
+        # If the object is deleted, skip it
+        if obj.deleted:
+            continue
+
         # If the label is not known, but ends with a 'group' (e.g. cargroup)
         # try to remove the s and see if that works
         if ( not label in name2label ) and label.endswith('group'):
