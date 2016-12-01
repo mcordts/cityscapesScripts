@@ -23,7 +23,10 @@ import getpass
 # xml parsing
 import xml.etree.ElementTree as ET
 # copy text to clipboard
-from Tkinter import Tk
+try:
+    from Tkinter import Tk
+except:
+    from tkinter import Tk
 # copy stuff
 import copy
 
