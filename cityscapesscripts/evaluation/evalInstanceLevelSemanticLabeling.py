@@ -295,6 +295,7 @@ def assignGt2Preds(gtInstancesOrig, gtImage, predInfo, args):
 
         # Read the mask
         predImage = Image.open(predImageFile)
+        predImage = predImage.convert("L")
         predNp    = np.array(predImage)
 
         # make the image really binary, i.e. everything non-zero is part of the prediction
