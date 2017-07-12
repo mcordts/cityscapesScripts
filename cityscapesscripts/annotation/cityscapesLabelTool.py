@@ -2339,6 +2339,11 @@ class CityscapesLabelTool(QtGui.QMainWindow):
 
     # Create new object
     def appendObject(self, label, polygon):
+        # Create empty annotation object
+        # if first object
+        if not self.annotation:
+            self.annotation = Annotation()
+
         # Search the highest ID
         newID = 0
         for obj in self.annotation.objects:
