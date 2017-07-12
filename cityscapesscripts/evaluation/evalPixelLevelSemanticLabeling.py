@@ -123,8 +123,14 @@ if 'CITYSCAPES_DATASET' in os.environ:
 else:
     args.cityscapesPath = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
 
+if 'CITYSCAPES_EXPORT_DIR' in os.environ:
+    export_dir = os.environ['CITYSCAPES_EXPORT_DIR']
+    if not os.path.isdir(export_dir):
+        raise ValueError("CITYSCAPES_EXPORT_DIR {} is not a directory".format(export_dir))
+    args.exportFile = "{}/resultPixelLevelSemanticLabeling.json".format(export_dir)
+else:
+    args.exportFile = os.path.join(args.cityscapesPath, "evaluationResults", "resultPixelLevelSemanticLabeling.json")
 # Parameters that should be modified by user
-args.exportFile         = os.path.join( args.cityscapesPath , "evaluationResults" , "resultPixelLevelSemanticLabeling.json" )
 args.groundTruthSearch  = os.path.join( args.cityscapesPath , "gtFine" , "val" , "*", "*_gtFine_labelIds.png" )
 
 # Remaining params
