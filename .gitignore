@@ -62,3 +62,6 @@ target/
 
 # configuration files
 cityscapesLabelTool.conf
+
+# Virtual Enviroment
+.env
