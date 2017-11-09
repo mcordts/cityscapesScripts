@@ -1,22 +1,31 @@
 #!/usr/bin/python
-#
-# Enable cython support for eval scripts
-# Run as
-# setup.py build_ext --inplace
-#
-# WARNING: Only tested for Ubuntu 64bit OS.
+
 
 try:
-    from distutils.core import setup
-    from Cython.Build import cythonize
-except:
-    print("Unable to setup. Please use pip to install: cython")
-    print("sudo pip install cython")
-import os
-import numpy
+    import numpy as np
+except ImportError:
+    print('install numpy first')
+from setuptools import Extension, find_packages, setup
 
-os.environ["CC"]  = "g++"
-os.environ["CXX"] = "g++"
+description = (
+        'This repository contains scripts for'
+        'inspection, preparation, and evaluation of the Cityscapes dataset.')
+c_file = 'cityscapesscripts/evaluation/addToConfusionMatrix.c'
+include_file = 'cityscapesscripts/evaluation/addToConfusionMatrix_impl.c'
+extensions = [Extension(
+        'cityscapesscripts.evaluation.addToConfusionMatrix',
+        [c_file],
+        include_dirs=[np.get_include(), include_file])]
+setup(
+        name='cityscapesScripts',
+        version='1.0.4',
+        description=description,
+        url='https://github.com/mcordts/cityscapesScripts',
+        author='mcordts',
+        license='custon',
 
-pyxFile = os.path.join( "cityscapesscripts" , "evaluation" , "addToConfusionMatrix.pyx" )
-setup(ext_modules = cythonize(pyxFile),include_dirs=[numpy.get_include()])
+        packages=find_packages(),
+        install_requires=['numpy', 'pillow', 'matplotlib'],
+        setup_requires=['setuptools>=18.0', 'numpy'],
+        ext_modules=extensions,
+)
