@@ -4,7 +4,9 @@
 # Run as
 # setup.py build_ext --inplace
 #
-# WARNING: Only tested for Ubuntu 64bit OS.
+# For MacOS X you may have to export the numpy headers in CFLAGS
+# export CFLAGS="-I /usr/local/lib/python3.6/site-packages/numpy/core/include $CFLAGS"
+
 import os
 from setuptools import setup
 has_cython = True
