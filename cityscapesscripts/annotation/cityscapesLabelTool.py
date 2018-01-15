@@ -780,6 +780,10 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         # Only save if there are changes, labels, an image filename and an image
         if self.changes and (self.annotation or self.corrections) and self.config.currentFile and self.image:
             if self.annotation:
+                # set image dimensions
+                self.annotation.imgWidth = self.image.width()
+                self.annotation.imgHeight = self.image.height()
+
                 # Determine the filename
                 # If we have a loaded label file, then this is also the filename
                 filename = self.config.currentLabelFile
