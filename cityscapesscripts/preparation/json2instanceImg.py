@@ -149,9 +149,9 @@ def createInstanceImage(annotation, encoding):
         elif encoding == "trainIds":
             id = labelTuple.trainId
 
-        # if this label distinguishs between invidudial instances,
+        # if this label distinguishs between individual instances,
         # make the id a instance ID
-        if labelTuple.hasInstances and not isGroup:
+        if labelTuple.hasInstances and not isGroup and id != 255:
             id = id * 1000 + nbInstances[label]
             nbInstances[label] += 1
 
