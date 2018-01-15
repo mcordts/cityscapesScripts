@@ -43,7 +43,6 @@ Possible values of `split`
  - `demoVideo`   video sequences that could be used for qualitative evaluation, no annotations are available for these videos
 
 
-
 ## Scripts
 
 There are several scripts included with the dataset in a folder named `scripts`
@@ -63,6 +62,18 @@ Note that all files have a small documentation at the top. Most important files
  - `evaluation/evalInstanceLevelSemanticLabeling.py` script to evaluate instance-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
  - `setup.py`                                        run `setup.py build_ext --inplace` to enable cython plugin for faster evaluation. Only tested for Ubuntu.
 
+The scripts can be installed via pip, i.e. from within the scripts:
+`sudo pip install .`
+This installs the scripts as a python module named `cityscapesscripts` and exposes the following tools, see above for descriptions:
+- `csViewer`
+- `csLabelTool`
+- `csEvalPixelLevelSemanticLabeling`
+- `csEvalInstanceLevelSemanticLabeling`
+- `csCreateTrainIdLabelImgs`
+- `csCreateTrainIdInstanceImgs`
+
+Note that for the grapical tools you additionally need to install:
+`sudo apt install python-tk python-qt4`
 
 
 ## Evaluation
