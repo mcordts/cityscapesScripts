@@ -4,8 +4,8 @@
 # We use this script to evaluate your approach on the test set.
 # You can use the script to evaluate on the validation set.
 #
-# Please check the description of the "getPrediction" method below 
-# and set the required environment variables as needed, such that 
+# Please check the description of the "getPrediction" method below
+# and set the required environment variables as needed, such that
 # this script can locate your results.
 # If the default implementation of the method works, then it's most likely
 # that our evaluation server will be able to process your results as well.
@@ -20,7 +20,7 @@
 # - The given paths "relPathPrediction" point to images that contain
 # binary masks for the described predictions, where any non-zero is
 # part of the predicted instance. The paths must not contain spaces,
-# must be relative to the root directory and must point to locations 
+# must be relative to the root directory and must point to locations
 # within the root directory.
 # - The label IDs "labelIDPrediction" specify the class of that mask,
 # encoded as defined in labels.py. Note that the regular ID is used,
@@ -626,8 +626,8 @@ def printResults(avgDict, args):
 
     if not args.csv:
             print("-"*lineLen)
-    line  = "{:<15}".format("average") + sep + col1 
-    line += getColorEntry(allApAvg , args) + sep + "{:>15.3f}".format(allApAvg)  + sep 
+    line  = "{:<15}".format("average") + sep + col1
+    line += getColorEntry(allApAvg , args) + sep + "{:>15.3f}".format(allApAvg)  + sep
     line += getColorEntry(allAp50o , args) + sep + "{:>15.3f}".format(allAp50o)  + sep
     if args.distanceAvailable:
         line += getColorEntry(allAp50m , args) + sep + "{:>15.3f}".format(allAp50m)  + sep
@@ -678,8 +678,9 @@ def evaluateImgLists(predictionList, groundTruthList, args):
     return resDict
 
 # The main method
-def main(argv):
+def main():
     global args
+    argv = sys.argv[1:]
 
     predictionImgList = []
     groundTruthImgList = []
@@ -712,4 +713,4 @@ def main(argv):
 
 # call the main method
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

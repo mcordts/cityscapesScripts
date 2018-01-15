@@ -4,8 +4,8 @@
 # We use this script to evaluate your approach on the test set.
 # You can use the script to evaluate on the validation set.
 #
-# Please check the description of the "getPrediction" method below 
-# and set the required environment variables as needed, such that 
+# Please check the description of the "getPrediction" method below
+# and set the required environment variables as needed, such that
 # this script can locate your results.
 # If the default implementation of the method works, then it's most likely
 # that our evaluation server will be able to process your results as well.
@@ -645,8 +645,9 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
     return nbPixels
 
 # The main method
-def main(argv):
+def main():
     global args
+    argv = sys.argv[1:]
 
     predictionImgList = []
     groundTruthImgList = []
@@ -675,4 +676,4 @@ def main(argv):
 
 # call the main method
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
