@@ -46,6 +46,12 @@ Possible values of `split`
 
 ## Scripts
 
+Before using the scripts, make sure the following dependencies are installed:
+
+`sudo pip install numpy cython`
+
+`sudo apt install python-tk python-qt4`
+
 There are several scripts included with the dataset in a folder named `scripts`
  - `helpers`      helper files that are included by other scripts
  - `viewer`       view the images and the annotations

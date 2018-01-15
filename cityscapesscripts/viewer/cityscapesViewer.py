@@ -17,7 +17,7 @@ import os
 # call processes
 import subprocess
 # copy things
-import copy 
+import copy
 # numpy
 import numpy as np
 # matplotlib for colormaps
@@ -607,7 +607,7 @@ class CityscapesViewer(QtGui.QMainWindow):
             overlay = self.drawLabels(qp)
             # Draw the label name next to the mouse
             self.drawLabelAtMouse(qp)
-        
+
         # Draw the zoom
         self.drawZoom(qp, overlay)
 
@@ -852,7 +852,7 @@ class CityscapesViewer(QtGui.QMainWindow):
     # Draw disparities
     def drawDisp( self , qp ):
         if not self.dispOverlay:
-            return 
+            return
 
         # Save QPainter settings to stack
         qp.save()
@@ -988,34 +988,34 @@ class CityscapesViewer(QtGui.QMainWindow):
 
         # Specify title
         dlgTitle = "Select new city"
-        message  = dlgTitle
+        message = dlgTitle
         question = dlgTitle
-        message  = "Select city for viewing"
+        message = "Select city for viewing"
         question = "Which city would you like to view?"
         self.statusBar().showMessage(message)
 
         if items:
+            # Create and wait for dialog
+            (item, ok) = QtGui.QInputDialog.getItem(self, dlgTitle, question,
+                                                    items, 0, False)
 
-		    # Create and wait for dialog
-		    (item, ok) = QtGui.QInputDialog.getItem(self, dlgTitle, question, items, 0, False)
+            # Restore message
+            self.statusBar().showMessage(restoreMessage)
 
-		    # Restore message
-		    self.statusBar().showMessage( restoreMessage )
-
-		    if ok and item:
-		        (split,gt,city) = [ str(i) for i in item.split(', ') ]
-		        if split == 'test' and not self.showDisparity:
-		            self.transp = 0.1
-		        else:
-		            self.transp = 0.5
-		        self.city      = os.path.normpath( os.path.join( csPath, "leftImg8bit" , split , city ) )
-		        self.labelPath = os.path.normpath( os.path.join( csPath, gt            , split , city ) )
-		        self.dispPath  = os.path.normpath( os.path.join( csPath, "disparity"   , split , city ) )
-		        self.loadCity()
-		        self.imageChanged()
+            if ok and item:
+                (split, gt, city) = [str(i) for i in item.split(', ')]
+                if split == 'test' and not self.showDisparity:
+                    self.transp = 0.1
+                else:
+                    self.transp = 0.5
+                self.city      = os.path.normpath(os.path.join(csPath, "leftImg8bit", split, city))
+                self.labelPath = os.path.normpath(os.path.join(csPath, gt           , split, city))
+                self.dispPath  = os.path.normpath(os.path.join(csPath, "disparity"  , split, city))
+                self.loadCity()
+                self.imageChanged()
 
         else:
- 
+
             warning = ""
             warning += "The data was not found. Please:\n\n"
             warning += " - make sure the scripts folder is in the Cityscapes root folder\n"
@@ -1023,20 +1023,20 @@ class CityscapesViewer(QtGui.QMainWindow):
             warning += " - set CITYSCAPES_DATASET to the Cityscapes root folder\n"
             warning += "       e.g. 'export CITYSCAPES_DATASET=<root_path>'\n"
 
-            reply = QtGui.QMessageBox.information(self, "ERROR!", warning, QtGui.QMessageBox.Ok)
+            reply = QtGui.QMessageBox.information(self, "ERROR!", warning,
+                                                  QtGui.QMessageBox.Ok)
             if reply == QtGui.QMessageBox.Ok:
                 sys.exit()
 
         return
 
-
     # Determine if the given candidate for a label path makes sense
-    def isLabelPathValid(self,labelPath):
+    def isLabelPathValid(self, labelPath):
         return os.path.isdir(labelPath)
 
     # Get the filename where to load labels
     # Returns empty string if not possible
-    def getLabelFilename( self ):
+    def getLabelFilename(self):
         # And we need to have a directory where labels should be searched
         if not self.labelPath:
             return ""
@@ -1048,10 +1048,10 @@ class CityscapesViewer(QtGui.QMainWindow):
             return ""
 
         # Generate the filename of the label file
-        filename = os.path.basename( self.currentFile )
-        filename = filename.replace( self.imageExt , self.gtExt )
-        filename = os.path.join( self.labelPath , filename )
-        search   = glob.glob( filename )
+        filename = os.path.basename(self.currentFile)
+        filename = filename.replace(self.imageExt, self.gtExt)
+        filename = os.path.join(self.labelPath, filename)
+        search   = glob.glob(filename)
         if not search:
             return ""
         filename = os.path.normpath(search[0])
