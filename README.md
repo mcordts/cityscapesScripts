@@ -24,6 +24,7 @@ The meaning of the individual elements is:
 Possible values of `type`
  - `gtFine`       the fine annotations, 2975 training, 500 validation, and 1525 testing. This type of annotations is used for validation, testing, and optionally for training. Annotations are encoded using `json` files containing the individual polygons. Additionally, we provide `png` images, where pixel values encode labels. Please refer to `helpers/labels.py` and the scripts in `preparation` for details.
  - `gtCoarse`     the coarse annotations, available for all training and validation images and for another set of 19998 training images (`train_extra`). These annotations can be used for training, either together with gtFine or alone in a weakly supervised setup.
+ - `gtBboxCityPersons` pedestrian bounding box annotations, available for all training and validation images. Please refer to `helpers/labels_cityPersons.py` as well as the [`CityPersons` publication (Zhang et al., CVPR '17)](https://bitbucket.org/shanshanzhang/citypersons) for more details.
  - `leftImg8bit`  the left images in 8-bit LDR format. These are the standard annotated images.
  - `leftImg16bit` the left images in 16-bit HDR format. These images offer 16 bits per pixel of color depth and contain more information, especially in very dark or bright parts of the scene. Warning: The images are stored as 16-bit pngs, which is non-standard and not supported by all libraries.
  - `rightImg8bit`  the right stereo views in 8-bit LDR format.
@@ -55,6 +56,7 @@ There are several scripts included with the dataset in a folder named `scripts`
 
 Note that all files have a small documentation at the top. Most important files
  - `helpers/labels.py`                               central file defining the IDs of all semantic classes and providing mapping between various class properties.
+ - `helpers/labels_cityPersons.py`                   file defining the IDs of all CityPersons pedestrian classes and providing mapping between various class properties.
  - `viewer/cityscapesViewer.py`                      view the images and overlay the annotations.
  - `preparation/createTrainIdLabelImgs.py`           convert annotations in polygonal format to png images with label IDs, where pixels encode "train IDs" that you can define in `labels.py`.
  - `preparation/createTrainIdInstanceImgs.py`        convert annotations in polygonal format to png images with instance IDs, where pixels encode instance IDs composed of "train IDs".

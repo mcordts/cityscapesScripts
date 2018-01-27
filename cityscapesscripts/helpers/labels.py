@@ -52,7 +52,7 @@ Label = namedtuple( 'Label' , [
 # A list of all labels
 #--------------------------------------------------------------------------------
 
-# Please adapt the train IDs as appropriate for you approach.
+# Please adapt the train IDs as appropriate for your approach.
 # Note that you might want to ignore labels with ID 255 during training.
 # Further note that the current train IDs are only a suggestion. You can use whatever you like.
 # Make sure to provide your results using the original IDs and not the training IDs.

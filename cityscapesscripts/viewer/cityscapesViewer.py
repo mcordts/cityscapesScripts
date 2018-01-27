@@ -35,9 +35,9 @@ except:
 
 # annotation helper
 sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
-from annotation import Annotation
+from annotation  import Annotation, CsObjectType
 from labels     import name2label, assureSingleInstanceName
-
+from labels_cityPersons import name2labelCp
 
 #################
 ## Main GUI class
@@ -65,6 +65,8 @@ class CityscapesViewer(QtGui.QMainWindow):
         self.city              = ""
         # The name of the currently loaded city
         self.cityName          = ""
+        # Ground truth type
+        self.gtType            = CsObjectType.POLY
         # The path of the labels. In this folder we expect a folder for each city
         # Within these city folders we expect the label with a filename matching
         # the images, except for the extension
@@ -97,12 +99,12 @@ class CityscapesViewer(QtGui.QMainWindow):
         # Image extension
         self.imageExt          = "_leftImg8bit.png"
         # Ground truth extension
-        self.gtExt             = "_gt*_polygons.json"
+        self.gtExt             = "_gt*.json"
         # Current image as QImage
         self.image             = QtGui.QImage()
         # Index of the current image within the city folder
         self.idx               = 0
-        # All annotated objects in current image, i.e. list of labelObject
+        # All annotated objects in current image, i.e. list of csPoly or csBbox
         self.annotation        = []
         # The current object the mouse points to. It's index in self.labels
         self.mouseObj          = -1
@@ -507,7 +509,7 @@ class CityscapesViewer(QtGui.QMainWindow):
         self.clearAnnotation()
 
         try:
-            self.annotation = Annotation()
+            self.annotation = Annotation(self.gtType)
             self.annotation.fromJsonFile(filename)
         except IOError as e:
             # This is the error if the file does not exist
@@ -604,7 +606,10 @@ class CityscapesViewer(QtGui.QMainWindow):
             overlay = self.drawDisp(qp)
         else:
             # Draw the labels on top
-            overlay = self.drawLabels(qp)
+            if self.gtType == CsObjectType.POLY:
+                overlay = self.drawLabels(qp)
+            elif self.gtType == CsObjectType.BBOX:
+                overlay = self.drawBboxes(qp)
             # Draw the label name next to the mouse
             self.drawLabelAtMouse(qp)
 
@@ -741,6 +746,108 @@ class CityscapesViewer(QtGui.QMainWindow):
             qp2.setPen(QtCore.Qt.DashLine)
             polyToDraw = self.getPolygon(self.highlightObj) * QtGui.QTransform.fromScale(self.scale,self.scale)
             qp2.drawPolygon( polyToDraw )
+
+        # End the drawing of the overlay
+        qp2.end()
+        # Save QPainter settings to stack
+        qp.save()
+        # Define transparency
+        qp.setOpacity(self.transp)
+        # Draw the overlay image
+        qp.drawImage(self.xoff,self.yoff,overlay)
+        # Restore settings
+        qp.restore()
+
+        return overlay
+
+    def getBoundingBox(self, obj):
+        bbox = QtCore.QRectF(obj.bbox[0], obj.bbox[1], obj.bbox[2], obj.bbox[3])
+        bboxVis = QtCore.QRectF(obj.bboxVis[0], obj.bboxVis[1], obj.bboxVis[2], obj.bboxVis[3])
+        return bbox, bboxVis
+
+    def scaleBoundingBox(self, bbox):
+        bboxToDraw = copy.deepcopy(bbox)
+        x,y,w,h = bboxToDraw.getRect()
+        bboxToDraw.setTopLeft(QtCore.QPointF(x*self.scale, y*self.scale))
+        bboxToDraw.setSize(QtCore.QSizeF(w*self.scale, h*self.scale))
+        return bboxToDraw
+
+    # Draw the labels in the given QPainter qp
+    # optionally provide a list of labels to ignore
+    def drawBboxes(self, qp, ignore = []):
+        if self.image.isNull() or self.w == 0 or self.h == 0:
+            return
+        if not self.annotation:
+            return
+
+        # The overlay is created in the viewing coordinates
+        # This way, the drawing is more dense and the polygon edges are nicer
+        # We create an image that is the overlay
+        # Within this image we draw using another QPainter
+        # Finally we use the real QPainter to overlay the overlay-image on what is drawn so far
+
+        # The image that is used to draw the overlays
+        overlay = QtGui.QImage( self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied )
+        # Fill the image
+        col = QtGui.QColor(0, 0, 0, 0)
+        overlay.fill( col )
+        # Create a new QPainter that draws in the overlay image
+        qp2 = QtGui.QPainter()
+        qp2.begin(overlay)
+
+        # Draw all objects
+        for obj in self.annotation.objects:
+            bbox, bboxVis = self.getBoundingBox(obj)
+            bboxToDraw    = self.scaleBoundingBox(bbox)
+            bboxVisToDraw = self.scaleBoundingBox(bbox)
+            # The label of the object
+            name      = obj.label
+            # If we do not know a color for this label, warn the user
+            if name not in name2labelCp:
+                print("The annotations contain unknown labels. This should not happen. Please inform the datasets authors. Thank you!")
+                print("Details: label '{}', file '{}'".format(name,self.currentLabelFile))
+                continue
+
+            # Reset brush for QPainter object
+            qp2.setBrush(QtGui.QBrush())
+
+            # Color from color table
+            col   = QtGui.QColor( *name2labelCp[name].color     )
+
+            if name2labelCp[name].hasInstances:
+                if self.highlightObj and obj == self.highlightObj:
+                    pen = QtGui.QPen(QtGui.QBrush( col ), 5.0)
+                else:
+                    pen = QtGui.QPen(QtGui.QBrush( col ), 3.0)
+                qp2.setPen(pen)
+                qp2.setOpacity(1.0)
+                qp2.drawRect( bboxToDraw )
+            
+                if self.highlightObj and obj == self.highlightObj:
+                    pen = QtGui.QPen(QtGui.QBrush( col ), 3.0, style=QtCore.Qt.DotLine)
+                    qp2.setPen(pen)
+                    qp2.setOpacity(1.0)
+                    qp2.drawRect( bboxVisToDraw )
+                else:
+                    pen = QtGui.QPen(QtGui.QBrush( col ), 1.0, style=QtCore.Qt.DashLine)
+                    qp2.setPen(pen)
+                    qp2.setOpacity(1.0)
+                    qp2.drawRect( bboxVisToDraw )
+                    
+                    qp2.setBrush(QtGui.QBrush( col, QtCore.Qt.SolidPattern ))
+                    qp2.setOpacity(0.4)
+                    qp2.drawRect( bboxVisToDraw )
+            else:
+                if self.highlightObj and obj == self.highlightObj:
+                    pen = QtGui.QPen(QtGui.QBrush( col ), 3.0)
+                    qp2.setPen(pen)
+                    qp2.setBrush(QtGui.QBrush( col, QtCore.Qt.NoBrush ))
+                else:
+                    pen = QtGui.QPen(QtGui.QBrush( col ), 1.0)
+                    qp2.setPen(pen)
+                    qp2.setBrush(QtGui.QBrush( col, QtCore.Qt.DiagCrossPattern ))
+                qp2.setOpacity(1.0)
+                qp2.drawRect( bboxToDraw )
 
         # End the drawing of the overlay
         qp2.end()
@@ -956,9 +1063,15 @@ class CityscapesViewer(QtGui.QMainWindow):
             return
         for idx in reversed(range(len(self.annotation.objects))):
             obj = self.annotation.objects[idx]
-            if self.getPolygon(obj).containsPoint(self.mousePosScaled, QtCore.Qt.OddEvenFill):
-                self.mouseObj = idx
-                break
+            if obj.objectType == CsObjectType.POLY:
+                if self.getPolygon(obj).containsPoint(self.mousePosScaled, QtCore.Qt.OddEvenFill):
+                    self.mouseObj = idx
+                    break
+            elif obj.objectType == CsObjectType.BBOX:
+                bbox, _ = self.getBoundingBox(obj)
+                if bbox.contains(self.mousePosScaled):
+                    self.mouseObj = idx
+                    break
 
     # Clear the current labels
     def clearAnnotation(self):
@@ -975,7 +1088,7 @@ class CityscapesViewer(QtGui.QMainWindow):
             csPath = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
 
         availableCities = []
-        annotations = [ "gtFine" , "gtCoarse" ]
+        annotations = [ "gtFine" , "gtCoarse" , "gtBboxCityPersons" ]
         splits      = [ "train_extra" , "train"  , "val" , "test" ]
         for gt in annotations:
             for split in splits:
@@ -1011,6 +1124,10 @@ class CityscapesViewer(QtGui.QMainWindow):
                 self.city      = os.path.normpath(os.path.join(csPath, "leftImg8bit", split, city))
                 self.labelPath = os.path.normpath(os.path.join(csPath, gt           , split, city))
                 self.dispPath  = os.path.normpath(os.path.join(csPath, "disparity"  , split, city))
+                if gt in [ "gtFine", "gtCoarse" ]:
+                    self.gtType = CsObjectType.POLY
+                elif gt in [ "gtBboxCityPersons" ]:
+                    self.gtType = CsObjectType.BBOX
                 self.loadCity()
                 self.imageChanged()
 
