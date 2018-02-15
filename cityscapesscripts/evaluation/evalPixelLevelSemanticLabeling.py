@@ -586,11 +586,13 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         confMatrix = addToConfusionMatrix.cEvaluatePair(predictionNp, groundTruthNp, confMatrix, args.evalLabels)
     else:
         # the slower python way
-        for (groundTruthImgPixel,predictionImgPixel) in izip(groundTruthImg.getdata(),predictionImg.getdata()):
-            if (not groundTruthImgPixel in args.evalLabels):
-                printError("Unknown label with id {:}".format(groundTruthImgPixel))
+        gt_values = np.unique(groundTruthNp)
+        pred_values = np.unique(predictionNp)
 
-            confMatrix[groundTruthImgPixel][predictionImgPixel] += 1
+        for gt_id in gt_values:
+            for pred_id in pred_values:                
+                mask = (groundTruthNp == gt_id) & (predictionNp == pred_id)
+                confMatrix[gt_id][pred_id] += np.count_nonzero(mask)
 
     if args.evalInstLevelScore:
         # Generate category masks
