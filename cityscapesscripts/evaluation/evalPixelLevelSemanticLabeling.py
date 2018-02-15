@@ -590,6 +590,8 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         pred_values = np.unique(predictionNp)
 
         for gt_id in gt_values:
+            if not gt_id in args.evalLabels:
+                printError("Unknown label with id {:}".format(gt_id))
             for pred_id in pred_values:                
                 mask = (groundTruthNp == gt_id) & (predictionNp == pred_id)
                 confMatrix[gt_id][pred_id] += np.count_nonzero(mask)
