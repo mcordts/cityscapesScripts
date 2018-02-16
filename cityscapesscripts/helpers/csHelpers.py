@@ -49,7 +49,6 @@ except:
     print("Unexpected error in loading Cityscapes modules")
     print(sys.exc_info()[0])
     sys.exit(-1)
-sys.exit()
 
 # Print an error message and quit
 def printError(message):
