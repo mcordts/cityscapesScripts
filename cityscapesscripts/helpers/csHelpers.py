@@ -9,6 +9,8 @@ import glob
 import math
 import json
 from collections import namedtuple
+import logging 
+import traceback
 
 # Image processing
 # Check if PIL is actually Pillow as expected
@@ -37,9 +39,17 @@ except:
 try:
     from annotation   import Annotation
     from labels       import labels, name2label, id2label, trainId2label, category2labels
-except:
-    print("Failed to find all Cityscapes modules")
+except ImportError:
+    print("Failed to import all Cityscapes modules")
     sys.exit(-1)
+except Exception as e:
+    logging.error(traceback.format_exc())
+    sys.exit(-1)
+except:
+    print("Unexpected error in loading Cityscapes modules")
+    print(sys.exc_info()[0])
+    sys.exit(-1)
+sys.exit()
 
 # Print an error message and quit
 def printError(message):
