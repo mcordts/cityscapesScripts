@@ -235,5 +235,5 @@ if __name__ == "__main__":
     obj.polygon.append( Point( 1 , 1 ) )
     obj.polygon.append( Point( 0 , 1 ) )
 
-    print type(obj).__name__
+    print(type(obj).__name__)
     print(obj)
