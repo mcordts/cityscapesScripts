@@ -28,6 +28,7 @@ from __future__ import print_function
 import os, sys
 import platform
 import fnmatch
+import time
 
 try:
     from itertools import izip
@@ -468,6 +469,7 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
     if not args.quiet:
         print("Evaluating {} pairs of images...".format(len(predictionImgList)))
 
+    start = time.time()
     # Evaluate all pairs of images and save them into a matrix
     for i in range(len(predictionImgList)):
         predictionImgFileName = predictionImgList[i]
@@ -484,6 +486,8 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
             sys.stdout.flush()
     if not args.quiet:
         print("\n")
+    end = time.time()
+    print("Total processing time: " + str(end - start))
 
     # sanity check
     if confMatrix.sum() != nbPixels:
@@ -586,15 +590,19 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         confMatrix = addToConfusionMatrix.cEvaluatePair(predictionNp, groundTruthNp, confMatrix, args.evalLabels)
     else:
         # the slower python way
-        gt_values = np.unique(groundTruthNp)
-        pred_values = np.unique(predictionNp)
+        gt_flat = groundTruthNp.reshape((nbPixels)) 
+        pred_flat = predictionNp.reshape((nbPixels))
+        combined = np.stack([gt_flat, pred_flat], axis=1)
 
-        for gt_id in gt_values:
+        values, cnt = np.unique(combined, axis=0, return_counts=True)
+
+        for i in range(values.shape[0]):
+            gt_id = values[i, 0]
+            pred_id = values[i, 1]
             if not gt_id in args.evalLabels:
                 printError("Unknown label with id {:}".format(gt_id))
-            for pred_id in pred_values:                
-                mask = (groundTruthNp == gt_id) & (predictionNp == pred_id)
-                confMatrix[gt_id][pred_id] += np.count_nonzero(mask)
+            confMatrix[gt_id][pred_id] += cnt[i]
+        
 
     if args.evalInstLevelScore:
         # Generate category masks
