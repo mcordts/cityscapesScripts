@@ -589,7 +589,9 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         # using cython
         confMatrix = addToConfusionMatrix.cEvaluatePair(predictionNp, groundTruthNp, confMatrix, args.evalLabels)
     else:
-        # the slower python way
+        # the slower python way 
+        # 
+        """
         gt_flat = groundTruthNp.reshape((nbPixels)) 
         pred_flat = predictionNp.reshape((nbPixels))
         combined = np.stack([gt_flat, pred_flat], axis=1)
@@ -602,6 +604,18 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
             if not gt_id in args.evalLabels:
                 printError("Unknown label with id {:}".format(gt_id))
             confMatrix[gt_id][pred_id] += cnt[i]
+        """   
+        gt_max = groundTruthNp.max().astype(np.int32) + 10
+        encoded = (groundTruthNp.astype(np.int32) * gt_max) + predictionNp
+
+        values, cnt = np.unique(encoded, return_counts=True)
+
+        for value, c in zip(values, cnt):
+            pred_id = value % gt_max
+            gt_id = int((value - pred_id)/gt_max)
+            if not gt_id in args.evalLabels:
+                printError("Unknown label with id {:}".format(gt_id))
+            confMatrix[gt_id][pred_id] += c
         
 
     if args.evalInstLevelScore:
