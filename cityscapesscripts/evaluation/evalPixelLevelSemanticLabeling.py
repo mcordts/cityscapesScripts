@@ -587,14 +587,14 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
         confMatrix = addToConfusionMatrix.cEvaluatePair(predictionNp, groundTruthNp, confMatrix, args.evalLabels)
     else:
         # the slower python way 
-        gt_max = max(groundTruthNp.max(), predictionNp.max()).astype(np.int32) + 1
-        encoded = (groundTruthNp.astype(np.int32) * gt_max) + predictionNp
+        encoding_value = max(groundTruthNp.max(), predictionNp.max()).astype(np.int32) + 1
+        encoded = (groundTruthNp.astype(np.int32) * encoding_value) + predictionNp
 
         values, cnt = np.unique(encoded, return_counts=True)
 
         for value, c in zip(values, cnt):
-            pred_id = value % gt_max
-            gt_id = int((value - pred_id)/gt_max)
+            pred_id = value % encoding_value
+            gt_id = int((value - pred_id)/encoding_value)
             if not gt_id in args.evalLabels:
                 printError("Unknown label with id {:}".format(gt_id))
             confMatrix[gt_id][pred_id] += c
