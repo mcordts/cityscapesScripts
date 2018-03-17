@@ -469,7 +469,6 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
     if not args.quiet:
         print("Evaluating {} pairs of images...".format(len(predictionImgList)))
 
-    start = time.time()
     # Evaluate all pairs of images and save them into a matrix
     for i in range(len(predictionImgList)):
         predictionImgFileName = predictionImgList[i]
@@ -486,8 +485,6 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
             sys.stdout.flush()
     if not args.quiet:
         print("\n")
-    end = time.time()
-    print("Total processing time: " + str(end - start))
 
     # sanity check
     if confMatrix.sum() != nbPixels:
