@@ -6,7 +6,7 @@
 import os
 import json
 from collections import namedtuple
-  
+
 # get current date and time
 import datetime
 import locale
@@ -147,11 +147,11 @@ class CsBbox(CsObject):
 
     def __str__(self):
         bboxText = ""
-        bboxText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format( 
+        bboxText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
             self.bbox[0] , self.bbox[1] ,  self.bbox[2] ,  self.bbox[3] )
 
         bboxVisText = ""
-        bboxVisText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format( 
+        bboxVisText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
             self.bboxVis[0] , self.bboxVis[1] , self.bboxVis[2], self.bboxVis[3] )
 
         text = "Object: {} - bbox {} - visible {}".format( self.label , bboxText, bboxVisText )
@@ -162,7 +162,7 @@ class CsBbox(CsObject):
         self.bboxVis = jsonText['bboxVis']
         self.label = str(jsonText['label'])
         self.instanceId = jsonText['instanceId']
-    
+
     def toJsonText(self):
         objDict = {}
         objDict['label'] = self.label
@@ -209,7 +209,7 @@ class Annotation:
         for obj in self.objects:
             objDict = obj.toJsonText()
             jsonDict['objects'].append(objDict)
-  
+
         return jsonDict
 
     # Read a json formatted polygon file and return the annotation
@@ -224,7 +224,7 @@ class Annotation:
     def toJsonFile(self, jsonFile):
         with open(jsonFile, 'w') as f:
             f.write(self.toJson())
-            
+
 
 # a dummy example
 if __name__ == "__main__":
@@ -235,5 +235,5 @@ if __name__ == "__main__":
     obj.polygon.append( Point( 1 , 1 ) )
     obj.polygon.append( Point( 0 , 1 ) )
 
-    print type(obj).__name__
+    print(type(obj).__name__)
     print(obj)

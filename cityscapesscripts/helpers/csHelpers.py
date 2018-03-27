@@ -35,10 +35,10 @@ except:
 
 # Cityscapes modules
 try:
-    from annotation   import Annotation
-    from labels       import labels, name2label, id2label, trainId2label, category2labels
-except:
-    print("Failed to find all Cityscapes modules")
+    from cityscapesscripts.helpers.annotation import Annotation
+    from cityscapesscripts.helpers.labels import labels, name2label, id2label, trainId2label, category2labels
+except ImportError as err:
+    print("Failed to find all Cityscapes modules: %s" % err)
     sys.exit(-1)
 
 # Print an error message and quit
