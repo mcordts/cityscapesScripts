@@ -36,7 +36,7 @@ import copy
 
 # annotation helper
 sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
-from annotation import Point, Annotation, CsObject
+from annotation import Point, Annotation, CsObject, CsPoly
 from labels     import name2label, assureSingleInstanceName
 
 # Helper class that contains the current configuration of the Gui
@@ -53,9 +53,9 @@ class configuration:
         # The path where the Cityscapes dataset is located
         self.csPath = ""
         # The path of the images of the currently loaded city
-        self.city = ""
+        self.city = "sh"
         # The name of the currently loaded city
-        self.cityName = ""
+        self.cityName = "sh"
         # The type of the current annotations
         self.gtType = ""
         # The split, where the currently loaded city belongs to
@@ -2356,7 +2356,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
 
         # New object
         # Insert the object in the labels list
-        obj          = CsObject()
+        obj          = CsPoly()
         obj.label    = label
 
         obj.polygon = [ Point(p.x(),p.y()) for p in polygon ]

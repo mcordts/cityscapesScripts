@@ -61,11 +61,12 @@ def main():
     print("Progress: {:>3} %".format( progress * 100 / len(files) ), end=' ')
     for f in files:
         # create the output filename
-        dst = f.replace( "_polygons.json" , "_labelTrainIds.png" )
-
+        # dst = f.replace( "_polygons.json" , "_labelTrainIds.png" )
+        dst = f.replace( "_polygons.json" , "_labelIds.png" )
         # do the conversion
         try:
-            json2labelImg( f , dst , "trainIds" )
+            # json2labelImg( f , dst , "trainIds" )
+            json2labelImg( f , dst)
         except:
             print("Failed to convert: {}".format(f))
             raise
