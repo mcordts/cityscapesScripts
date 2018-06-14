@@ -42,7 +42,8 @@ def main():
     # how to search for all ground truth
     searchFine   = os.path.join( cityscapesPath , "gtFine"   , "*" , "*" , "*_gt*_polygons.json" )
     searchCoarse = os.path.join( cityscapesPath , "gtCoarse" , "*" , "*" , "*_gt*_polygons.json" )
-
+    print ("searchFine:" + searchFine)
+    print("searchCoarse:" + searchCoarse)
     # search files
     filesFine = glob.glob( searchFine )
     filesFine.sort()
@@ -65,11 +66,13 @@ def main():
     print("Progress: {:>3} %".format( progress * 100 / len(files) ), end=' ')
     for f in files:
         # create the output filename
-        dst = f.replace( "_polygons.json" , "_instanceTrainIds.png" )
+        # dst = f.replace( "_polygons.json" , "_instanceTrainIds.png" )
+        dst = f.replace( "_polygons.json" , "_instanceIds.png" )
 
         # do the conversion
         try:
-            json2instanceImg( f , dst , "trainIds" )
+            # json2instanceImg( f , dst , "trainIds" )
+            json2instanceImg( f , dst)
         except:
             print("Failed to convert: {}".format(f))
             raise
