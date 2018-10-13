@@ -36,7 +36,7 @@ import copy
 #################
 
 # annotation helper
-from cityscapesscripts.helpers.annotation import Point, Annotation, CsObject
+from cityscapesscripts.helpers.annotation import Point, Annotation, CsPoly
 from cityscapesscripts.helpers.labels     import name2label, assureSingleInstanceName
 
 # Helper class that contains the current configuration of the Gui
@@ -2356,7 +2356,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
 
         # New object
         # Insert the object in the labels list
-        obj          = CsObject()
+        obj          = CsPoly()
         obj.label    = label
 
         obj.polygon = [ Point(p.x(),p.y()) for p in polygon ]

@@ -56,7 +56,11 @@ class CsObject:
 
     def updateDate( self ):
         try:
+            locale.setlocale( locale.LC_ALL , 'en_US.utf8' )
+        except locale.Error:
             locale.setlocale( locale.LC_ALL , 'en_US' )
+        except locale.Error:
+            locale.setlocale( locale.LC_ALL , 'us_us.utf8' )
         except locale.Error:
             locale.setlocale( locale.LC_ALL , 'us_us' )
         except:
