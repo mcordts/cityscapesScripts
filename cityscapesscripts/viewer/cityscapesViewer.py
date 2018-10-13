@@ -6,6 +6,7 @@
 ## Import modules
 #################
 
+from __future__ import print_function, absolute_import, division
 # pyqt for everything graphical
 from PyQt4 import QtGui, QtCore
 # get command line parameters
@@ -34,10 +35,9 @@ except:
 #################
 
 # annotation helper
-sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
-from annotation  import Annotation, CsObjectType
-from labels     import name2label, assureSingleInstanceName
-from labels_cityPersons import name2labelCp
+from cityscapesscripts.helpers.annotation  import Annotation, CsObjectType
+from cityscapesscripts.helpers.labels     import name2label, assureSingleInstanceName
+from cityscapesscripts.helpers.labels_cityPersons import name2labelCp
 
 #################
 ## Main GUI class

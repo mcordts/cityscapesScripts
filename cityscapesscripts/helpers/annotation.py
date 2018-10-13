@@ -3,6 +3,7 @@
 # Classes to store, read, and write annotations
 #
 
+from __future__ import print_function, absolute_import, division
 import os
 import json
 from collections import namedtuple

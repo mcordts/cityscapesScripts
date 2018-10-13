@@ -3,6 +3,7 @@
 # Cityscapes labels
 #
 
+from __future__ import print_function, absolute_import, division
 from collections import namedtuple
 
 
