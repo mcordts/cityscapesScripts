@@ -6,6 +6,7 @@
 ## Import modules
 #################
 
+from __future__ import print_function, absolute_import, division
 # pyqt for everything graphical
 from PyQt4 import QtGui, QtCore
 # get command line parameters
@@ -35,9 +36,8 @@ import copy
 #################
 
 # annotation helper
-sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
-from annotation import Point, Annotation, CsObject
-from labels     import name2label, assureSingleInstanceName
+from cityscapesscripts.helpers.annotation import Point, Annotation, CsObject
+from cityscapesscripts.helpers.labels     import name2label, assureSingleInstanceName
 
 # Helper class that contains the current configuration of the Gui
 # This config is loaded when started and saved when leaving

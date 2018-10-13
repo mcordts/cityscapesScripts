@@ -24,7 +24,7 @@
 # evaluation.
 
 # python imports
-from __future__ import print_function
+from __future__ import print_function, absolute_import, division
 import os, sys
 import platform
 import fnmatch
@@ -35,8 +35,7 @@ except ImportError:
     izip = zip
 
 # Cityscapes imports
-sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
-from csHelpers import *
+from cityscapesscripts.helpers.csHelpers import *
 
 # C Support
 # Enable the cython support for faster evaluation
@@ -45,7 +44,7 @@ CSUPPORT = True
 # Check if C-Support is available for better performance
 if CSUPPORT:
     try:
-        import addToConfusionMatrix
+        from cityscapesscripts.evaluation import addToConfusionMatrix
     except:
         CSUPPORT = False
 

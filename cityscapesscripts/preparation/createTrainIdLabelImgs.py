@@ -20,13 +20,12 @@
 #
 
 # python imports
-from __future__ import print_function
+from __future__ import print_function, absolute_import, division
 import os, glob, sys
 
 # cityscapes imports
-sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
-from csHelpers     import printError
-from json2labelImg import json2labelImg
+from cityscapesscripts.helpers.csHelpers import printError
+from cityscapesscripts.preparation.json2labelImg import json2labelImg
 
 # The main method
 def main():
