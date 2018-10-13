@@ -35,16 +35,21 @@ ext_modules = []
 if has_cython:
     ext_modules = cythonize(pyxFile)
 
+with open("README.md") as f:
+    readme = f.read()
+
 config = {
-    'name': 'cityscapesscripts',
-    'description': 'The Cityscapes Dataset Scripts Repository',
+    'name': 'cityscapesScripts',
+    'description': 'Scripts for the Cityscapes Dataset',
+    'long_description': readme,
+    'long_description_content_type': "text/markdown",
     'author': 'Marius Cordts',
-    'url': 'www.cityscapes-dataset.net',
-    'download_url': 'www.cityscapes-dataset.net',
+    'url': 'https://github.com/mcordts/cityscapesScripts',
     'author_email': 'mail@cityscapes-dataset.net',
     'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/license.txt',
-    'version': '1.0.0',
+    'version': '1.0.5',
     'install_requires': ['numpy', 'matplotlib', 'cython', 'pillow'],
+    'setup_requires': ['setuptools>=18.0', 'numpy'],
     'packages': find_packages(),
     'scripts': [],
     'entry_points': {'gui_scripts': ['csViewer = cityscapesscripts.viewer.cityscapesViewer:main',
