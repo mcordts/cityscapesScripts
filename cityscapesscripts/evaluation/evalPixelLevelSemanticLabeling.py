@@ -10,10 +10,10 @@
 # If the default implementation of the method works, then it's most likely
 # that our evaluation server will be able to process your results as well.
 #
-# Note that the script is a lot faster, if you enable cython support.
+# Note that the script is a faster, if you enable cython support.
 # WARNING: Cython only tested for Ubuntu 64bit OS.
 # To enable cython, run
-# setup.py build_ext --inplace
+# CYTHONIZE_EVAL= python setup.py build_ext --inplace
 #
 # To run this script, make sure that your results are images,
 # where pixels encode the class IDs as defined in labels.py.
