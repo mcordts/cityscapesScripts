@@ -1,38 +1,26 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
-# Enable cython support for eval scripts
-# Run as
-# setup.py build_ext --inplace
+# Enable cython support for slightly faster eval scripts:
+# python -m pip install cython numpy
+# CYTHONIZE_EVAL= python setup.py build_ext --inplace
 #
 # For MacOS X you may have to export the numpy headers in CFLAGS
 # export CFLAGS="-I /usr/local/lib/python3.6/site-packages/numpy/core/include $CFLAGS"
 
 import os
 from setuptools import setup, find_packages
-has_cython = True
-
-try:
-    from Cython.Build import cythonize
-except:
-    print("Unable to find dependency cython. Please install for great speed improvements when evaluating.")
-    print("sudo pip install cython")
-    has_cython = False
 
 include_dirs = []
-try:
-    import numpy as np
-    include_dirs = np.get_include()
-except:
-    print("Unable to find numpy, please install.")
-    print("sudo pip install numpy")
-
-os.environ["CC"] = "g++"
-os.environ["CXX"] = "g++"
-
-pyxFile = os.path.join("cityscapesscripts", "evaluation", "addToConfusionMatrix.pyx")
-
 ext_modules = []
-if has_cython:
+if 'CYTHONIZE_EVAL' in os.environ:
+    from Cython.Build import cythonize
+    import numpy as np
+    include_dirs = [np.get_include()]
+
+    os.environ["CC"] = "g++"
+    os.environ["CXX"] = "g++"
+
+    pyxFile = os.path.join("cityscapesscripts", "evaluation", "addToConfusionMatrix.pyx")
     ext_modules = cythonize(pyxFile)
 
 with open("README.md") as f:
@@ -48,8 +36,8 @@ config = {
     'author_email': 'mail@cityscapes-dataset.net',
     'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/license.txt',
     'version': '1.0.5',
-    'install_requires': ['numpy', 'matplotlib', 'cython', 'pillow'],
-    'setup_requires': ['setuptools>=18.0', 'numpy'],
+    'install_requires': ['numpy', 'matplotlib', 'pillow'],
+    'setup_requires': ['setuptools>=18.0'],
     'packages': find_packages(),
     'scripts': [],
     'entry_points': {'gui_scripts': ['csViewer = cityscapesscripts.viewer.cityscapesViewer:main',
@@ -60,7 +48,7 @@ config = {
                                          'csCreateTrainIdInstanceImgs = cityscapesscripts.preparation.createTrainIdInstanceImgs:main']},
     'package_data': {'': ['icons/*.png']},
     'ext_modules': ext_modules,
-    'include_dirs': [include_dirs]
+    'include_dirs': include_dirs
 }
 
 setup(**config)
