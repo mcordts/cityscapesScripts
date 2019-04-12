@@ -44,8 +44,10 @@ config = {
                                      'csLabelTool = cityscapesscripts.annotation.cityscapesLabelTool:main'],
                      'console_scripts': ['csEvalPixelLevelSemanticLabeling = cityscapesscripts.evaluation.evalPixelLevelSemanticLabeling:main',
                                          'csEvalInstanceLevelSemanticLabeling = cityscapesscripts.evaluation.evalInstanceLevelSemanticLabeling:main',
+                                         'csEvalPanopticSemanticLabeling = cityscapesscripts.evaluation.evalPanopticSemanticLabeling:main',
                                          'csCreateTrainIdLabelImgs = cityscapesscripts.preparation.createTrainIdLabelImgs:main',
-                                         'csCreateTrainIdInstanceImgs = cityscapesscripts.preparation.createTrainIdInstanceImgs:main']},
+                                         'csCreateTrainIdInstanceImgs = cityscapesscripts.preparation.createTrainIdInstanceImgs:main',
+                                         'csCreatePanopticImgs = cityscapesscripts.preparation.createPanopticImgs:main']},
     'package_data': {'': ['icons/*.png']},
     'ext_modules': ext_modules,
     'include_dirs': include_dirs
