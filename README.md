@@ -26,6 +26,7 @@ Possible values of `type`
  - `gtCoarse`     the coarse annotations, available for all training and validation images and for another set of 19998 training images (`train_extra`). These annotations can be used for training, either together with gtFine or alone in a weakly supervised setup.
  - `gtBboxCityPersons` pedestrian bounding box annotations, available for all training and validation images. Please refer to `helpers/labels_cityPersons.py` as well as the [`CityPersons` publication (Zhang et al., CVPR '17)](https://bitbucket.org/shanshanzhang/citypersons) for more details. The four values of a bounding box are (x, y, w, h), where (x, y) is its top-left corner and (w, h) its width and height.
  - `leftImg8bit`  the left images in 8-bit LDR format. These are the standard annotated images.
+ - `leftImg8bit_blurred`  the left images in 8-bit LDR format with faces and license plates blurred. Please compute results on the original images but use the blurred ones for visualization. We thank [Mapillary](https://www.mapillary.com/) for blurring the images.
  - `leftImg16bit` the left images in 16-bit HDR format. These images offer 16 bits per pixel of color depth and contain more information, especially in very dark or bright parts of the scene. Warning: The images are stored as 16-bit pngs, which is non-standard and not supported by all libraries.
  - `rightImg8bit`  the right stereo views in 8-bit LDR format.
  - `rightImg16bit` the right stereo views in 16-bit HDR format.
