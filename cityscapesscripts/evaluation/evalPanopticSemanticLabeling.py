@@ -6,7 +6,7 @@
 # Test set evaluation assumes prediction use 'id' and not 'trainId'
 # for categories, i.e. 'person' id is 24.
 #
-# The sciript expect both ground truth and prediction to use COCO panoptic
+# The script expects both ground truth and predictions to use COCO panoptic
 # segmentation format (http://cocodataset.org/#format-data and
 # http://cocodataset.org/#format-results respectively). The format has 'image_id' field to
 # match prediction and annotation. For cityscapes we assume that the 'image_id' has form
@@ -307,7 +307,7 @@ def evaluatePanoptic(gt_json_file, gt_folder, pred_json_file, pred_folder, resul
     results = average_pq(pq_stat, categories)
     with open(resultsFile, 'w') as f:
         print("Saving computed results in {}".format(resultsFile))
-        json.dump(results, f)
+        json.dump(results, f, sort_keys=True, indent=4)
     print_results(results, categories)
 
     t_delta = time.time() - start_time
@@ -362,7 +362,7 @@ def main():
                         ''',
                         default=None,
                         type=str)
-    resultFile = "resultInstanceLevelSemanticLabeling.json"
+    resultFile = "resultPanopticSemanticLabeling.json"
     parser.add_argument("--results_file",
                         dest="resultsFile",
                         help="File to store computed panoptic quality. Default: {}".format(resultFile),

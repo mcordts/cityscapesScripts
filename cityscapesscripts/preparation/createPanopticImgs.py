@@ -166,7 +166,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False):
              'annotations': annotations,
              'categories': categories}
         with open(outFile, 'w') as f:
-            json.dump(d, f)
+            json.dump(d, f, sort_keys=True, indent=4)
 
 
 def main():
