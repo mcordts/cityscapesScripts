@@ -61,8 +61,10 @@ Note that all files have a small documentation at the top. Most important files
  - `viewer/cityscapesViewer.py`                      view the images and overlay the annotations.
  - `preparation/createTrainIdLabelImgs.py`           convert annotations in polygonal format to png images with label IDs, where pixels encode "train IDs" that you can define in `labels.py`.
  - `preparation/createTrainIdInstanceImgs.py`        convert annotations in polygonal format to png images with instance IDs, where pixels encode instance IDs composed of "train IDs".
+ - `preparation/createPanopticImgs.py`               convert annotations in standard png format to [COCO panoptic segmentation format](http://cocodataset.org/#format-data).
  - `evaluation/evalPixelLevelSemanticLabeling.py`    script to evaluate pixel-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
  - `evaluation/evalInstanceLevelSemanticLabeling.py` script to evaluate instance-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
+ - `evaluation/evalPanopticSemanticLabeling.py`      script to evaluate panoptic segmentation results on the validation set. This script is also used to evaluate the results on the test set.
  - `setup.py`                                        run `CYTHONIZE_EVAL= python setup.py build_ext --inplace` to enable cython plugin for faster evaluation. Only tested for Ubuntu.
 
 The scripts can be installed via pip, i.e. from within the scripts:
@@ -72,8 +74,10 @@ This installs the scripts as a python module named `cityscapesscripts` and expos
 - `csLabelTool`
 - `csEvalPixelLevelSemanticLabeling`
 - `csEvalInstanceLevelSemanticLabeling`
+- `csPanopticSemanticLabelling`
 - `csCreateTrainIdLabelImgs`
 - `csCreateTrainIdInstanceImgs`
+- `csCreatePanopticImgs`
 
 Note that for the grapical tools you additionally need to install:
 `sudo apt install python-tk python-qt4`
