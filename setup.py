@@ -35,7 +35,7 @@ config = {
     'url': 'https://github.com/mcordts/cityscapesScripts',
     'author_email': 'mail@cityscapes-dataset.net',
     'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/license.txt',
-    'version': '1.0.8',
+    'version': '1.1.0',
     'install_requires': ['numpy', 'matplotlib', 'pillow'],
     'setup_requires': ['setuptools>=18.0'],
     'packages': find_packages(),
