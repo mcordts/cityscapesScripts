@@ -11,7 +11,7 @@
 # With this tool, you can generate option
 #   d) *labelTrainIds.png     : the class is encoded by its training ID
 # This encoding might come handy for training purposes. You can use
-# the file labes.py to define the training IDs that suit your needs.
+# the file labels.py to define the training IDs that suit your needs.
 # Note however, that once you submit or evaluate results, the regular
 # IDs are needed.
 #
