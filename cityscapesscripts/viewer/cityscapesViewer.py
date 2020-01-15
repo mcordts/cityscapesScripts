@@ -23,7 +23,6 @@ import numpy as np
 try:
     import matplotlib.colors
     import matplotlib.cm
-    from PIL import PILLOW_VERSION
     from PIL import Image
 except:
     pass
@@ -158,8 +157,13 @@ class CityscapesViewer(QtGui.QMainWindow):
         except:
             self.enableDisparity = False
         # check if pillow was imported, otherwise no disparity visu possible
-        if not 'PILLOW_VERSION' in globals():
-            self.enableDisparity = False
+        try:
+            from PIL import PILLOW_VERSION  # for pillow version before 7.0.0
+        except ImportError:
+            try:
+                from PIL import __version__  # for pillow version after 7.0.0
+            except:
+                self.enableDisparity = False
 
         # Default label
         self.defaultLabel = 'static'
