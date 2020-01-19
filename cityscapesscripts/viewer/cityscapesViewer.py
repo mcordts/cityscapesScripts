@@ -20,13 +20,9 @@ import copy
 # numpy
 import numpy as np
 # matplotlib for colormaps
-try:
-    import matplotlib.colors
-    import matplotlib.cm
-    from PIL import PILLOW_VERSION
-    from PIL import Image
-except:
-    pass
+import matplotlib.colors
+import matplotlib.cm
+from PIL import Image
 
 # the label tool was originally written for python 2 and pyqt4
 # in order to enable compatibility with python 3, we need
@@ -156,9 +152,6 @@ class CityscapesViewer(QtGui.QMainWindow):
             cmap = matplotlib.cm.plasma
             self.colormap = matplotlib.cm.ScalarMappable( norm=norm , cmap=cmap )
         except:
-            self.enableDisparity = False
-        # check if pillow was imported, otherwise no disparity visu possible
-        if not 'PILLOW_VERSION' in globals():
             self.enableDisparity = False
 
         # Default label

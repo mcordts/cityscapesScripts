@@ -23,19 +23,7 @@ import json
 import numpy as np
 
 # Image processing
-# Check if PIL is actually Pillow as expected
-try:
-    from PIL import PILLOW_VERSION
-except ImportError:
-    print("Please install the module 'Pillow' for image processing, e.g.")
-    print("pip install pillow")
-    sys.exit(-1)
-
-try:
-    import PIL.Image as Image
-except ImportError:
-    print("Failed to import the image processing packages.")
-    sys.exit(-1)
+from PIL import Image
 
 # cityscapes imports
 from cityscapesscripts.helpers.csHelpers import printError
