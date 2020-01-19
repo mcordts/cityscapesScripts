@@ -158,12 +158,9 @@ class CityscapesViewer(QtGui.QMainWindow):
             self.enableDisparity = False
         # check if pillow was imported, otherwise no disparity visu possible
         try:
-            from PIL import PILLOW_VERSION  # for pillow version before 7.0.0
+            from PIL import __version__  # for pillow version since 3.4.0
         except ImportError:
-            try:
-                from PIL import __version__  # for pillow version after 7.0.0
-            except:
-                self.enableDisparity = False
+            self.enableDisparity = False
 
         # Default label
         self.defaultLabel = 'static'
