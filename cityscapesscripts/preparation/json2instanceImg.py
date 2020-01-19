@@ -37,21 +37,8 @@ from __future__ import print_function, absolute_import, division
 import os, sys, getopt
 
 # Image processing
-# Check if PIL is actually Pillow as expected
-try:
-    from PIL import PILLOW_VERSION
-except:
-    print("Please install the module 'Pillow' for image processing, e.g.")
-    print("pip install pillow")
-    sys.exit(-1)
-
-try:
-    import PIL.Image     as Image
-    import PIL.ImageDraw as ImageDraw
-except:
-    print("Failed to import the image processing packages.")
-    sys.exit(-1)
-
+from PIL import Image
+from PIL import ImageDraw
 
 # cityscapes imports
 from cityscapesscripts.helpers.annotation import Annotation

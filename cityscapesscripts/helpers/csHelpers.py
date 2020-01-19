@@ -14,42 +14,15 @@ import logging
 import traceback
 
 # Image processing
-# Check if PIL is actually Pillow as expected
-try:
-    from PIL import PILLOW_VERSION
-except:
-    print("Please install the module 'Pillow' for image processing, e.g.")
-    print("pip install pillow")
-    sys.exit(-1)
-
-try:
-    import PIL.Image     as Image
-    import PIL.ImageDraw as ImageDraw
-except:
-    print("Failed to import the image processing packages.")
-    sys.exit(-1)
+from PIL import Image
+from PIL import ImageDraw
 
 # Numpy for datastructures
-try:
-    import numpy as np
-except:
-    print("Failed to import numpy package.")
-    sys.exit(-1)
+import numpy as np
 
 # Cityscapes modules
-try:
-    from cityscapesscripts.helpers.annotation import Annotation
-    from cityscapesscripts.helpers.labels import labels, name2label, id2label, trainId2label, category2labels
-except ImportError as err:
-    print("Failed to import all Cityscapes modules: %s" % err)
-    sys.exit(-1)
-except Exception as e:
-    logging.error(traceback.format_exc())
-    sys.exit(-1)
-except:
-    print("Unexpected error in loading Cityscapes modules")
-    print(sys.exc_info()[0])
-    sys.exit(-1)
+from cityscapesscripts.helpers.annotation import Annotation
+from cityscapesscripts.helpers.labels import labels, name2label, id2label, trainId2label, category2labels
 
 # Print an error message and quit
 def printError(message):

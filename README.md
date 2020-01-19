@@ -47,40 +47,44 @@ Possible values of `split`
 
 ## Scripts
 
-There are several scripts included with the dataset in a folder named `scripts`
- - `helpers`      helper files that are included by other scripts
- - `viewer`       view the images and the annotations
- - `preparation`  convert the ground truth annotations into a format suitable for your approach
- - `evaluation`   validate your approach
- - `annotation`   the annotation tool used for labeling the dataset
+### Installation
 
+Install `cityscapesscripts` with `pip`
+```
+python -m pip install cityscapesscripts
+```
+
+For the grapical tools you additionally need to install
+```
+sudo apt install python-tk python-qt4
+```
+
+### Usage
+
+The installation installs the cityscapes scripts as a python module named `cityscapesscripts` and exposes the following tools
+- `csViewer`: View the images and overlay the annotations.
+- `csLabelTool`: Tool that we used for labeling.
+- `csEvalPixelLevelSemanticLabeling`: Evaluate pixel-level semantic labeling results on the validation set. This tool is also used to evaluate the results on the test set.
+- `csEvalInstanceLevelSemanticLabeling`: Evaluate instance-level semantic labeling results on the validation set. This tool is also used to evaluate the results on the test set.
+- `csEvalPanopticSemanticLabeling`: Evaluate panoptic segmentation results on the validation set. This tool is also used to evaluate the results on the test set.
+- `csCreateTrainIdLabelImgs`: Convert annotations in polygonal format to png images with label IDs, where pixels encode "train IDs" that you can define in `labels.py`.
+- `csCreateTrainIdInstanceImgs`: Convert annotations in polygonal format to png images with instance IDs, where pixels encode instance IDs composed of "train IDs".
+- `csCreatePanopticImgs`: Convert annotations in standard png format to [COCO panoptic segmentation format](http://cocodataset.org/#format-data).
+
+
+### Package Content
+
+The package is structured as follows
+ - `helpers`: helper files that are included by other scripts
+ - `viewer`: view the images and the annotations
+ - `preparation`: convert the ground truth annotations into a format suitable for your approach
+ - `evaluation`: validate your approach
+ - `annotation`: the annotation tool used for labeling the dataset
 
 Note that all files have a small documentation at the top. Most important files
- - `helpers/labels.py`                               central file defining the IDs of all semantic classes and providing mapping between various class properties.
- - `helpers/labels_cityPersons.py`                   file defining the IDs of all CityPersons pedestrian classes and providing mapping between various class properties.
- - `viewer/cityscapesViewer.py`                      view the images and overlay the annotations.
- - `preparation/createTrainIdLabelImgs.py`           convert annotations in polygonal format to png images with label IDs, where pixels encode "train IDs" that you can define in `labels.py`.
- - `preparation/createTrainIdInstanceImgs.py`        convert annotations in polygonal format to png images with instance IDs, where pixels encode instance IDs composed of "train IDs".
- - `preparation/createPanopticImgs.py`               convert annotations in standard png format to [COCO panoptic segmentation format](http://cocodataset.org/#format-data).
- - `evaluation/evalPixelLevelSemanticLabeling.py`    script to evaluate pixel-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
- - `evaluation/evalInstanceLevelSemanticLabeling.py` script to evaluate instance-level semantic labeling results on the validation set. This script is also used to evaluate the results on the test set.
- - `evaluation/evalPanopticSemanticLabeling.py`      script to evaluate panoptic segmentation results on the validation set. This script is also used to evaluate the results on the test set.
- - `setup.py`                                        run `CYTHONIZE_EVAL= python setup.py build_ext --inplace` to enable cython plugin for faster evaluation. Only tested for Ubuntu.
-
-The scripts can be installed via pip, i.e. from within the scripts:
-`sudo pip install .`
-This installs the scripts as a python module named `cityscapesscripts` and exposes the following tools, see above for descriptions:
-- `csViewer`
-- `csLabelTool`
-- `csEvalPixelLevelSemanticLabeling`
-- `csEvalInstanceLevelSemanticLabeling`
-- `csPanopticSemanticLabelling`
-- `csCreateTrainIdLabelImgs`
-- `csCreateTrainIdInstanceImgs`
-- `csCreatePanopticImgs`
-
-Note that for the grapical tools you additionally need to install:
-`sudo apt install python-tk python-qt4`
+ - `helpers/labels.py`: central file defining the IDs of all semantic classes and providing mapping between various class properties.
+ - `helpers/labels_cityPersons.py`: file defining the IDs of all CityPersons pedestrian classes and providing mapping between various class properties.
+ - `setup.py`: run `CYTHONIZE_EVAL= python setup.py build_ext --inplace` to enable cython plugin for faster evaluation. Only tested for Ubuntu.
 
 
 ## Evaluation
