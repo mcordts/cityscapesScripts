@@ -537,9 +537,10 @@ def evaluateImgLists(predictionImgList, groundTruthImgList, args):
         print("--------------------------------")
         print("")
 
-    # write result file
     allResultsDict = createResultDict( confMatrix, classScoreList, classInstScoreList, categoryScoreList, categoryInstScoreList, perImageStats, args )
-    writeJSONFile( allResultsDict, args)
+    # write result file
+    if args.JSONOutput:
+        writeJSONFile( allResultsDict, args)
 
     # return confusion matrix
     return allResultsDict
