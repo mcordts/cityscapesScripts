@@ -62,6 +62,7 @@ sudo apt install python-tk python-qt4
 ### Usage
 
 The installation installs the cityscapes scripts as a python module named `cityscapesscripts` and exposes the following tools
+- `csDownload`: Download the cityscapes packages via command line.
 - `csViewer`: View the images and overlay the annotations.
 - `csLabelTool`: Tool that we used for labeling.
 - `csEvalPixelLevelSemanticLabeling`: Evaluate pixel-level semantic labeling results on the validation set. This tool is also used to evaluate the results on the test set.
@@ -80,6 +81,7 @@ The package is structured as follows
  - `preparation`: convert the ground truth annotations into a format suitable for your approach
  - `evaluation`: validate your approach
  - `annotation`: the annotation tool used for labeling the dataset
+ - `download`: downloader for Cityscapes packages
 
 Note that all files have a small documentation at the top. Most important files
  - `helpers/labels.py`: central file defining the IDs of all semantic classes and providing mapping between various class properties.
