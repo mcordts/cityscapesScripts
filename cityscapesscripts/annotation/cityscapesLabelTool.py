@@ -22,23 +22,16 @@ import getpass
 # xml parsing
 import xml.etree.ElementTree as ET
 # copy text to clipboard
-try:
-    from Tkinter import Tk
-except:
-    from tkinter import Tk
+
+# try:
+#     from Tkinter import Tk
+# except:
+#     from tkinter import Tk
 # copy stuff
 import copy
 
-# the label tool was originally written for python 2 and pyqt4
-# in order to enable compatibility with python 3, we need
-# to fix the pyqt api to the old version that is default in py2
-import sip
-apis = ['QDate', 'QDateTime', 'QString', 'QTextStream', 'QTime', 'QUrl', 'QVariant']
-for a in apis:
-    sip.setapi(a, 1)
-
 # import pyqt for everything graphical
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 #################
@@ -248,7 +241,7 @@ class CorrectionBox:
 #################
 
 # The main class which is a QtGui -> Main Window
-class CityscapesLabelTool(QtGui.QMainWindow):
+class CityscapesLabelTool(QtWidgets.QMainWindow):
 
     #############################
     ## Construction / Destruction
@@ -268,7 +261,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.config.load(self.configFile)
 
         # for copying text to clipboard
-        self.tk = Tk()
+        # self.tk = Tk()
 
         # Other member variables
 
@@ -400,14 +393,14 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         iconDir = os.path.join( os.path.dirname(__file__) , 'icons' )
 
         # Loading a new city
-        loadAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'open.png' )), '&Tools', self)
+        loadAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'open.png' )), '&Tools', self)
         loadAction.setShortcuts(['o'])
         self.setTip( loadAction, 'Open city' )
         loadAction.triggered.connect( self.selectCity )
         self.toolbar.addAction(loadAction)
 
         # Open previous image
-        backAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'back.png')), '&Tools', self)
+        backAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'back.png')), '&Tools', self)
         backAction.setShortcut('left')
         backAction.setStatusTip('Previous image')
         backAction.triggered.connect( self.prevImage )
@@ -415,7 +408,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actImageNotFirst.append(backAction)
 
         # Open next image
-        nextAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'next.png')), '&Tools', self)
+        nextAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'next.png')), '&Tools', self)
         nextAction.setShortcut('right')
         self.setTip( nextAction, 'Next image' )
         nextAction.triggered.connect( self.nextImage )
@@ -423,7 +416,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actImageNotLast.append(nextAction)
 
         # Play
-        playAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'play.png')), '&Tools', self)
+        playAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'play.png')), '&Tools', self)
         playAction.setShortcut(' ')
         playAction.setCheckable(True)
         playAction.setChecked(False)
@@ -434,7 +427,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.playAction = playAction
 
         # Select image
-        selImageAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'shuffle.png' )), '&Tools', self)
+        selImageAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'shuffle.png' )), '&Tools', self)
         selImageAction.setShortcut('i')
         self.setTip( selImageAction, 'Select image' )
         selImageAction.triggered.connect( self.selectImage )
@@ -442,15 +435,15 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actImage.append(selImageAction)
 
         # Save the current image
-        saveAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'save.png' )), '&Tools', self)
-        saveAction.setShortcuts('s')
+        saveAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'save.png' )), '&Tools', self)
+        saveAction.setShortcut('s')
         self.setTip( saveAction,'Save changes' )
         saveAction.triggered.connect( self.save )
         self.toolbar.addAction(saveAction)
         self.actChanges.append(saveAction)
 
         # Clear the currently edited polygon
-        clearPolAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'clearpolygon.png' )), '&Tools', self)
+        clearPolAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'clearpolygon.png' )), '&Tools', self)
         clearPolAction.setShortcuts(['q','Esc'])
         self.setTip( clearPolAction, 'Clear polygon' )
         clearPolAction.triggered.connect( self.clearPolygonAction )
@@ -458,7 +451,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actPolyOrSelObj.append(clearPolAction)
 
         # Create new object from drawn polygon
-        newObjAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'newobject.png' )), '&Tools', self)
+        newObjAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'newobject.png' )), '&Tools', self)
         newObjAction.setShortcuts(['n'])
         self.setTip( newObjAction, 'New object' )
         newObjAction.triggered.connect( self.newObject )
@@ -466,7 +459,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actClosedPoly.append(newObjAction)
 
         # Delete the currently selected object
-        deleteObjectAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'deleteobject.png' )), '&Tools', self)
+        deleteObjectAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'deleteobject.png' )), '&Tools', self)
         deleteObjectAction.setShortcuts(['d','delete'])
         self.setTip( deleteObjectAction, 'Delete object' )
         deleteObjectAction.triggered.connect( self.deleteObject )
@@ -474,15 +467,15 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actSelObj.append(deleteObjectAction)
 
         # Undo changes in current image, ie. reload labels from file
-        undoAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'undo.png' )), '&Tools', self)
-        undoAction.setShortcuts('u')
+        undoAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'undo.png' )), '&Tools', self)
+        undoAction.setShortcut('u')
         self.setTip( undoAction,'Undo all unsaved changes' )
         undoAction.triggered.connect( self.undo )
         self.toolbar.addAction(undoAction)
         self.actChanges.append(undoAction)
 
         # Modify the label of a selected object
-        labelAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'modify.png' )), '&Tools', self)
+        labelAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'modify.png' )), '&Tools', self)
         labelAction.setShortcuts(['m','l'])
         self.setTip( labelAction, 'Modify label' )
         labelAction.triggered.connect( self.modifyLabel )
@@ -490,7 +483,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actSelObj.append(labelAction)
 
         # Move selected object a layer up
-        layerUpAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'layerup.png' )), '&Tools', self)
+        layerUpAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'layerup.png' )), '&Tools', self)
         layerUpAction.setShortcuts(['Up'])
         self.setTip( layerUpAction, 'Move object a layer up' )
         layerUpAction.triggered.connect( self.layerUp )
@@ -498,7 +491,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.singleActSelObj.append(layerUpAction)
 
         # Move selected object a layer down
-        layerDownAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'layerdown.png' )), '&Tools', self)
+        layerDownAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'layerdown.png' )), '&Tools', self)
         layerDownAction.setShortcuts(['Down'])
         self.setTip( layerDownAction, 'Move object a layer down' )
         layerDownAction.triggered.connect( self.layerDown )
@@ -506,7 +499,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.singleActSelObj.append(layerDownAction)
 
         # Enable/disable zoom. Toggle button
-        zoomAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'zoom.png' )), '&Tools', self)
+        zoomAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'zoom.png' )), '&Tools', self)
         zoomAction.setShortcuts(['z'])
         zoomAction.setCheckable(True)
         zoomAction.setChecked(self.config.zoom)
@@ -516,7 +509,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actImage.append(zoomAction)
 
         # Highlight objects of a certain class
-        highlightAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'highlight.png' )), '&Tools', self)
+        highlightAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'highlight.png' )), '&Tools', self)
         highlightAction.setShortcuts(['g'])
         highlightAction.setCheckable(True)
         highlightAction.setChecked(self.config.highlight)
@@ -526,21 +519,21 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actImage.append(highlightAction)
 
         # Decrease transparency
-        minusAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'minus.png' )), '&Tools', self)
+        minusAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'minus.png' )), '&Tools', self)
         minusAction.setShortcut('-')
         self.setTip( minusAction, 'Decrease transparency' )
         minusAction.triggered.connect( self.minus )
         self.toolbar.addAction(minusAction)
 
         # Increase transparency
-        plusAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'plus.png' )), '&Tools', self)
+        plusAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'plus.png' )), '&Tools', self)
         plusAction.setShortcut('+')
         self.setTip( plusAction, 'Increase transparency' )
         plusAction.triggered.connect( self.plus )
         self.toolbar.addAction(plusAction)
 
         # Take a screenshot
-        screenshotAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'screenshot.png' )), '&Tools', self)
+        screenshotAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'screenshot.png' )), '&Tools', self)
         screenshotAction.setShortcut('t')
         self.setTip( screenshotAction, 'Take a screenshot' )
         screenshotAction.triggered.connect( self.screenshot )
@@ -548,7 +541,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actImage.append(screenshotAction)
 
         # Take a screenshot in each loaded frame
-        screenshotToggleAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'screenshotToggle.png' )), '&Tools', self)
+        screenshotToggleAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'screenshotToggle.png' )), '&Tools', self)
         screenshotToggleAction.setShortcut('Ctrl+t')
         screenshotToggleAction.setCheckable(True)
         screenshotToggleAction.setChecked(False)
@@ -558,14 +551,14 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.actImage.append(screenshotToggleAction)
 
         # Display path to current image in message bar
-        displayFilepathAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'filepath.png' )), '&Tools', self)
+        displayFilepathAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'filepath.png' )), '&Tools', self)
         displayFilepathAction.setShortcut('f')
         self.setTip( displayFilepathAction, 'Show path to current image' )
         displayFilepathAction.triggered.connect( self.displayFilepath )
         self.toolbar.addAction(displayFilepathAction)
 
         # Open correction mode
-        self.correctAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'checked6.png' )), '&Tools', self)
+        self.correctAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'checked6.png' )), '&Tools', self)
         self.correctAction.setShortcut('c')
         self.correctAction.setCheckable(True)
         self.correctAction.setChecked(self.config.correctionMode)
@@ -576,14 +569,14 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.toolbar.addAction(self.correctAction)
 
         # Display help message
-        helpAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'help19.png' )), '&Tools', self)
+        helpAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'help19.png' )), '&Tools', self)
         helpAction.setShortcut('h')
         self.setTip( helpAction, 'Help' )
         helpAction.triggered.connect( self.displayHelpMessage )
         self.toolbar.addAction(helpAction)
 
         # Close the application
-        exitAction = QtGui.QAction(QtGui.QIcon( os.path.join( iconDir , 'exit.png' )), '&Tools', self)
+        exitAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'exit.png' )), '&Tools', self)
         #exitAction.setShortcuts(['Esc'])
         self.setTip( exitAction, 'Exit' )
         exitAction.triggered.connect( self.close )
@@ -598,7 +591,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.setMouseTracking(True)
         self.toolbar.setMouseTracking(True)
         # Open in full screen
-        screenShape = QtGui.QDesktopWidget().screenGeometry()
+        screenShape = QtWidgets.QDesktopWidget().screenGeometry()
         self.resize(screenShape.width(), screenShape.height())
         # Set a title
         self.applicationTitle = 'Cityscapes Label Tool v1.0'
@@ -666,7 +659,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         if items:
 
             # Create and wait for dialog
-            (item, ok) = QtGui.QInputDialog.getItem(self, dlgTitle, question, items, default, False)
+            (item, ok) = QtWidgets.QInputDialog.getItem(self, dlgTitle, question, items, default, False)
 
             # Restore message
             self.statusBar().showMessage( restoreMessage )
@@ -696,8 +689,8 @@ class CityscapesLabelTool(QtGui.QMainWindow):
             warning += " - set CITYSCAPES_DATASET to the Cityscapes root folder\n"
             warning += "       e.g. 'export CITYSCAPES_DATASET=<root_path>'\n"
 
-            reply = QtGui.QMessageBox.information(self, "ERROR!", warning, QtGui.QMessageBox.Ok)
-            if reply == QtGui.QMessageBox.Ok:
+            reply = QtWidgets.QMessageBox.information(self, "ERROR!", warning, QtWidgets.QMessageBox.Ok)
+            if reply == QtWidgets.QMessageBox.Ok:
                 sys.exit()
 
         return
@@ -769,10 +762,10 @@ class CityscapesLabelTool(QtGui.QMainWindow):
 
         dlgTitle = "Select image to load"
         self.statusBar().showMessage(dlgTitle)
-        items = QtCore.QStringList( [ "{}: {}".format(num,os.path.basename(i)) for (num,i) in enumerate(self.images) ] )
-        (item, ok) = QtGui.QInputDialog.getItem(self, dlgTitle, "Image", items, self.idx, False)
+        items = [ "{}: {}".format(num,os.path.basename(i)) for (num,i) in enumerate(self.images) ]
+        (item, ok) = QtWidgets.QInputDialog.getItem(self, dlgTitle, "Image", items, self.idx, False)
         if (ok and item):
-            idx = items.indexOf(item)
+            idx = items.index(item)
             if idx != self.idx and self.checkAndSave():
                 self.idx = idx
                 self.imageChanged()
@@ -805,14 +798,14 @@ class CityscapesLabelTool(QtGui.QMainWindow):
                     proceed = True
                     # warn user that he is overwriting an old file
                     if os.path.isfile(filename) and self.config.showSaveWarning:
-                        msgBox = QtGui.QMessageBox(self)
+                        msgBox = QtWidgets.QMessageBox(self)
                         msgBox.setWindowTitle("Overwriting")
                         msgBox.setText("Saving overwrites the original file and it cannot be reversed. Do you want to continue?")
-                        msgBox.addButton(QtGui.QMessageBox.Cancel)
-                        okAndNeverAgainButton = msgBox.addButton('OK and never ask again',QtGui.QMessageBox.AcceptRole)
-                        okButton = msgBox.addButton(QtGui.QMessageBox.Ok)
-                        msgBox.setDefaultButton(QtGui.QMessageBox.Ok)
-                        msgBox.setIcon(QtGui.QMessageBox.Warning)
+                        msgBox.addButton(QtWidgets.QMessageBox.Cancel)
+                        okAndNeverAgainButton = msgBox.addButton('OK and never ask again',QtWidgets.QMessageBox.AcceptRole)
+                        okButton = msgBox.addButton(QtWidgets.QMessageBox.Ok)
+                        msgBox.setDefaultButton(QtWidgets.QMessageBox.Ok)
+                        msgBox.setIcon(QtWidgets.QMessageBox.Warning)
                         msgBox.exec_()
 
                         # User clicked on "OK"
@@ -921,11 +914,11 @@ class CityscapesLabelTool(QtGui.QMainWindow):
             text = "Do you want to undo the following changes?\n"
             for c in self.changes:
                 text += "- " + c + '\n'
-            buttons = QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel
-            ret = QtGui.QMessageBox.question(self, dlgTitle, text, buttons, QtGui.QMessageBox.Ok )
+            buttons = QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel
+            ret = QtWidgets.QMessageBox.question(self, dlgTitle, text, buttons, QtWidgets.QMessageBox.Ok )
             proceed = False
             # If the user selected yes -> undo
-            if ret == QtGui.QMessageBox.Ok:
+            if ret == QtWidgets.QMessageBox.Ok:
                 proceed = True
             self.statusBar().showMessage( restoreMessage )
 
@@ -1087,7 +1080,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         # Get a filename for saving
         dlgTitle = "Get screenshot filename"
         filter = "Images (*.png *.xpm *.jpg)"
-        answer = QtGui.QFileDialog.getSaveFileName(self, dlgTitle, self.config.screenshotFilename,filter, options=QtGui.QFileDialog.DontUseNativeDialog)
+        answer = QtWidgets.QFileDialog.getSaveFileName(self, dlgTitle, self.config.screenshotFilename,filter, options=QtWidgets.QFileDialog.DontUseNativeDialog)[0]
         if answer:
             self.config.screenshotFilename = str(answer)
         else:
@@ -1142,7 +1135,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         message += "     - delete box [D]\n"
         message += "     - modify text, use ascii only [M]\n"
 
-        QtGui.QMessageBox.about(self, "HELP!", message)
+        QtWidgets.QMessageBox.about(self, "HELP!", message)
         self.update()
 
     # Close the application
@@ -1337,7 +1330,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
 
     def modify_correction_description(self):
         if self.selected_correction >= 0 and self.config.correctionMode:
-            description = QtGui.QInputDialog.getText(self, "Modify Error Description", "Please describe the labeling error briefly.",
+            description = QtWidgets.QInputDialog.getText(self, "Modify Error Description", "Please describe the labeling error briefly.",
                                                      text = self.corrections[self.selected_correction].annotation)
             if description[1]:
                 self.corrections[self.selected_correction].annotation = description[0]
@@ -1406,7 +1399,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         qp.end()
 
         # Forward the paint event
-        QtGui.QMainWindow.paintEvent(self,event)
+        QtWidgets.QMainWindow.paintEvent(self,event)
 
     # Update the scaling
     def updateScale(self, qp):
@@ -1855,7 +1848,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
     def mousePressEvent(self,event):
 
         self.mouseButtons = event.buttons()
-        shiftPressed = QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier
+        shiftPressed = QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier
         self.updateMousePos( event.posF() )
         self.mousePressEvent = self.mousePosScaled
         # Handle left click
@@ -1955,7 +1948,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
             else:
                 if self.in_progress_bbox is not None:
                     if self.in_progress_bbox.width() > 20:
-                        description = QtGui.QInputDialog.getText(self, "Error Description", "Please describe the labeling error briefly.")
+                        description = QtWidgets.QInputDialog.getText(self, "Error Description", "Please describe the labeling error briefly.")
                         if description[1] and description[0]:
                             self.corrections.append(CorrectionBox(self.in_progress_bbox, annotation=description[0]))
                             #last_annotation = self.in_progress_annotation  #TODO: self?
@@ -1975,7 +1968,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
 
     # Mouse wheel scrolled
     def wheelEvent(self, event):
-        deltaDegree = event.delta() / 8 # Rotation in degree
+        deltaDegree = event.angleDelta().y() / 8 # Rotation in degree
         deltaSteps  = deltaDegree / 15 # Usually one step on the mouse is 15 degrees
 
         if self.config.zoom:
@@ -1995,7 +1988,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
     def keyPressEvent(self,e):
         # Ctrl key changes mouse cursor
         if e.key() == QtCore.Qt.Key_Control:
-            QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+            QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         # Backspace deletes last point from polygon
         elif e.key() == QtCore.Qt.Key_Backspace:
             if not self.drawPolyClosed:
@@ -2026,7 +2019,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
     def keyReleaseEvent(self,e):
         # Ctrl key changes mouse cursor
         if e.key() == QtCore.Qt.Key_Control:
-            QtGui.QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
         # check for zero to release temporary zero
         # somehow, for the numpad key in some machines, a check on Insert is needed aswell
         elif e.key() == QtCore.Qt.Key_0 or e.key() == QtCore.Qt.Key_Insert:
@@ -2193,9 +2186,9 @@ class CityscapesLabelTool(QtGui.QMainWindow):
             defaultLabel = self.defaultLabel
 
         # List of possible labels
-        items = QtCore.QStringList(list(name2label.keys()))
+        items = list(name2label.keys())
         items.sort()
-        default = items.indexOf(defaultLabel)
+        default = items.index(defaultLabel)
         if default < 0:
             self.statusBar().showMessage( 'The selected label is missing in the internal color map.' )
             return
@@ -2210,7 +2203,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         self.statusBar().showMessage(message)
 
         # Create and wait for dialog
-        (item, ok) = QtGui.QInputDialog.getItem(self, dlgTitle, question, items, default, False)
+        (item, ok) = QtWidgets.QInputDialog.getItem(self, dlgTitle, question, items, default, False)
 
         # Process the answer a bit
         item = str(item)
@@ -2409,14 +2402,14 @@ class CityscapesLabelTool(QtGui.QMainWindow):
         text = "Do you want to save the following changes?\n"
         for c in self.changes:
             text += "- " + c + '\n'
-        buttons = QtGui.QMessageBox.Save | QtGui.QMessageBox.Discard | QtGui.QMessageBox.Cancel
-        ret = QtGui.QMessageBox.question(self, dlgTitle, text, buttons, QtGui.QMessageBox.Save )
+        buttons = QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel
+        ret = QtWidgets.QMessageBox.question(self, dlgTitle, text, buttons, QtWidgets.QMessageBox.Save )
         proceed = False
         # If the user selected yes -> save
-        if ret == QtGui.QMessageBox.Save:
+        if ret == QtWidgets.QMessageBox.Save:
             proceed = self.save()
         # If the user selected to discard the changes, clear them
-        elif ret == QtGui.QMessageBox.Discard:
+        elif ret == QtWidgets.QMessageBox.Discard:
             self.clearChanges( )
             proceed = True
         # Otherwise prevent leaving the image
@@ -2790,7 +2783,7 @@ class CityscapesLabelTool(QtGui.QMainWindow):
 
 def main():
 
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
     tool = CityscapesLabelTool()
 
