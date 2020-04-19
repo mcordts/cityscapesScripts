@@ -20,7 +20,8 @@ if 'CYTHONIZE_EVAL' in os.environ:
     os.environ["CC"] = "g++"
     os.environ["CXX"] = "g++"
 
-    pyxFile = os.path.join("cityscapesscripts", "evaluation", "addToConfusionMatrix.pyx")
+    pyxFile = os.path.join("cityscapesscripts",
+                           "evaluation", "addToConfusionMatrix.pyx")
     ext_modules = cythonize(pyxFile)
 
 with open("README.md") as f:
@@ -35,13 +36,16 @@ config = {
     'url': 'https://github.com/mcordts/cityscapesScripts',
     'author_email': 'mail@cityscapes-dataset.net',
     'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/license.txt',
-    'version': '1.3.1',
+    'version': '1.4.0',
     'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs'],
     'setup_requires': ['setuptools>=18.0'],
+    'extras_require': {
+        'gui': ['PyQt5']
+    },
     'packages': find_packages(),
     'scripts': [],
-    'entry_points': {'gui_scripts': ['csViewer = cityscapesscripts.viewer.cityscapesViewer:main',
-                                     'csLabelTool = cityscapesscripts.annotation.cityscapesLabelTool:main'],
+    'entry_points': {'gui_scripts': ['csViewer = cityscapesscripts.viewer.cityscapesViewer:main [gui]',
+                                     'csLabelTool = cityscapesscripts.annotation.cityscapesLabelTool:main [gui]'],
                      'console_scripts': ['csEvalPixelLevelSemanticLabeling = cityscapesscripts.evaluation.evalPixelLevelSemanticLabeling:main',
                                          'csEvalInstanceLevelSemanticLabeling = cityscapesscripts.evaluation.evalInstanceLevelSemanticLabeling:main',
                                          'csEvalPanopticSemanticLabeling = cityscapesscripts.evaluation.evalPanopticSemanticLabeling:main',

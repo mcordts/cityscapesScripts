@@ -3,7 +3,7 @@
 
 
 #################
-## Import modules
+# Import modules
 #################
 
 from __future__ import print_function, absolute_import, division
@@ -28,19 +28,21 @@ from PIL import Image
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 #################
-## Helper classes
+# Helper classes
 #################
 
 # annotation helper
-from cityscapesscripts.helpers.annotation  import Annotation, CsObjectType
-from cityscapesscripts.helpers.labels     import name2label, assureSingleInstanceName
+from cityscapesscripts.helpers.annotation import Annotation, CsObjectType
+from cityscapesscripts.helpers.labels import name2label, assureSingleInstanceName
 from cityscapesscripts.helpers.labels_cityPersons import name2labelCp
 
 #################
-## Main GUI class
+# Main GUI class
 #################
 
 # The main class which is a QtGui -> Main Window
+
+
 class CityscapesViewer(QtWidgets.QMainWindow):
 
     #############################
@@ -55,101 +57,102 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # This is the configuration.
 
         # The filename of the image we currently working on
-        self.currentFile       = ""
+        self.currentFile = ""
         # The filename of the labels we currently working on
-        self.currentLabelFile  = ""
+        self.currentLabelFile = ""
         # The path of the images of the currently loaded city
-        self.city              = ""
+        self.city = ""
         # The name of the currently loaded city
-        self.cityName          = ""
+        self.cityName = ""
         # Ground truth type
-        self.gtType            = CsObjectType.POLY
+        self.gtType = CsObjectType.POLY
         # The path of the labels. In this folder we expect a folder for each city
         # Within these city folders we expect the label with a filename matching
         # the images, except for the extension
-        self.labelPath         = ""
+        self.labelPath = ""
         # The transparency of the labels over the image
-        self.transp            = 0.5
+        self.transp = 0.5
         # The zoom toggle
-        self.zoom              = False
+        self.zoom = False
         # The zoom factor
-        self.zoomFactor        = 1.5
+        self.zoomFactor = 1.5
         # The size of the zoom window. Currently there is no setter or getter for that
-        self.zoomSize          = 400 #px
+        self.zoomSize = 400  # px
 
         # The width that we actually use to show the image
-        self.w                 = 0
+        self.w = 0
         # The height that we actually use to show the image
-        self.h                 = 0
+        self.h = 0
         # The horizontal offset where we start drawing within the widget
-        self.xoff              = 0
+        self.xoff = 0
         # The vertical offset where we start drawing withing the widget
-        self.yoff              = 0
+        self.yoff = 0
         # A gap that we  leave around the image as little border
-        self.bordergap         = 20
+        self.bordergap = 20
         # The scale that was used, ie
         # self.w = self.scale * self.image.width()
         # self.h = self.scale * self.image.height()
-        self.scale             = 1.0
+        self.scale = 1.0
         # Filenames of all images in current city
-        self.images            = []
+        self.images = []
         # Image extension
-        self.imageExt          = "_leftImg8bit.png"
+        self.imageExt = "_leftImg8bit.png"
         # Ground truth extension
-        self.gtExt             = "_gt*.json"
+        self.gtExt = "_gt*.json"
         # Current image as QImage
-        self.image             = QtGui.QImage()
+        self.image = QtGui.QImage()
         # Index of the current image within the city folder
-        self.idx               = 0
+        self.idx = 0
         # All annotated objects in current image, i.e. list of csPoly or csBbox
-        self.annotation        = []
+        self.annotation = []
         # The current object the mouse points to. It's index in self.labels
-        self.mouseObj          = -1
+        self.mouseObj = -1
         # The object that is highlighted and its label. An object instance
-        self.highlightObj      = None
+        self.highlightObj = None
         self.highlightObjLabel = None
         # The position of the mouse
-        self.mousePosOrig      = None
+        self.mousePosOrig = None
         # The position of the mouse scaled to label coordinates
-        self.mousePosScaled    = None
+        self.mousePosScaled = None
         # If the mouse is outside of the image
         self.mouseOutsideImage = True
         # The position of the mouse upon enabling the zoom window
-        self.mousePosOnZoom    = None
+        self.mousePosOnZoom = None
         # A list of toolbar actions that need an image
-        self.actImage          = []
+        self.actImage = []
         # A list of toolbar actions that need an image that is not the first
-        self.actImageNotFirst  = []
+        self.actImageNotFirst = []
         # A list of toolbar actions that need an image that is not the last
-        self.actImageNotLast   = []
+        self.actImageNotLast = []
         # Toggle status of the play icon
-        self.playState         = False
+        self.playState = False
         # Enable disparity visu in general
-        self.enableDisparity   = True
+        self.enableDisparity = True
         # Show disparities instead of labels
-        self.showDisparity     = False
+        self.showDisparity = False
         # The filename of the disparity map we currently working on
-        self.currentDispFile   = ""
+        self.currentDispFile = ""
         # The disparity image
-        self.dispImg           = None
+        self.dispImg = None
         # As overlay
-        self.dispOverlay       = None
+        self.dispOverlay = None
         # The disparity search path
-        self.dispPath          = None
+        self.dispPath = None
         # Disparity extension
-        self.dispExt           = "_disparity.png"
+        self.dispExt = "_disparity.png"
         # Generate colormap
         try:
-            norm = matplotlib.colors.Normalize(vmin=3,vmax=100)
+            norm = matplotlib.colors.Normalize(vmin=3, vmax=100)
             cmap = matplotlib.cm.plasma
-            self.colormap = matplotlib.cm.ScalarMappable( norm=norm , cmap=cmap )
+            self.colormap = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
         except:
             self.enableDisparity = False
 
         # Default label
         self.defaultLabel = 'static'
         if self.defaultLabel not in name2label:
-            print('The {0} label is missing in the internal label definitions.'.format(self.defaultLabel))
+            print('The {0} label is missing in the internal label definitions.'.format(
+                self.defaultLabel))
             return
         # Last selected label
         self.lastLabel = self.defaultLabel
@@ -171,116 +174,128 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.toolbar = self.addToolBar('Tools')
 
         # Add the tool buttons
-        iconDir = os.path.join( os.path.dirname(__file__) , 'icons' )
+        iconDir = os.path.join(os.path.dirname(__file__), 'icons')
 
         # Loading a new city
-        loadAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'open.png' )), '&Tools', self)
+        loadAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'open.png')), '&Tools', self)
         loadAction.setShortcuts(['o'])
-        self.setTip( loadAction, 'Open city' )
-        loadAction.triggered.connect( self.getCityFromUser )
+        self.setTip(loadAction, 'Open city')
+        loadAction.triggered.connect(self.getCityFromUser)
         self.toolbar.addAction(loadAction)
 
         # Open previous image
-        backAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'back.png')), '&Tools', self)
+        backAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'back.png')), '&Tools', self)
         backAction.setShortcut('left')
         backAction.setStatusTip('Previous image')
-        backAction.triggered.connect( self.prevImage )
+        backAction.triggered.connect(self.prevImage)
         self.toolbar.addAction(backAction)
         self.actImageNotFirst.append(backAction)
 
         # Open next image
-        nextAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'next.png')), '&Tools', self)
+        nextAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'next.png')), '&Tools', self)
         nextAction.setShortcut('right')
-        self.setTip( nextAction, 'Next image' )
-        nextAction.triggered.connect( self.nextImage )
+        self.setTip(nextAction, 'Next image')
+        nextAction.triggered.connect(self.nextImage)
         self.toolbar.addAction(nextAction)
         self.actImageNotLast.append(nextAction)
 
         # Play
-        playAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'play.png')), '&Tools', self)
+        playAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'play.png')), '&Tools', self)
         playAction.setShortcut(' ')
         playAction.setCheckable(True)
         playAction.setChecked(False)
-        self.setTip( playAction, 'Play all images' )
-        playAction.triggered.connect( self.playImages )
+        self.setTip(playAction, 'Play all images')
+        playAction.triggered.connect(self.playImages)
         self.toolbar.addAction(playAction)
         self.actImageNotLast.append(playAction)
         self.playAction = playAction
 
         # Select image
-        selImageAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'shuffle.png' )), '&Tools', self)
+        selImageAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'shuffle.png')), '&Tools', self)
         selImageAction.setShortcut('i')
-        self.setTip( selImageAction, 'Select image' )
-        selImageAction.triggered.connect( self.selectImage )
+        self.setTip(selImageAction, 'Select image')
+        selImageAction.triggered.connect(self.selectImage)
         self.toolbar.addAction(selImageAction)
         self.actImage.append(selImageAction)
 
         # Enable/disable disparity visu. Toggle button
         if self.enableDisparity:
-            dispAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'disp.png' )), '&Tools', self)
+            dispAction = QtWidgets.QAction(QtGui.QIcon(
+                os.path.join(iconDir, 'disp.png')), '&Tools', self)
             dispAction.setShortcuts(['d'])
             dispAction.setCheckable(True)
             dispAction.setChecked(self.showDisparity)
-            self.setTip( dispAction, 'Enable/disable depth visualization' )
-            dispAction.toggled.connect( self.dispToggle )
+            self.setTip(dispAction, 'Enable/disable depth visualization')
+            dispAction.toggled.connect(self.dispToggle)
             self.toolbar.addAction(dispAction)
             self.actImage.append(dispAction)
 
         # Enable/disable zoom. Toggle button
-        zoomAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'zoom.png' )), '&Tools', self)
+        zoomAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'zoom.png')), '&Tools', self)
         zoomAction.setShortcuts(['z'])
         zoomAction.setCheckable(True)
         zoomAction.setChecked(self.zoom)
-        self.setTip( zoomAction, 'Enable/disable permanent zoom' )
-        zoomAction.toggled.connect( self.zoomToggle )
+        self.setTip(zoomAction, 'Enable/disable permanent zoom')
+        zoomAction.toggled.connect(self.zoomToggle)
         self.toolbar.addAction(zoomAction)
         self.actImage.append(zoomAction)
 
         # Decrease transparency
-        minusAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'minus.png' )), '&Tools', self)
+        minusAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'minus.png')), '&Tools', self)
         minusAction.setShortcut('-')
-        self.setTip( minusAction, 'Decrease transparency' )
-        minusAction.triggered.connect( self.minus )
+        self.setTip(minusAction, 'Decrease transparency')
+        minusAction.triggered.connect(self.minus)
         self.toolbar.addAction(minusAction)
 
         # Increase transparency
-        plusAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'plus.png' )), '&Tools', self)
+        plusAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'plus.png')), '&Tools', self)
         plusAction.setShortcut('+')
-        self.setTip( plusAction, 'Increase transparency' )
-        plusAction.triggered.connect( self.plus )
+        self.setTip(plusAction, 'Increase transparency')
+        plusAction.triggered.connect(self.plus)
         self.toolbar.addAction(plusAction)
 
         # Display path to current image in message bar
-        displayFilepathAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'filepath.png' )), '&Tools', self)
+        displayFilepathAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'filepath.png')), '&Tools', self)
         displayFilepathAction.setShortcut('f')
-        self.setTip( displayFilepathAction, 'Show path to current image' )
-        displayFilepathAction.triggered.connect( self.displayFilepath )
+        self.setTip(displayFilepathAction, 'Show path to current image')
+        displayFilepathAction.triggered.connect(self.displayFilepath)
         self.toolbar.addAction(displayFilepathAction)
 
         # Display help message
-        helpAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'help19.png' )), '&Tools', self)
+        helpAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'help19.png')), '&Tools', self)
         helpAction.setShortcut('h')
-        self.setTip( helpAction, 'Help' )
-        helpAction.triggered.connect( self.displayHelpMessage )
+        self.setTip(helpAction, 'Help')
+        helpAction.triggered.connect(self.displayHelpMessage)
         self.toolbar.addAction(helpAction)
 
         # Close the application
-        exitAction = QtWidgets.QAction(QtGui.QIcon( os.path.join( iconDir , 'exit.png' )), '&Tools', self)
+        exitAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'exit.png')), '&Tools', self)
         exitAction.setShortcuts(['Esc'])
-        self.setTip( exitAction, 'Exit' )
-        exitAction.triggered.connect( self.close )
+        self.setTip(exitAction, 'Exit')
+        exitAction.triggered.connect(self.close)
         self.toolbar.addAction(exitAction)
 
         # The default text for the status bar
         self.defaultStatusbar = 'Ready'
         # Create a statusbar. Init with default
-        self.statusBar().showMessage( self.defaultStatusbar )
+        self.statusBar().showMessage(self.defaultStatusbar)
 
         # Enable mouse move events
         self.setMouseTracking(True)
         self.toolbar.setMouseTracking(True)
         # Open in full screen
-        self.showFullScreen( )
+        self.showFullScreen()
         # Set a title
         self.applicationTitle = 'Cityscapes Viewer v1.0'
         self.setWindowTitle(self.applicationTitle)
@@ -290,7 +305,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.show()
 
     #############################
-    ## Toolbar call-backs
+    # Toolbar call-backs
     #############################
 
     # Switch to previous image in file list
@@ -336,21 +351,22 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         if self.playState:
             QtCore.QTimer.singleShot(0, self.nextImage)
 
-
     # Switch to a selected image of the file list
     # Ask the user for an image
     # Load the image
     # Load its labels
     # Update the mouse selection
     # View
+
     def selectImage(self):
         if not self.images:
             return
 
         dlgTitle = "Select image to load"
         self.statusBar().showMessage(dlgTitle)
-        items = [ os.path.basename(i) for i in self.images ]
-        (item, ok) = QtWidgets.QInputDialog.getItem(self, dlgTitle, "Image", items, self.idx, False)
+        items = [os.path.basename(i) for i in self.images]
+        (item, ok) = QtWidgets.QInputDialog.getItem(
+            self, dlgTitle, "Image", items, self.idx, False)
         if (ok and item):
             idx = items.index(item)
             if idx != self.idx:
@@ -358,13 +374,13 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                 self.imageChanged()
         else:
             # Restore the message
-            self.statusBar().showMessage( self.defaultStatusbar )
-
+            self.statusBar().showMessage(self.defaultStatusbar)
 
     # Toggle zoom
+
     def zoomToggle(self, status):
         self.zoom = status
-        if status :
+        if status:
             self.mousePosOnZoom = self.mousePosOrig
         self.update()
 
@@ -373,15 +389,15 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.showDisparity = status
         self.imageChanged()
 
-
     # Increase label transparency
+
     def minus(self):
-        self.transp = max(self.transp-0.1,0.0)
+        self.transp = max(self.transp-0.1, 0.0)
         self.update()
 
-
     def displayFilepath(self):
-        self.statusBar().showMessage("Current image: {0}".format( self.currentFile ))
+        self.statusBar().showMessage(
+            "Current image: {0}".format(self.currentFile))
         self.update()
 
     def displayHelpMessage(self):
@@ -413,19 +429,18 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.about(self, "HELP!", message)
         self.update()
 
-
     # Decrease label transparency
+
     def plus(self):
-        self.transp = min(self.transp+0.1,1.0)
+        self.transp = min(self.transp+0.1, 1.0)
         self.update()
 
     # Close the application
-    def closeEvent(self,event):
-         event.accept()
-
+    def closeEvent(self, event):
+        event.accept()
 
     #############################
-    ## Custom events
+    # Custom events
     #############################
 
     def imageChanged(self):
@@ -441,7 +456,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.update()
 
     #############################
-    ## File I/O
+    # File I/O
     #############################
 
     # Load the currently selected city if possible
@@ -451,7 +466,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Search for all *.pngs to get the image list
         self.images = []
         if os.path.isdir(self.city):
-            self.images = glob.glob( os.path.join( self.city , '*' + self.imageExt ) )
+            self.images = glob.glob(os.path.join(
+                self.city, '*' + self.imageExt))
             self.images.sort()
             if self.currentFile in self.images:
                 self.idx = self.images.index(self.currentFile)
@@ -466,15 +482,15 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         message = self.defaultStatusbar
         if self.images:
             filename = self.images[self.idx]
-            filename = os.path.normpath( filename )
+            filename = os.path.normpath(filename)
             if not self.image.isNull() and filename == self.currentFile:
                 success = True
             else:
                 self.image = QtGui.QImage(filename)
                 if self.image.isNull():
-                    message = "Failed to read image: {0}".format( filename )
+                    message = "Failed to read image: {0}".format(filename)
                 else:
-                    message = "Read image: {0}".format( filename )
+                    message = "Read image: {0}".format(filename)
                     self.currentFile = filename
                     success = True
 
@@ -509,7 +525,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             self.annotation.fromJsonFile(filename)
         except IOError as e:
             # This is the error if the file does not exist
-            message = "Error parsing labels in {0}. Message: {1}".format( filename, e.strerror )
+            message = "Error parsing labels in {0}. Message: {1}".format(
+                filename, e.strerror)
             self.statusBar().showMessage(message)
 
         # Remember the filename loaded
@@ -519,11 +536,11 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         restoreMessage = self.statusBar().currentMessage()
 
         # Restore the message
-        self.statusBar().showMessage( restoreMessage )
-
+        self.statusBar().showMessage(restoreMessage)
 
     # Load the disparity map from file
     # Only loads if they exist
+
     def loadDisparities(self):
         if not self.enableDisparity:
             return
@@ -546,26 +563,30 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             self.dispImg = Image.open(filename)
         except IOError as e:
             # This is the error if the file does not exist
-            message = "Error parsing disparities in {0}. Message: {1}".format( filename, e.strerror )
+            message = "Error parsing disparities in {0}. Message: {1}".format(
+                filename, e.strerror)
             self.statusBar().showMessage(message)
             self.dispImg = None
 
         if self.dispImg:
-            dispNp = np.array( self.dispImg )
+            dispNp = np.array(self.dispImg)
             dispNp = dispNp / 128.
             dispNp.round()
-            dispNp = np.array( dispNp , dtype=np.uint8 )
+            dispNp = np.array(dispNp, dtype=np.uint8)
 
-            dispQt = QtGui.QImage( dispNp.data , dispNp.shape[1] , dispNp.shape[0] , QtGui.QImage.Format_Indexed8 )
+            dispQt = QtGui.QImage(
+                dispNp.data, dispNp.shape[1], dispNp.shape[0], QtGui.QImage.Format_Indexed8)
 
             colortable = []
             for i in range(256):
                 color = self.colormap.to_rgba(i)
-                colorRgb = ( int(color[0]*255) , int(color[1]*255) , int(color[2]*255) )
-                colortable.append( QtGui.qRgb( *colorRgb ) )
+                colorRgb = (int(color[0]*255),
+                            int(color[1]*255), int(color[2]*255))
+                colortable.append(QtGui.qRgb(*colorRgb))
 
-            dispQt.setColorTable( colortable )
-            dispQt = dispQt.convertToFormat( QtGui.QImage.Format_ARGB32_Premultiplied )
+            dispQt.setColorTable(colortable)
+            dispQt = dispQt.convertToFormat(
+                QtGui.QImage.Format_ARGB32_Premultiplied)
             self.dispOverlay = dispQt
 
         # Remember the filename loaded
@@ -575,10 +596,10 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         restoreMessage = self.statusBar().currentMessage()
 
         # Restore the message
-        self.statusBar().showMessage( restoreMessage )
+        self.statusBar().showMessage(restoreMessage)
 
     #############################
-    ## Drawing
+    # Drawing
     #############################
 
     # This method is called when redrawing everything
@@ -616,26 +637,26 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         qp.end()
 
         # Forward the paint event
-        QtWidgets.QMainWindow.paintEvent(self,event)
+        QtWidgets.QMainWindow.paintEvent(self, event)
 
     # Update the scaling
     def updateScale(self, qp):
         if not self.image.width() or not self.image.height():
             return
         # Horizontal offset
-        self.xoff  = self.bordergap
+        self.xoff = self.bordergap
         # Vertical offset
-        self.yoff  = self.toolbar.height()+self.bordergap
+        self.yoff = self.toolbar.height()+self.bordergap
         # We want to make sure to keep the image aspect ratio and to make it fit within the widget
         # Without keeping the aspect ratio, each side of the image is scaled (multiplied) with
-        sx = float(qp.device().width()  - 2*self.xoff) / self.image.width()
+        sx = float(qp.device().width() - 2*self.xoff) / self.image.width()
         sy = float(qp.device().height() - 2*self.yoff) / self.image.height()
         # To keep the aspect ratio while making sure it fits, we use the minimum of both scales
         # Remember the scale for later
-        self.scale = min( sx , sy )
+        self.scale = min(sx, sy)
         # These are then the actual dimensions used
-        self.w     = self.scale * self.image.width()
-        self.h     = self.scale * self.image.height()
+        self.w = self.scale * self.image.width()
+        self.h = self.scale * self.image.height()
 
     # Determine the highlighted object for drawing
     def getHighlightedObject(self, qp):
@@ -665,20 +686,21 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Save the painters current setting to a stack
         qp.save()
         # Draw the image
-        qp.drawImage(QtCore.QRect( self.xoff, self.yoff, self.w, self.h ), self.image)
+        qp.drawImage(QtCore.QRect(self.xoff, self.yoff,
+                                  self.w, self.h), self.image)
         # Restore the saved setting from the stack
         qp.restore()
 
     def getPolygon(self, obj):
         poly = QtGui.QPolygonF()
         for pt in obj.polygon:
-            point = QtCore.QPointF(pt.x,pt.y)
-            poly.append( point )
+            point = QtCore.QPointF(pt.x, pt.y)
+            poly.append(point)
         return poly
 
     # Draw the labels in the given QPainter qp
     # optionally provide a list of labels to ignore
-    def drawLabels(self, qp, ignore = []):
+    def drawLabels(self, qp, ignore=[]):
         if self.image.isNull() or self.w <= 0 or self.h <= 0:
             return
         if not self.annotation:
@@ -691,11 +713,12 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Finally we use the real QPainter to overlay the overlay-image on what is drawn so far
 
         # The image that is used to draw the overlays
-        overlay = QtGui.QImage( self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied )
+        overlay = QtGui.QImage(
+            self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied)
         # Fill the image with the default color
         defaultLabel = name2label[self.defaultLabel]
-        col = QtGui.QColor( *defaultLabel.color )
-        overlay.fill( col )
+        col = QtGui.QColor(*defaultLabel.color)
+        overlay.fill(col)
         # Create a new QPainter that draws in the overlay image
         qp2 = QtGui.QPainter()
         qp2.begin(overlay)
@@ -706,42 +729,47 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         for obj in self.annotation.objects:
 
             # The label of the object
-            name      = assureSingleInstanceName( obj.label )
+            name = assureSingleInstanceName(obj.label)
             # If we do not know a color for this label, warn the user
             if name not in name2label:
-                print("The annotations contain unkown labels. This should not happen. Please inform the datasets authors. Thank you!")
-                print("Details: label '{}', file '{}'".format(name,self.currentLabelFile))
+                print(
+                    "The annotations contain unkown labels. This should not happen. Please inform the datasets authors. Thank you!")
+                print("Details: label '{}', file '{}'".format(
+                    name, self.currentLabelFile))
                 continue
 
             poly = self.getPolygon(obj)
 
             # Scale the polygon properly
-            polyToDraw = poly * QtGui.QTransform.fromScale(self.scale,self.scale)
+            polyToDraw = poly * \
+                QtGui.QTransform.fromScale(self.scale, self.scale)
 
             # Default drawing
             # Color from color table, solid brush
-            col   = QtGui.QColor( *name2label[name].color     )
-            brush = QtGui.QBrush( col, QtCore.Qt.SolidPattern )
+            col = QtGui.QColor(*name2label[name].color)
+            brush = QtGui.QBrush(col, QtCore.Qt.SolidPattern)
             qp2.setBrush(brush)
             # Overwrite drawing if this is the highlighted object
             if self.highlightObj and obj == self.highlightObj:
                 # First clear everything below of the polygon
-                qp2.setCompositionMode( QtGui.QPainter.CompositionMode_Clear )
-                qp2.drawPolygon( polyToDraw )
-                qp2.setCompositionMode( QtGui.QPainter.CompositionMode_SourceOver )
+                qp2.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
+                qp2.drawPolygon(polyToDraw)
+                qp2.setCompositionMode(
+                    QtGui.QPainter.CompositionMode_SourceOver)
                 # Set the drawing to a special pattern
-                brush = QtGui.QBrush(col,QtCore.Qt.DiagCrossPattern)
+                brush = QtGui.QBrush(col, QtCore.Qt.DiagCrossPattern)
                 qp2.setBrush(brush)
 
-            qp2.drawPolygon( polyToDraw )
+            qp2.drawPolygon(polyToDraw)
 
         # Draw outline of selected object dotted
         if self.highlightObj:
             brush = QtGui.QBrush(QtCore.Qt.NoBrush)
             qp2.setBrush(brush)
             qp2.setPen(QtCore.Qt.DashLine)
-            polyToDraw = self.getPolygon(self.highlightObj) * QtGui.QTransform.fromScale(self.scale,self.scale)
-            qp2.drawPolygon( polyToDraw )
+            polyToDraw = self.getPolygon(
+                self.highlightObj) * QtGui.QTransform.fromScale(self.scale, self.scale)
+            qp2.drawPolygon(polyToDraw)
 
         # End the drawing of the overlay
         qp2.end()
@@ -750,27 +778,29 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Define transparency
         qp.setOpacity(self.transp)
         # Draw the overlay image
-        qp.drawImage(self.xoff,self.yoff,overlay)
+        qp.drawImage(self.xoff, self.yoff, overlay)
         # Restore settings
         qp.restore()
 
         return overlay
 
     def getBoundingBox(self, obj):
-        bbox = QtCore.QRectF(obj.bbox[0], obj.bbox[1], obj.bbox[2], obj.bbox[3])
-        bboxVis = QtCore.QRectF(obj.bboxVis[0], obj.bboxVis[1], obj.bboxVis[2], obj.bboxVis[3])
+        bbox = QtCore.QRectF(
+            obj.bbox[0], obj.bbox[1], obj.bbox[2], obj.bbox[3])
+        bboxVis = QtCore.QRectF(
+            obj.bboxVis[0], obj.bboxVis[1], obj.bboxVis[2], obj.bboxVis[3])
         return bbox, bboxVis
 
     def scaleBoundingBox(self, bbox):
         bboxToDraw = copy.deepcopy(bbox)
-        x,y,w,h = bboxToDraw.getRect()
+        x, y, w, h = bboxToDraw.getRect()
         bboxToDraw.setTopLeft(QtCore.QPointF(x*self.scale, y*self.scale))
         bboxToDraw.setSize(QtCore.QSizeF(w*self.scale, h*self.scale))
         return bboxToDraw
 
     # Draw the labels in the given QPainter qp
     # optionally provide a list of labels to ignore
-    def drawBboxes(self, qp, ignore = []):
+    def drawBboxes(self, qp, ignore=[]):
         if self.image.isNull() or self.w <= 0 or self.h <= 0:
             return
         if not self.annotation:
@@ -783,10 +813,11 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Finally we use the real QPainter to overlay the overlay-image on what is drawn so far
 
         # The image that is used to draw the overlays
-        overlay = QtGui.QImage( self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied )
+        overlay = QtGui.QImage(
+            self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied)
         # Fill the image
         col = QtGui.QColor(0, 0, 0, 0)
-        overlay.fill( col )
+        overlay.fill(col)
         # Create a new QPainter that draws in the overlay image
         qp2 = QtGui.QPainter()
         qp2.begin(overlay)
@@ -794,56 +825,60 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Draw all objects
         for obj in self.annotation.objects:
             bbox, bboxVis = self.getBoundingBox(obj)
-            bboxToDraw    = self.scaleBoundingBox(bbox)
+            bboxToDraw = self.scaleBoundingBox(bbox)
             bboxVisToDraw = self.scaleBoundingBox(bbox)
             # The label of the object
-            name      = obj.label
+            name = obj.label
             # If we do not know a color for this label, warn the user
             if name not in name2labelCp:
-                print("The annotations contain unknown labels. This should not happen. Please inform the datasets authors. Thank you!")
-                print("Details: label '{}', file '{}'".format(name,self.currentLabelFile))
+                print(
+                    "The annotations contain unknown labels. This should not happen. Please inform the datasets authors. Thank you!")
+                print("Details: label '{}', file '{}'".format(
+                    name, self.currentLabelFile))
                 continue
 
             # Reset brush for QPainter object
             qp2.setBrush(QtGui.QBrush())
 
             # Color from color table
-            col   = QtGui.QColor( *name2labelCp[name].color     )
+            col = QtGui.QColor(*name2labelCp[name].color)
 
             if name2labelCp[name].hasInstances:
                 if self.highlightObj and obj == self.highlightObj:
-                    pen = QtGui.QPen(QtGui.QBrush( col ), 5.0)
+                    pen = QtGui.QPen(QtGui.QBrush(col), 5.0)
                 else:
-                    pen = QtGui.QPen(QtGui.QBrush( col ), 3.0)
+                    pen = QtGui.QPen(QtGui.QBrush(col), 3.0)
                 qp2.setPen(pen)
                 qp2.setOpacity(1.0)
-                qp2.drawRect( bboxToDraw )
-            
+                qp2.drawRect(bboxToDraw)
+
                 if self.highlightObj and obj == self.highlightObj:
-                    pen = QtGui.QPen(QtGui.QBrush( col ), 3.0, style=QtCore.Qt.DotLine)
+                    pen = QtGui.QPen(QtGui.QBrush(col), 3.0,
+                                     style=QtCore.Qt.DotLine)
                     qp2.setPen(pen)
                     qp2.setOpacity(1.0)
-                    qp2.drawRect( bboxVisToDraw )
+                    qp2.drawRect(bboxVisToDraw)
                 else:
-                    pen = QtGui.QPen(QtGui.QBrush( col ), 1.0, style=QtCore.Qt.DashLine)
+                    pen = QtGui.QPen(QtGui.QBrush(col), 1.0,
+                                     style=QtCore.Qt.DashLine)
                     qp2.setPen(pen)
                     qp2.setOpacity(1.0)
-                    qp2.drawRect( bboxVisToDraw )
-                    
-                    qp2.setBrush(QtGui.QBrush( col, QtCore.Qt.SolidPattern ))
+                    qp2.drawRect(bboxVisToDraw)
+
+                    qp2.setBrush(QtGui.QBrush(col, QtCore.Qt.SolidPattern))
                     qp2.setOpacity(0.4)
-                    qp2.drawRect( bboxVisToDraw )
+                    qp2.drawRect(bboxVisToDraw)
             else:
                 if self.highlightObj and obj == self.highlightObj:
-                    pen = QtGui.QPen(QtGui.QBrush( col ), 3.0)
+                    pen = QtGui.QPen(QtGui.QBrush(col), 3.0)
                     qp2.setPen(pen)
-                    qp2.setBrush(QtGui.QBrush( col, QtCore.Qt.NoBrush ))
+                    qp2.setBrush(QtGui.QBrush(col, QtCore.Qt.NoBrush))
                 else:
-                    pen = QtGui.QPen(QtGui.QBrush( col ), 1.0)
+                    pen = QtGui.QPen(QtGui.QBrush(col), 1.0)
                     qp2.setPen(pen)
-                    qp2.setBrush(QtGui.QBrush( col, QtCore.Qt.DiagCrossPattern ))
+                    qp2.setBrush(QtGui.QBrush(col, QtCore.Qt.DiagCrossPattern))
                 qp2.setOpacity(1.0)
-                qp2.drawRect( bboxToDraw )
+                qp2.drawRect(bboxToDraw)
 
         # End the drawing of the overlay
         qp2.end()
@@ -852,14 +887,14 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Define transparency
         qp.setOpacity(self.transp)
         # Draw the overlay image
-        qp.drawImage(self.xoff,self.yoff,overlay)
+        qp.drawImage(self.xoff, self.yoff, overlay)
         # Restore settings
         qp.restore()
 
         return overlay
 
-
     # Draw the label name next to the mouse
+
     def drawLabelAtMouse(self, qp):
         # Nothing to do without a highlighted object
         if not self.highlightObj:
@@ -900,23 +935,23 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         # Here we can draw
         rect = QtCore.QRect()
-        rect.setTopLeft(QtCore.QPoint(mouse.x()-200,top))
-        rect.setBottomRight(QtCore.QPoint(mouse.x()+200,btm))
+        rect.setTopLeft(QtCore.QPoint(mouse.x()-200, top))
+        rect.setBottomRight(QtCore.QPoint(mouse.x()+200, btm))
 
         # The color
         qp.setPen(QtGui.QColor('white'))
         # The font to use
-        font = QtGui.QFont("Helvetica",20,QtGui.QFont.Bold)
+        font = QtGui.QFont("Helvetica", 20, QtGui.QFont.Bold)
         qp.setFont(font)
         # Non-transparent
         qp.setOpacity(1)
         # Draw the text, horizontally centered
-        qp.drawText(rect,QtCore.Qt.AlignHCenter|vAlign,mouseText)
+        qp.drawText(rect, QtCore.Qt.AlignHCenter | vAlign, mouseText)
         # Restore settings
         qp.restore()
 
     # Draw the zoom
-    def drawZoom(self,qp,overlay):
+    def drawZoom(self, qp, overlay):
         # Zoom disabled?
         if not self.zoom:
             return
@@ -935,25 +970,29 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # The pixel that is the zoom center
         pix = self.mousePosScaled
         # The size of the part of the image that is drawn in the zoom window
-        selSize = zoomSize / ( self.zoomFactor * self.zoomFactor )
+        selSize = zoomSize / (self.zoomFactor * self.zoomFactor)
         # The selection window for the image
-        sel  = QtCore.QRectF(pix.x()  -selSize/2 ,pix.y()  -selSize/2 ,selSize,selSize  )
+        sel = QtCore.QRectF(pix.x() - selSize/2, pix.y() -
+                            selSize/2, selSize, selSize)
         # The selection window for the widget
-        view = QtCore.QRectF(mouse.x()-zoomSize/2,mouse.y()-zoomSize/2,zoomSize,zoomSize)
-        if overlay :
-            overlay_scaled = overlay.scaled(self.image.width(), self.image.height())
-        else :
-            overlay_scaled = QtGui.QImage( self.image.width(), self.image.height(), QtGui.QImage.Format_ARGB32_Premultiplied )
+        view = QtCore.QRectF(mouse.x()-zoomSize/2,
+                             mouse.y()-zoomSize/2, zoomSize, zoomSize)
+        if overlay:
+            overlay_scaled = overlay.scaled(
+                self.image.width(), self.image.height())
+        else:
+            overlay_scaled = QtGui.QImage(self.image.width(
+            ), self.image.height(), QtGui.QImage.Format_ARGB32_Premultiplied)
 
         # Show the zoom image
         qp.save()
-        qp.drawImage(view,self.image,sel)
+        qp.drawImage(view, self.image, sel)
         qp.setOpacity(self.transp)
-        qp.drawImage(view,overlay_scaled,sel)
+        qp.drawImage(view, overlay_scaled, sel)
         qp.restore()
 
     # Draw disparities
-    def drawDisp( self , qp ):
+    def drawDisp(self, qp):
         if not self.dispOverlay:
             return
 
@@ -962,36 +1001,37 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Define transparency
         qp.setOpacity(self.transp)
         # Draw the overlay image
-        qp.drawImage(QtCore.QRect( self.xoff, self.yoff, self.w, self.h ),self.dispOverlay)
+        qp.drawImage(QtCore.QRect(self.xoff, self.yoff,
+                                  self.w, self.h), self.dispOverlay)
         # Restore settings
         qp.restore()
 
         return self.dispOverlay
-
-
-
     #############################
-    ## Mouse/keyboard events
+    # Mouse/keyboard events
     #############################
 
     # Mouse moved
     # Need to save the mouse position
     # Need to drag a polygon point
     # Need to update the mouse selected object
-    def mouseMoveEvent(self,event):
+
+    def mouseMoveEvent(self, event):
         if self.image.isNull() or self.w == 0 or self.h == 0:
             return
 
-        mousePosOrig = QtCore.QPointF( event.x() , event.y() )
-        mousePosScaled = QtCore.QPointF( float(mousePosOrig.x() - self.xoff) / self.scale , float(mousePosOrig.y() - self.yoff) / self.scale )
-        mouseOutsideImage = not self.image.rect().contains( mousePosScaled.toPoint() )
+        mousePosOrig = QtCore.QPointF(event.x(), event.y())
+        mousePosScaled = QtCore.QPointF(float(mousePosOrig.x(
+        ) - self.xoff) / self.scale, float(mousePosOrig.y() - self.yoff) / self.scale)
+        mouseOutsideImage = not self.image.rect().contains(mousePosScaled.toPoint())
 
-        mousePosScaled.setX( max( mousePosScaled.x() , 0. ) )
-        mousePosScaled.setY( max( mousePosScaled.y() , 0. ) )
-        mousePosScaled.setX( min( mousePosScaled.x() , self.image.rect().right() ) )
-        mousePosScaled.setY( min( mousePosScaled.y() , self.image.rect().bottom() ) )
+        mousePosScaled.setX(max(mousePosScaled.x(), 0.))
+        mousePosScaled.setY(max(mousePosScaled.y(), 0.))
+        mousePosScaled.setX(min(mousePosScaled.x(), self.image.rect().right()))
+        mousePosScaled.setY(
+            min(mousePosScaled.y(), self.image.rect().bottom()))
 
-        if not self.image.rect().contains( mousePosScaled.toPoint() ):
+        if not self.image.rect().contains(mousePosScaled.toPoint()):
             print(self.image.rect())
             print(mousePosScaled.toPoint())
             self.mousePosScaled = None
@@ -1000,8 +1040,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             self.update()
             return
 
-        self.mousePosScaled    = mousePosScaled
-        self.mousePosOrig      = mousePosOrig
+        self.mousePosScaled = mousePosScaled
+        self.mousePosOrig = mousePosOrig
         self.mouseOutsideImage = mouseOutsideImage
 
         # Redraw
@@ -1014,47 +1054,46 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.mousePosScaled = None
         self.mouseOutsideImage = True
 
-
     # Mouse wheel scrolled
+
     def wheelEvent(self, event):
         ctrlPressed = event.modifiers() & QtCore.Qt.ControlModifier
 
-        deltaDegree = event.angleDelta().y() / 8 # Rotation in degree
-        deltaSteps  = deltaDegree / 15 # Usually one step on the mouse is 15 degrees
+        deltaDegree = event.angleDelta().y() / 8  # Rotation in degree
+        deltaSteps = deltaDegree / 15  # Usually one step on the mouse is 15 degrees
 
         if ctrlPressed:
-            self.transp = max(min(self.transp+(deltaSteps*0.1),1.0),0.0)
+            self.transp = max(min(self.transp+(deltaSteps*0.1), 1.0), 0.0)
             self.update()
         else:
             if self.zoom:
                 # If shift is pressed, change zoom window size
                 if event.modifiers() and QtCore.Qt.Key_Shift:
                     self.zoomSize += deltaSteps * 10
-                    self.zoomSize = max( self.zoomSize, 10   )
-                    self.zoomSize = min( self.zoomSize, 1000 )
+                    self.zoomSize = max(self.zoomSize, 10)
+                    self.zoomSize = min(self.zoomSize, 1000)
                 # Change zoom factor
                 else:
                     self.zoomFactor += deltaSteps * 0.05
-                    self.zoomFactor = max( self.zoomFactor, 0.1 )
-                    self.zoomFactor = min( self.zoomFactor, 10 )
+                    self.zoomFactor = max(self.zoomFactor, 0.1)
+                    self.zoomFactor = min(self.zoomFactor, 10)
                 self.update()
-
-
     #############################
-    ## Little helper methods
+    # Little helper methods
     #############################
 
     # Helper method that sets tooltip and statustip
     # Provide an QAction and the tip text
     # This text is appended with a hotkeys and then assigned
-    def setTip( self, action, tip ):
-        tip += " (Hotkeys: '" + "', '".join([str(s.toString()) for s in action.shortcuts()]) + "')"
+    def setTip(self, action, tip):
+        tip += " (Hotkeys: '" + \
+            "', '".join([str(s.toString()) for s in action.shortcuts()]) + "')"
         action.setStatusTip(tip)
         action.setToolTip(tip)
 
     # Update the object that is selected by the current mouse curser
     def updateMouseObject(self):
-        self.mouseObj   = -1
+        self.mouseObj = -1
         if self.mousePosScaled is None:
             return
         for idx in reversed(range(len(self.annotation.objects))):
@@ -1081,19 +1120,22 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         if 'CITYSCAPES_DATASET' in os.environ:
             csPath = os.environ['CITYSCAPES_DATASET']
         else:
-            csPath = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
+            csPath = os.path.join(os.path.dirname(
+                os.path.realpath(__file__)), '..', '..')
 
         availableCities = []
-        annotations = [ "gtFine" , "gtCoarse" , "gtBboxCityPersons" ]
-        splits      = [ "train_extra" , "train"  , "val" , "test" ]
+        annotations = ["gtFine", "gtCoarse", "gtBboxCityPersons"]
+        splits = ["train_extra", "train", "val", "test"]
         for gt in annotations:
             for split in splits:
                 cities = glob.glob(os.path.join(csPath, gt, split, '*'))
                 cities.sort()
-                availableCities.extend( [ (split,gt,os.path.basename(c)) for c in cities if os.listdir(c) ] )
+                availableCities.extend(
+                    [(split, gt, os.path.basename(c)) for c in cities if os.listdir(c)])
 
         # List of possible labels
-        items = [split + ", " + gt + ", " + city for (split,gt,city) in availableCities]
+        items = [split + ", " + gt + ", " +
+                 city for (split, gt, city) in availableCities]
 
         # Specify title
         dlgTitle = "Select new city"
@@ -1106,7 +1148,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         if items:
             # Create and wait for dialog
             (item, ok) = QtWidgets.QInputDialog.getItem(self, dlgTitle, question,
-                                                    items, 0, False)
+                                                        items, 0, False)
 
             # Restore message
             self.statusBar().showMessage(restoreMessage)
@@ -1117,12 +1159,15 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                     self.transp = 0.1
                 else:
                     self.transp = 0.5
-                self.city      = os.path.normpath(os.path.join(csPath, "leftImg8bit", split, city))
-                self.labelPath = os.path.normpath(os.path.join(csPath, gt           , split, city))
-                self.dispPath  = os.path.normpath(os.path.join(csPath, "disparity"  , split, city))
-                if gt in [ "gtFine", "gtCoarse" ]:
+                self.city = os.path.normpath(os.path.join(
+                    csPath, "leftImg8bit", split, city))
+                self.labelPath = os.path.normpath(
+                    os.path.join(csPath, gt, split, city))
+                self.dispPath = os.path.normpath(
+                    os.path.join(csPath, "disparity", split, city))
+                if gt in ["gtFine", "gtCoarse"]:
                     self.gtType = CsObjectType.POLY
-                elif gt in [ "gtBboxCityPersons" ]:
+                elif gt in ["gtBboxCityPersons"]:
                     self.gtType = CsObjectType.BBOX
                 self.loadCity()
                 self.imageChanged()
@@ -1137,7 +1182,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             warning += "       e.g. 'export CITYSCAPES_DATASET=<root_path>'\n"
 
             reply = QtWidgets.QMessageBox.information(self, "ERROR!", warning,
-                                                  QtWidgets.QMessageBox.Ok)
+                                                      QtWidgets.QMessageBox.Ok)
             if reply == QtWidgets.QMessageBox.Ok:
                 sys.exit()
 
@@ -1164,7 +1209,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         filename = os.path.basename(self.currentFile)
         filename = filename.replace(self.imageExt, self.gtExt)
         filename = os.path.join(self.labelPath, filename)
-        search   = glob.glob(filename)
+        search = glob.glob(filename)
         if not search:
             return ""
         filename = os.path.normpath(search[0])
@@ -1172,7 +1217,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
     # Get the filename where to load disparities
     # Returns empty string if not possible
-    def getDisparityFilename( self ):
+    def getDisparityFilename(self):
         # And we need to have a directory where disparities should be searched
         if not self.dispPath:
             return ""
@@ -1184,9 +1229,9 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             return ""
 
         # Generate the filename of the label file
-        filename = os.path.basename( self.currentFile )
-        filename = filename.replace( self.imageExt , self.dispExt )
-        filename = os.path.join( self.dispPath , filename )
+        filename = os.path.basename(self.currentFile)
+        filename = filename.replace(self.imageExt, self.dispExt)
+        filename = os.path.join(self.dispPath, filename)
         filename = os.path.normpath(filename)
         return filename
 
@@ -1196,9 +1241,9 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
 
 def main():
-
     app = QtWidgets.QApplication(sys.argv)
     tool = CityscapesViewer()
+    tool.resize(800, 510)
     sys.exit(app.exec_())
 
 

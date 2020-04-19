@@ -54,9 +54,9 @@ Install `cityscapesscripts` with `pip`
 python -m pip install cityscapesscripts
 ```
 
-For the grapical tools you additionally need to install
+Graphical tools (viewer and label tool) are based on Qt5 and can be installed via
 ```
-sudo apt install python-tk python-qt4
+python -m pip install cityscapesscripts[gui]
 ```
 
 ### Usage
