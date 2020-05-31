@@ -5,6 +5,7 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 import appdirs
 import argparse
 import getpass
+import hashlib
 import json
 import os
 import requests
@@ -78,7 +79,7 @@ def list_available_packages(*, session):
         print(info)
 
 
-def download_packages(*, session, package_names, destination_path):
+def download_packages(*, session, package_names, destination_path, resume=False):
     if not os.path.isdir(destination_path):
         raise Exception(
             "Destination path '{}' does not exist.".format(destination_path))
@@ -92,24 +93,44 @@ def download_packages(*, session, package_names, destination_path):
 
     for package_name in package_names:
         local_filename = os.path.join(destination_path, package_name)
-
-        if os.path.exists(local_filename):
-            raise Exception(
-                "Destination file '{}' already exists.".format(local_filename))
+        package_id = name_to_id[package_name]
 
         print("Downloading cityscapes package '{}' to '{}'".format(
             package_name, local_filename))
-        package_id = name_to_id[package_name]
+
+        if os.path.exists(local_filename):
+            if resume:
+                print("Resuming previous download")
+            else:
+                raise Exception(
+                    "Destination file '{}' already exists.".format(local_filename))
+
+        # md5sum
+        url = "https://www.cityscapes-dataset.com/md5-sum/?packageID={}".format(
+            package_id)
+        r = session.get(url, allow_redirects=False)
+        r.raise_for_status()
+        md5sum = r.text.split()[0]
+
+        # download in chunks, support resume
         url = "https://www.cityscapes-dataset.com/file-handling/?packageID={}".format(
             package_id)
+        with open(local_filename, 'ab' if resume else 'wb') as f:
+            resume_header = {
+                'Range': 'bytes={}-'.format(f.tell())} if resume else {}
+            with session.get(url, allow_redirects=False, stream=True, headers=resume_header) as r:
+                r.raise_for_status()
+                assert r.status_code in [200, 206]
 
-        # download in chunks
-        with session.get(url, allow_redirects=False, stream=True) as r:
-            r.raise_for_status()
-            assert r.status_code == 200
-
-            with open(local_filename, 'wb') as f:
                 shutil.copyfileobj(r.raw, f)
+
+        # verify md5sum
+        hash_md5 = hashlib.md5()
+        with open(local_filename, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        if md5sum != hash_md5.hexdigest():
+            raise Exception("MD5 sum of downloaded file does not match.")
 
 
 def parse_arguments():
@@ -121,7 +142,10 @@ def parse_arguments():
                         help="list available packages and exit")
 
     parser.add_argument('-d', '--destination_path', default='.',
-                        help='destination path for downloads')
+                        help="destination path for downloads")
+
+    parser.add_argument('-r', '--resume', action='store_true',
+                        help="resume previous download")
 
     parser.add_argument('package_name', nargs='*',
                         help="name of the packages to download")
@@ -139,7 +163,8 @@ def main():
         return
 
     download_packages(session=session, package_names=args.package_name,
-                      destination_path=args.destination_path)
+                      destination_path=args.destination_path,
+                      resume=args.resume)
 
 
 if __name__ == "__main__":
