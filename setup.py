@@ -40,7 +40,7 @@ config = {
     'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs'],
     'setup_requires': ['setuptools>=18.0'],
     'extras_require': {
-        'gui': ['PyQt5']
+        'gui': ['PyQt5', 'pyquaternion']
     },
     'packages': find_packages(),
     'scripts': [],
