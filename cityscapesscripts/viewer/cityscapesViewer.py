@@ -19,6 +19,8 @@ import subprocess
 import copy
 # numpy
 import numpy as np
+# json for annotation and camera files
+import json
 # matplotlib for colormaps
 import matplotlib.colors
 import matplotlib.cm
@@ -35,6 +37,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from cityscapesscripts.helpers.annotation import Annotation, CsObjectType
 from cityscapesscripts.helpers.labels import name2label, assureSingleInstanceName
 from cityscapesscripts.helpers.labels_cityPersons import name2labelCp
+from cityscapesscripts.helpers.box3d import Camera, Box3DImageTransform
 
 #################
 # Main GUI class
@@ -124,6 +127,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.actImageNotFirst = []
         # A list of toolbar actions that need an image that is not the last
         self.actImageNotLast = []
+        # A list of toolbar actions that need 3D labels
+        self.act3Dlabels = []
         # Toggle status of the play icon
         self.playState = False
         # Enable disparity visu in general
@@ -136,10 +141,20 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.dispImg = None
         # As overlay
         self.dispOverlay = None
+        # The 3D annotations
+        self.annotation3D = None
         # The disparity search path
         self.dispPath = None
+        # The 3D label search path
+        self.label3DPath = None
         # Disparity extension
         self.dispExt = "_disparity.png"
+        # 3D label extension
+        self.gt3DExt = "_gtBbox3d.json"
+        # Selected 3D label type
+        self.available3DLabeltypes = ["None", "3D Box", "2D Box Modal", "2D Box Amodal", "Ignore Regions"]
+        self.selected3Dlabeltype = 0
+
         # Generate colormap
         try:
             norm = matplotlib.colors.Normalize(vmin=3, vmax=100)
@@ -223,6 +238,15 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.toolbar.addAction(selImageAction)
         self.actImage.append(selImageAction)
 
+        # Select 3d label type to view
+        sel3DlabelsAction = QtWidgets.QAction(QtGui.QIcon(
+            os.path.join(iconDir, 'cs3d.png')), '&Tools', self)
+        sel3DlabelsAction.setShortcut('i')
+        self.setTip(sel3DlabelsAction, 'Select Cityscapes3D label type to view')
+        sel3DlabelsAction.triggered.connect(self.select3Dlabeltype)
+        self.toolbar.addAction(sel3DlabelsAction)
+        self.act3Dlabels.append(sel3DlabelsAction)
+
         # Enable/disable disparity visu. Toggle button
         if self.enableDisparity:
             dispAction = QtWidgets.QAction(QtGui.QIcon(
@@ -295,7 +319,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.setMouseTracking(True)
         self.toolbar.setMouseTracking(True)
         # Open in full screen
-        self.showFullScreen()
+        self.show()
         # Set a title
         self.applicationTitle = 'Cityscapes Viewer v1.0'
         self.setWindowTitle(self.applicationTitle)
@@ -376,6 +400,25 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             # Restore the message
             self.statusBar().showMessage(self.defaultStatusbar)
 
+    # Activate / Deactive Cityscapes3D labels
+
+    def select3Dlabeltype(self):
+        if not self.images or not self.annotation3D:
+            return
+
+        dlgTitle = "Select Cityscapes3D label type"
+        self.statusBar().showMessage(dlgTitle)
+
+        (item, ok) = QtWidgets.QInputDialog.getItem(
+            self, dlgTitle, "3D Label Type", self.available3DLabeltypes, self.selected3Dlabeltype, False)
+        if (ok and item):
+            self.selected3Dlabeltype = self.available3DLabeltypes.index(item)
+        else:
+            # Restore the message
+            self.statusBar().showMessage(self.defaultStatusbar)
+
+        self.update()
+
     # Toggle zoom
 
     def zoomToggle(self, status):
@@ -448,6 +491,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.loadImage()
         # Load its labels if available
         self.loadLabels()
+        # Load its 3D labels if available
+        self.load3DLabels()
         # Load disparities if available
         self.loadDisparities()
         # Update the object the mouse points to
@@ -538,6 +583,44 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Restore the message
         self.statusBar().showMessage(restoreMessage)
 
+    # Load the 3D labels from file
+    # Only load if they exist
+    def load3DLabels(self):
+        filename = self.get3DLabelFilename()
+
+        if not filename:
+            self.annotation3D = None
+            for act in self.act3Dlabels:
+                act.setEnabled(False)
+            return
+
+        # If we have everything and the filename did not change, then we are good
+        if self.annotation3D and filename == self.current3DLabelFile:
+            return
+
+        self.annotation3D = None
+
+        try:
+            with open(filename) as f:
+                self.annotation3D = json.load(f)
+            for act in self.act3Dlabels:
+                act.setEnabled(True)
+        except IOError as e:
+            # This is the error if the file does not exist
+            message = "Error parsing 3D labels in {0}. Message: {1}".format(
+                filename, e.strerror)
+            self.statusBar().showMessage(message)
+
+        # Remember the filename loaded
+        self.current3DLabelFile = filename
+
+        # Remeber the status bar message to restore it later
+        restoreMessage = self.statusBar().currentMessage()
+
+        # Restore the message
+        self.statusBar().showMessage(restoreMessage)
+
+
     # Load the disparity map from file
     # Only loads if they exist
 
@@ -622,8 +705,10 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             # Draw the disparities on top
             overlay = self.drawDisp(qp)
         else:
+            if self.selected3Dlabeltype != 0:
+                overlay = self.draw3DLabels(qp)
             # Draw the labels on top
-            if self.gtType == CsObjectType.POLY:
+            elif self.gtType == CsObjectType.POLY:
                 overlay = self.drawLabels(qp)
             elif self.gtType == CsObjectType.BBOX:
                 overlay = self.drawBboxes(qp)
@@ -783,6 +868,124 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         qp.restore()
 
         return overlay
+
+    def draw3DLabels(self, qp):
+        if self.image.isNull() or self.w <= 0 or self.h <= 0:
+            return
+        if not self.annotation3D:
+            return
+
+        # The overlay is created in the viewing coordinates
+        # This way, the drawing is more dense and the polygon edges are nicer
+        # We create an image that is the overlay
+        # Within this image we draw using another QPainter
+        # Finally we use the real QPainter to overlay the overlay-image on what is drawn so far
+
+        # The image that is used to draw the overlays
+        overlay = QtGui.QImage(
+            self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied)
+
+        # Fill the image with the default color
+        col = QtGui.QColor(0, 0, 0, 0)
+        overlay.fill(col)
+
+        # Create a new QPainter that draws in the overlay image
+        qp2 = QtGui.QPainter()
+        qp2.begin(overlay)
+
+        # ["None", "3D Box", "2D Box Modal", "2D Box Amodal", "Ignore Regions"]
+        if self.annotation3D is not None:
+            camera = Camera(fx=self.annotation3D["sensor"]["fx"],
+                            fy=self.annotation3D["sensor"]["fy"],
+                            u0=self.annotation3D["sensor"]["u0"],
+                            v0=self.annotation3D["sensor"]["v0"],
+                            sensor_T_ISO_8855=self.annotation3D["sensor"]["sensor_T_ISO_8855"])
+            for label in self.annotation3D["annotation"]:
+                color = QtGui.QColor(*name2label[label["class_name"]].color)
+                if label["3d"] is not None and self.selected3Dlabeltype == 1:
+                    box3d_annotation = Box3DImageTransform(camera=camera)
+                    box3d_annotation.initialize_box(size=label["3d"]["dimensions"],
+                                                    quaternion=label["3d"]["rotation"],
+                                                    center=label["3d"]["center"])
+                    self.drawCityscapes3DBox3D(box3d_annotation, qp2, color)
+                elif label["2d"]["modal"] is not None and self.selected3Dlabeltype == 2:
+                    box2d_annotation = QtCore.QRectF(QtCore.QPointF(label["2d"]["modal"][0], label["2d"]["modal"][1]),
+                                                     QtCore.QPointF(label["2d"]["modal"][2], label["2d"]["modal"][3]))
+
+                    self.drawCityscapes3DBox2D(box2d_annotation, qp2, color)
+                elif label["2d"]["amodal"] is not None and self.selected3Dlabeltype == 3:
+                    box2d_annotation = QtCore.QRectF(QtCore.QPointF(label["2d"]["amodal"][0], label["2d"]["amodal"][1]),
+                                                     QtCore.QPointF(label["2d"]["amodal"][2], label["2d"]["amodal"][3]))
+
+                    self.drawCityscapes3DBox2D(box2d_annotation, qp2, color)
+            if self.selected3Dlabeltype == 4:
+                for ignore_label in self.annotation3D["ignore"]:
+                    color = QtGui.QColor(*name2label[ignore_label["class_name"]].color)
+
+                    box2d_annotation = QtCore.QRectF(QtCore.QPointF(ignore_label["2d"][0], ignore_label["2d"][1]),
+                                                     QtCore.QPointF(ignore_label["2d"][2], ignore_label["2d"][3]))
+
+                    self.drawCityscapes3DBox2D(box2d_annotation, qp2, color)
+
+        # End the drawing of the overlay
+        qp2.end()
+        # Save QPainter settings to stack
+        qp.save()
+        # Define transparency
+        qp.setOpacity(self.transp)
+        # Draw the overlay image
+        qp.drawImage(self.xoff, self.yoff, overlay)
+        # Restore settings
+        qp.restore()
+
+        return overlay
+
+    def drawCityscapes3DBox2D(self, box2d_annotation, qp, color):
+        bboxToDraw = self.scaleBoundingBox(box2d_annotation)
+
+        pen = QtGui.QPen(QtGui.QBrush(color), 3.0)
+        qp.setPen(pen)
+
+        color.setAlpha(60)
+        fill_brush = QtGui.QBrush(color, QtCore.Qt.SolidPattern)
+        qp.setBrush(fill_brush)
+
+        qp.drawRect(bboxToDraw)
+
+    def drawCityscapes3DBox3D(self, box3d_annotation, qp, color):
+        box3d_sides = box3d_annotation.get_all_side_polygons_2d()
+        box3d_side_visibilities = box3d_annotation.get_all_side_visibilities()
+        box3d_sides.append(box3d_annotation.bottom_arrow_2d)
+        box3d_side_visibilities.append(True)
+
+        for i, (side, visible) in enumerate(zip(box3d_sides, box3d_side_visibilities)):
+            side = [QtCore.QPointF(point[0], point[1]) for point in side]
+
+            fill_color = color
+            fill_color.setAlpha(60)
+
+            polygon = QtGui.QPolygonF(side) * QtGui.QTransform.fromScale(self.scale, self.scale)
+            fill_brush = QtGui.QBrush(fill_color, QtCore.Qt.SolidPattern)
+
+            thickPen = QtGui.QPen(QtCore.Qt.SolidLine)
+            pen_color = fill_color
+            pen_color.setAlpha(255)
+            thickPen.setColor(pen_color)
+            if i < 6:
+                thickPen.setWidth(2)
+            else:
+                # Make arrow thick
+                thickPen.setWidth(5)
+
+            if not visible:
+                thickPen.setStyle(QtCore.Qt.CustomDashLine)
+                thickPen.setDashPattern([1, 10])
+                fill_brush = QtGui.QBrush(QtCore.Qt.NoBrush)
+
+            qp.setPen(thickPen)
+            qp.setBrush(fill_brush)
+            qp.setRenderHints(QtGui.QPainter.Antialiasing)
+            qp.drawPolygon(polygon)
 
     def getBoundingBox(self, obj):
         bbox = QtCore.QRectF(
@@ -1165,6 +1368,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                     os.path.join(csPath, gt, split, city))
                 self.dispPath = os.path.normpath(
                     os.path.join(csPath, "disparity", split, city))
+                self.label3DPath = os.path.normpath(
+                    os.path.join(csPath, "gtBbox3d", split, city))
                 if gt in ["gtFine", "gtCoarse"]:
                     self.gtType = CsObjectType.POLY
                 elif gt in ["gtBboxCityPersons"]:
@@ -1213,6 +1418,24 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         if not search:
             return ""
         filename = os.path.normpath(search[0])
+        return filename
+
+    def get3DLabelFilename(self):
+        # And we need to have a directory where disparities should be searched
+        if not self.label3DPath:
+            return ""
+        # Without the name of the current images, there is also nothing we can do
+        if not self.currentFile:
+            return ""
+        # Check if the label directory is valid.
+        if not os.path.isdir(self.label3DPath):
+            return ""
+
+        # Generate the filename of the camera file
+        filename = os.path.basename(self.currentFile)
+        filename = filename.replace(self.imageExt, self.gt3DExt)
+        filename = os.path.join(self.label3DPath, filename)
+        filename = os.path.normpath(filename)
         return filename
 
     # Get the filename where to load disparities
