@@ -417,6 +417,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             # Restore the message
             self.statusBar().showMessage(self.defaultStatusbar)
 
+        self.update()
 
     # Toggle zoom
 
