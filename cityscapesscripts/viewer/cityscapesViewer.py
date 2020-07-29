@@ -932,7 +932,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Save QPainter settings to stack
         qp.save()
         # Define transparency
-        qp.setOpacity(1.0)
+        qp.setOpacity(self.transp)
         # Draw the overlay image
         qp.drawImage(self.xoff, self.yoff, overlay)
         # Restore settings
@@ -945,7 +945,6 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         pen = QtGui.QPen(QtGui.QBrush(color), 3.0)
         qp.setPen(pen)
-        qp.setOpacity(1.0)
 
         color.setAlpha(60)
         fill_brush = QtGui.QBrush(color, QtCore.Qt.SolidPattern)
