@@ -30,7 +30,7 @@ from cityscapesscripts.evaluation.objectDetectionHelpers import (
     calcIouMatrix,
     calcOverlapMatrix
 )
-from cityscapesscripts.evaluation.plot_3d_results import (
+from cityscapesscripts.evaluation.plot3DResults import (
     prepare_data, 
     plot_data
 ) 
@@ -576,8 +576,9 @@ class Box3DEvaluator:
             results.append(self._worker(x))
         
         # multi threaded
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-           results = list(tqdm(executor.map(self._worker, self.gts.keys()), total=len(self.gts.keys())))
+        # keep in mind that this will not work out of the box due the global interpreter lock
+        # with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        #    results = list(tqdm(executor.map(self._worker, self.gts.keys()), total=len(self.gts.keys())))
 
         # update internal result dict with the curresponding results
         for thread_result in results:
