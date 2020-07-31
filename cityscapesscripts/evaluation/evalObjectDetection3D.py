@@ -14,6 +14,7 @@ import argparse
 
 from pyquaternion import Quaternion
 from tqdm import tqdm
+from copy import deepcopy
 import concurrent.futures
 
 from typing import (
@@ -292,24 +293,16 @@ class Box3DEvaluator:
                     vals.append(curr_mean)
                     num_items_list.append(len(values))
 
-            # extend the list to the front and the back for easier calculation of AUC
-            depths = np.asarray([0.] + depths + [self.eval_params.max_depth])
-            num_items_list = [0] + num_items_list + [0]
-            if len(vals) > 0:
-                vals = np.asarray(vals[0:1] + vals + vals[-1:])
+            # AUC is calculated as the mean of all values for available depths
+            if len(vals) > 1:
+                result_auc = np.mean(vals)
             else:
-                vals = np.asarray([0., 0.])
-
-            idx = np.arange(1, len(depths), 1)
-            result_auc = np.sum((depths[idx] - depths[idx - 1]) * vals[idx])
+                result_auc = 0.
 
             # remove the expanded entries
-            for d, v, n in list(zip(depths, vals, num_items_list))[1:-1]:
+            for d, v, n in list(zip(depths, vals, num_items_list)):
                 result_dict[d] = v
                 result_items[d] = n
-
-            # norm it over depth to 1
-            result_auc /= self.eval_params.max_depth
 
             self.results[parameter_name][class_name]["data"] = result_dict
             self.results[parameter_name][class_name]["auc"] = result_auc
@@ -396,15 +389,23 @@ class Box3DEvaluator:
         # calculate detection scores
         self.results["Detection_Score"] = {}
         logger.info("========================")
-        logger.info("=== Detection scores ===")
+        logger.info("======= Results ========")
         logger.info("========================")
 
         for class_name in self.eval_params.labels_to_evaluate:
+            
             vals = {p: self.results[p][class_name]["auc"] for p in parameters}
             det_score = vals["AP"] * (vals["Center_Dist"] + vals["Size_Similarity"] +
                                       vals["OS_Yaw"] + vals["OS_Pitch_Roll"]) / 4.
             self.results["Detection_Score"][class_name] = det_score
-            logger.info(class_name + ": %.2f" % det_score)
+            
+            logger.info(class_name)
+            logger.info(" -> 2D AP Amodal                : %.2f" % vals["AP"])
+            logger.info(" -> BEV Center Distance (DDTP)  : %.2f" % vals["Center_Dist"])
+            logger.info(" -> Yaw Similarity (DDTP)       : %.2f" % vals["OS_Yaw"])
+            logger.info(" -> Pitch/Roll Similarity (DDTP): %.2f" % vals["OS_Pitch_Roll"])
+            logger.info(" -> Size Similarity (DDTP)      : %.2f" % vals["Size_Similarity"])
+            logger.info(" -> Detection Score             : %.2f" % det_score)
 
         self.results["mDetection_Score"] = np.mean(
             [x for cat, x in self.results["Detection_Score"].items() if cat in accept_cats])
@@ -575,8 +576,8 @@ class Box3DEvaluator:
             results.append(self._worker(x))
         
         # multi threaded
-        #with concurrent.futures.ProcessPoolExecutor(max_workers=14) as executor:
-        #    results = list(tqdm(executor.map(self._worker, self.gts.keys()), total=len(self.gts.keys())))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+           results = list(tqdm(executor.map(self._worker, self.gts.keys()), total=len(self.gts.keys())))
 
         # update internal result dict with the curresponding results
         for thread_result in results:
@@ -597,10 +598,8 @@ class Box3DEvaluator:
             fn_per_depth = {x: {d: [] for d in range(
                 0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
 
-            precision_per_depth = {x: {}
-                                   for x in self.eval_params.labels_to_evaluate}
-            recall_per_depth = {x: {}
-                                for x in self.eval_params.labels_to_evaluate}
+            precision_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
+            recall_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
             auc_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
 
             tp = {x: 0 for x in self.eval_params.labels_to_evaluate}
@@ -652,28 +651,23 @@ class Box3DEvaluator:
                         fn_per_depth[class_name][fn_depth].append(idx)
 
             for class_name in self.eval_params.labels_to_evaluate:
-                accum_tp = 0
-                accum_fp = 0
-                accum_fn = 0
-
                 for i in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
-                    accum_tp += len(tp_per_depth[class_name][i])
-                    accum_fp += len(fp_per_depth[class_name][i])
-                    accum_fn += len(fn_per_depth[class_name][i])
+                    tp_at_depth = len(tp_per_depth[class_name][i])
+                    fp_at_depth = len(fp_per_depth[class_name][i])
+                    accum_fn = len(fn_per_depth[class_name][i])
 
-                    if accum_tp == 0 and accum_fn == 0:
+                    if tp_at_depth == 0 and accum_fn == 0:
                         precision_per_depth[class_name][i] = -1
                         recall_per_depth[class_name][i] = -1
-                    elif accum_tp == 0:
+                    elif tp_at_depth == 0:
                         precision_per_depth[class_name][i] = 0
                         recall_per_depth[class_name][i] = 0
                     else:
-                        precision_per_depth[class_name][i] = accum_tp / \
-                            float(accum_tp + accum_fp)
-                        recall_per_depth[class_name][i] = accum_tp / \
-                            float(accum_tp + accum_fn)
+                        precision_per_depth[class_name][i] = tp_at_depth / \
+                            float(tp_at_depth + fp_at_depth)
+                        recall_per_depth[class_name][i] = tp_at_depth / \
+                            float(tp_at_depth + accum_fn)
 
-                    # TODO: shall we calculate AP up to depth? Or AP within depth range as for TP metrics?
                     auc_per_depth[class_name][i] = precision_per_depth[class_name][i] * \
                         recall_per_depth[class_name][i]
 
@@ -758,8 +752,7 @@ class Box3DEvaluator:
 
             ap[class_name]["auc"] = float(class_ap)
             ap[class_name]["data"]["recall"] = [float(x) for x in recalls_]
-            ap[class_name]["data"]["precision"] = [
-                float(x) for x in precisions_]
+            ap[class_name]["data"]["precision"] = [float(x) for x in precisions_]
             working_point[class_name] = best_score
 
         # calculate depth dependent mAP
@@ -900,13 +893,12 @@ class Box3DEvaluator:
 # perform the evaluation on given GT and predction folder
 def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params):
     logger.info("Use the following options")
-    logger.info(" -> GT folder  : " + gt_folder)
-    logger.info(" -> Pred folder: " + pred_folder)
-    logger.info(" -> Classes    : " + ", ".join(eval_params.labels_to_evaluate))
-    logger.info(" -> Min IoU:   : " + str(eval_params.min_iou_to_match_mapping))
-    logger.info(" -> Max depth  : " + str(eval_params.max_depth))
-    logger.info(" -> Step size  : " + str(eval_params.step_size))
-
+    logger.info(" -> GT folder    : " + gt_folder)
+    logger.info(" -> Pred folder  : " + pred_folder)
+    logger.info(" -> Classes      : " + ", ".join(eval_params.labels_to_evaluate))
+    logger.info(" -> Min IoU:     : " + str(eval_params.min_iou_to_match_mapping))
+    logger.info(" -> Max depth [m]: " + str(eval_params.max_depth))
+    logger.info(" -> Step size [m]: " + str(eval_params.step_size))
 
     # initialize the evaluator
     extended_evaluator = Box3DEvaluator(eval_params)
@@ -1017,6 +1009,10 @@ def main():
     )
 
     evaluate3DObjectDetection(args.gtFolder, args.predictionFolder, args.resultsFolder, eval_params)
+
+    logger.info("========================")
+    logger.info("=== Stop evaluation ====")
+    logger.info("========================")
 
     return
 

@@ -155,7 +155,7 @@ def create_spider_chart_plot(
     axis.legend(bbox_to_anchor=(0, 0))
 
 
-def create_AP_plot(axis: Axes, data_to_plot: dict, accept_classes: List[str]):
+def create_AP_plot(axis: Axes, data_to_plot: dict, accept_classes: List[str], max_depth: int):
     """Create the average precision (AP) subplot for classes in ``accept_classes``.
 
     Args:
@@ -163,6 +163,7 @@ def create_AP_plot(axis: Axes, data_to_plot: dict, accept_classes: List[str]):
         data_to_plot (dict): Dictionary containing data to be visualized
             for all classes in ``accept_classes``
         accept_classes (list of str): List of class-names to use for the spider-chart
+        max_depth (int): maximal encountered depth value
     """
 
     if not "AP_per_depth" in data_to_plot:
@@ -178,11 +179,7 @@ def create_AP_plot(axis: Axes, data_to_plot: dict, accept_classes: List[str]):
         x_vals = [float(x) for x in list(aps.keys())]
         y_vals = [float(x["auc"]) for x in list(aps.values())]
 
-        x_vals = [0.] + x_vals
-        y_vals = y_vals[0:1] + y_vals
-
-        axis.plot(x_vals, y_vals, label=class_name,
-                  color=csToMplColor(class_name))
+        fill_standard_subplot(axis, x_vals, y_vals, class_name, [], max_depth)
 
 
 def set_up_xaxis(axis: Axes, max_depth: int, num_ticks: int):
@@ -298,7 +295,7 @@ def fill_and_finalize_subplot(
         create_PR_plot(axis, data_to_plot, accept_classes)
 
     elif category == 'AP':
-        create_AP_plot(axis, data_to_plot, accept_classes)
+        create_AP_plot(axis, data_to_plot, accept_classes, max_depth)
 
     elif category in ["Center_Dist", "Size_Similarity", "OS_Yaw", "OS_Pitch_Roll"]:
 
@@ -332,7 +329,7 @@ def fill_standard_subplot(
         x_vals: List[float],
         y_vals: List[float],
         class_name: str,
-        available_items_scaleing: List[float],
+        available_items_scaling: List[float],
         max_depth: int,
     ):
     """Fills standard-subplots with data for ``class_name`` with data.
@@ -345,11 +342,12 @@ def fill_standard_subplot(
         x_vals (list of float): x-values to visualize
         y_vals (list of float): y-values to visualize
         class_name (str): name of class to visualize data for
-        available_items_scaleing (list of float): size of data-points
+        available_items_scaling (list of float): size of data-points
         max_depth (int): maximal value of x-axis
     """
-    axis.scatter(x_vals, y_vals, s=available_items_scaleing,
-                 color=csToMplColor(class_name), marker="o", alpha=1.0)
+    if len(available_items_scaling) > 0:
+        axis.scatter(x_vals, y_vals, s=available_items_scaling,
+                     color=csToMplColor(class_name), marker="o", alpha=1.0)
     axis.plot(x_vals, y_vals, label=class_name,
               color=csToMplColor(class_name), alpha=0.6)
 
