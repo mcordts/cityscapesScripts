@@ -773,7 +773,7 @@ class Box3DEvaluator:
                 # dump data to result dicts
                 tp_idx_gt[i] = []
                 tp_idx_pred[i] = []
-                fp_idx_pred[i] = []
+                fp_idx_pred[i] = pred_idx
                 fn_idx_gt[i] = gt_idx
                 continue
 
