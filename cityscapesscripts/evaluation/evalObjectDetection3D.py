@@ -541,7 +541,6 @@ class Box3DEvaluator:
         self.results["min_iou"] = self.eval_params.min_iou_to_match_mapping
 
     def _worker(self, base):
-
         tmp_stats = {}
 
         gt_boxes = self.gts[base]
