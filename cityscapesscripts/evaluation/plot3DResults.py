@@ -417,6 +417,7 @@ def plot_data(data_to_plot: dict, max_depth: int = 100):
         ax_results, data_to_plot, axes[0].get_legend_handles_labels())
 
     plt.tight_layout()
+    # plt.savefig("results.pdf")
     plt.show()
 
 
