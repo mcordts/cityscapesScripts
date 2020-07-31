@@ -7,44 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
+from cityscapesscripts.helpers.labels import name2label
 
-CLASS_ID_TO_COLOR = {
-    'unlabeled': (0.0, 0.0, 0.0),
-    'ego vehicle': (0.0, 0.0, 0.0),
-    'rectification border': (0.0, 0.0, 0.0),
-    'out of roi': (0.0, 0.0, 0.0),
-    'static': (0.0, 0.0, 0.0),
-    'dynamic': (0.43529411764705883, 0.2901960784313726, 0.0),
-    'ground': (0.3176470588235294, 0.0, 0.3176470588235294),
-    'road': (0.5019607843137255, 0.25098039215686274, 0.5019607843137255),
-    'sidewalk': (0.9568627450980393, 0.13725490196078433, 0.9098039215686274),
-    'parking': (0.9803921568627451, 0.6666666666666666, 0.6274509803921569),
-    'rail track': (0.9019607843137255, 0.5882352941176471, 0.5490196078431373),
-    'building': (0.27450980392156865, 0.27450980392156865, 0.27450980392156865),
-    'wall': (0.4, 0.4, 0.611764705882353),
-    'fence': (0.7450980392156863, 0.6, 0.6),
-    'guard rail': (0.7058823529411765, 0.6470588235294118, 0.7058823529411765),
-    'bridge': (0.5882352941176471, 0.39215686274509803, 0.39215686274509803),
-    'tunnel': (0.5882352941176471, 0.47058823529411764, 0.35294117647058826),
-    'pole': (0.6, 0.6, 0.6),
-    'polegroup': (0.6, 0.6, 0.6),
-    'traffic light': (0.9803921568627451, 0.6666666666666666, 0.11764705882352941),
-    'traffic sign': (0.8627450980392157, 0.8627450980392157, 0.0),
-    'vegetation': (0.4196078431372549, 0.5568627450980392, 0.13725490196078433),
-    'terrain': (0.596078431372549, 0.984313725490196, 0.596078431372549),
-    'sky': (0.27450980392156865, 0.5098039215686274, 0.7058823529411765),
-    'person': (0.8627450980392157, 0.0784313725490196, 0.23529411764705882),
-    'rider': (1.0, 0.0, 0.0),
-    'car': (0.0, 0.0, 0.5568627450980392),
-    'truck': (0.0, 0.0, 0.27450980392156865),
-    'bus': (0.0, 0.23529411764705882, 0.39215686274509803),
-    'caravan': (0.0, 0.0, 0.35294117647058826),
-    'trailer': (0.0, 0.0, 0.43137254901960786),
-    'train': (0.0, 0.3137254901960784, 0.39215686274509803),
-    'motorcycle': (0.0, 0.0, 0.9019607843137255),
-    'bicycle': (0.4666666666666667, 0.043137254901960784, 0.12549019607843137)
-}
 
+def csToMplColor(class_name):
+    color = name2label[class_name].color
+    return [x/255. for x in color]
 
 def create_table_row(
         axis: Axes,
@@ -117,7 +85,7 @@ def create_result_table_and_legend_plot(axis: Axes, data_to_plot: dict, handles_
     axis.text(x_pos_legend, 0.95, 'Legend',
               fontdict={'weight': 'bold', 'size': 16})
     axis.legend(*handles_labels, frameon=False,
-                loc=(x_pos_legend+0.05, y_pos_legend))
+                loc=(x_pos_legend+0.05, y_pos_legend), ncol=2)
 
     # add data-point-marker size explanation
     y_pos = y_pos_legend - 0.3
@@ -179,9 +147,9 @@ def create_spider_chart_plot(
         values += values[:1]
 
         axis.plot(angles, values, linewidth=1,
-                  linestyle='solid', color=CLASS_ID_TO_COLOR[class_name])
+                  linestyle='solid', color=csToMplColor(class_name))
         axis.fill(
-            angles, values, color=CLASS_ID_TO_COLOR[class_name], alpha=0.05)
+            angles, values, color=csToMplColor(class_name), alpha=0.05)
 
     axis.plot(angles, [np.mean(x) for x in [vals[cat] for cat in categories] + [
         vals["AP"]]], linewidth=1, linestyle='solid', color="r", label="Mean")
@@ -215,7 +183,7 @@ def create_AP_plot(axis: Axes, data_to_plot: dict, accept_classes: List[str]):
         y_vals = y_vals[0:1] + y_vals
 
         axis.plot(x_vals, y_vals, label=class_name,
-                  color=CLASS_ID_TO_COLOR[class_name])
+                  color=csToMplColor(class_name))
 
 
 def set_up_xaxis(axis: Axes, max_depth: int, num_ticks: int):
@@ -233,7 +201,7 @@ def set_up_xaxis(axis: Axes, max_depth: int, num_ticks: int):
 
 def set_up_PR_plot_axis(axis: Axes, min_iou: float):
     """Sets up the axis for the precision plot."""
-    axis.set_title("PR Curve@"+str(min_iou))
+    axis.set_title("PR Curve@" + str(min_iou) + " Amodal")
     axis.set_xlabel("Recall")
     axis.set_ylabel("Precision")
     axis.set_xlim([0, 1.0])
@@ -304,7 +272,7 @@ def create_PR_plot(axis: Axes, data: dict, accept_classes: List[str]):
             y_vals[i] = np.maximum(y_vals[i], y_vals[i + 1])
 
         axis.plot(x_vals, y_vals, label=class_name,
-                  color=CLASS_ID_TO_COLOR[class_name])
+                  color=csToMplColor(class_name))
 
 
 def fill_and_finalise_subplot(
@@ -382,11 +350,11 @@ def fill_standard_subplot(
         max_depth (int): maximal value of x-axis
     """
     axis.scatter(x_vals, y_vals, s=available_items_scaleing,
-                 color=CLASS_ID_TO_COLOR[class_name], marker="o", alpha=1.0)
+                 color=csToMplColor(class_name), marker="o", alpha=1.0)
     axis.plot(x_vals, y_vals, label=class_name,
-              color=CLASS_ID_TO_COLOR[class_name], alpha=0.6)
+              color=csToMplColor(class_name), alpha=0.6)
     axis.plot([x_vals[-1], max_depth], [y_vals[-1], y_vals[-1]], label=class_name,
-              color=CLASS_ID_TO_COLOR[class_name], linestyle="--", alpha=0.6)
+              color=csToMplColor(class_name), linestyle="--", alpha=0.6)
 
 
 def get_available_items_scaling(data: dict, scale_fac: float = 100.):

@@ -13,6 +13,7 @@ import os
 import argparse
 
 from pyquaternion import Quaternion
+from tqdm import tqdm
 import concurrent.futures
 
 from typing import (
@@ -23,6 +24,11 @@ from typing import (
 )
 
 from cityscapesscripts.helpers.labels import labels
+from cityscapesscripts.evaluation.objectDetectionHelpers import (
+    getFiles,
+    calcIouMatrix,
+    calcOverlapMatrix
+)
 from cityscapesscripts.evaluation.plot_3d_results import (
     prepare_data, 
     plot_data
@@ -57,10 +63,10 @@ Each json is a list of detections or GTs
 """
 
 def printErrorAndExit(msg):
-    logging.error(msg)
-    logging.info("========================")
-    logging.info("=== Stop evaluation ====")
-    logging.info("========================")
+    logger.error(msg)
+    logger.info("========================")
+    logger.info("=== Stop evaluation ====")
+    logger.info("========================")
     
     exit(1)
 
@@ -135,43 +141,12 @@ class Box3DEvaluator:
         evaluation_params: EvaluationParameters
     ) -> None:
 
-        self.evaluation_params = evaluation_params
+        self.eval_params = evaluation_params
 
         self._num_steps = 25
-        self._score_thresholds = np.arange(0.0, 1.01, 1.0 / self.num_steps)
+        self._score_thresholds = np.arange(0.0, 1.01, 1.0 / self._num_steps)
 
         self.reset()
-
-    def calcIouMatrix(self, gts, preds):
-        x11, y11, x12, y12 = np.split(gts, 4, axis=1)
-        x21, y21, x22, y22 = np.split(preds, 4, axis=1)
-
-        xA = np.maximum(x11, np.transpose(x21))
-        yA = np.maximum(y11, np.transpose(y21))
-        xB = np.minimum(x12, np.transpose(x22))
-        yB = np.minimum(y12, np.transpose(y22))
-        interArea = np.maximum((xB - xA + 1), 0) * np.maximum((yB - yA + 1), 0)
-        boxAArea = (x12 - x11 + 1) * (y12 - y11 + 1)
-        boxBArea = (x22 - x21 + 1) * (y22 - y21 + 1)
-        iou = interArea / \
-            (boxAArea + np.transpose(boxBArea) - interArea + 1e-10)
-
-        return iou
-
-    def calcIntersectionMatrix(self, gt_ignores, preds):
-        x11, y11, x12, y12 = np.split(gt_ignores, 4, axis=1)
-        x21, y21, x22, y22 = np.split(preds, 4, axis=1)
-
-        xA = np.maximum(x11, np.transpose(x21))
-        yA = np.maximum(y11, np.transpose(y21))
-        xB = np.minimum(x12, np.transpose(x22))
-        yB = np.minimum(y12, np.transpose(y22))
-        interArea = np.maximum((xB - xA + 1), 0) * np.maximum((yB - yA + 1), 0)
-
-        boxBArea = (x22 - x21 + 1) * (y22 - y21 + 1)
-        iou = interArea / (np.transpose(boxBArea) + 1e-10)
-
-        return iou
 
     def getMatches(self, iou_matrix):
         matched_gts = []
@@ -184,7 +159,7 @@ class Box3DEvaluator:
 
         # iteratively select the max of the iou_matrix and set the corresponding
         # rows and cols to 0.
-        while np.max(iou_matrix) > self.min_iou_to_match_mapping:
+        while np.max(iou_matrix) > self.eval_params.min_iou_to_match_mapping:
             tmp_row, tmp_col = np.where(iou_matrix == np.max(iou_matrix))
 
             used_row = tmp_row[0]
@@ -219,17 +194,17 @@ class Box3DEvaluator:
             center_dists[..., 0]**2 + center_dists[..., 2]**2)
 
         for gt_dist, center_dist in zip(gt_dists, center_dists):
-            if gt_dist >= self.evaluation_params.max_depth:
+            if gt_dist >= self.eval_params.max_depth:
                 continue
 
             # instead of unbound distances in m we want to transform this in a score between 0 and 1
             # e.g. if the max_depth == 100
             # score = 1. - (dist / 100)
 
-            gt_dist = int(gt_dist / self.evaluation_params.step_size) * self.evaluation_params.step_size
+            gt_dist = int(gt_dist / self.eval_params.step_size) * self.eval_params.step_size
 
             self._stats["working_data"][class_name]["Center_Dist"][gt_dist].append(
-                1. - min(center_dist / float(self.evaluation_params.max_depth), 1.))  # norm it to 1.
+                1. - min(center_dist / float(self.eval_params.max_depth), 1.))  # norm it to 1.
 
         return gt_dists
 
@@ -250,10 +225,10 @@ class Box3DEvaluator:
             gt_boxes / pred_boxes, pred_boxes / gt_boxes), axis=1)
 
         for gt_dist, size_simi in zip(gt_dists, size_similarities):
-            if gt_dist >= self.evaluation_params.max_depth:
+            if gt_dist >= self.eval_params.max_depth:
                 continue
 
-            gt_dist = int(gt_dist / self.evaluation_params.step_size) * self.evaluation_params.step_size
+            gt_dist = int(gt_dist / self.eval_params.step_size) * self.eval_params.step_size
 
             self._stats["working_data"][class_name]["Size_Similarity"][gt_dist].append(
                 size_simi)
@@ -281,10 +256,10 @@ class Box3DEvaluator:
              np.cos(gt_vals[..., 2] - pred_vals[..., 2])) / 4.
 
         for gt_dist, os_yaw, os_pitch_roll in zip(gt_dists, os_yaws, os_pitch_rolls):
-            if gt_dist >= self.evaluation_params.max_depth:
+            if gt_dist >= self.eval_params.max_depth:
                 continue
 
-            gt_dist = int(gt_dist / self.evaluation_params.step_size) * self.evaluation_params.step_size
+            gt_dist = int(gt_dist / self.eval_params.step_size) * self.eval_params.step_size
 
             self._stats["working_data"][class_name]["OS_Yaw"][gt_dist].append(
                 os_yaw)
@@ -320,7 +295,7 @@ class Box3DEvaluator:
                     vals.append(curr_mean)
                     num_items_list.append(len(values))
 
-            depths = np.asarray([0.] + depths + [self.evaluation_params.max_depth])
+            depths = np.asarray([0.] + depths + [self.eval_params.max_depth])
             if len(vals) > 0:
                 vals = np.asarray(vals[0:1] + vals + vals[-1:])
             else:
@@ -334,7 +309,7 @@ class Box3DEvaluator:
                 result_items[d] = n
 
             # norm it over depth to 1
-            result_auc /= self.evaluation_params.max_depth
+            result_auc /= self.eval_params.max_depth
 
             self.results[parameter_name][class_name]["data"] = result_dict
             self.results[parameter_name][class_name]["auc"] = result_auc
@@ -360,24 +335,24 @@ class Box3DEvaluator:
                     "data": {},
                     "items": {},
                     "auc": 0.
-                } for x in self.mapping_information.values()
+                } for x in self.eval_params.labels_to_evaluate
             }
 
-        for class_name in self.mapping_information.values():
+        for class_name in self.eval_params.labels_to_evaluate:
             working_point = self._stats["working_point"][class_name]
             working_data = self._stats[working_point]["data"]
 
             self._stats["working_data"] = {}
             self._stats["working_data"][class_name] = {
-                "Center_Dist": {x: [] for x in range(0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size)},
-                "Size_Similarity": {x: [] for x in range(0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size)},
-                "OS_Yaw": {x: [] for x in range(0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size)},
-                "OS_Pitch_Roll": {x: [] for x in range(0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size)}
+                "Center_Dist": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
+                "Size_Similarity": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
+                "OS_Yaw": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
+                "OS_Pitch_Roll": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)}
             }
 
             for base_img, tp_fp_fn_data in working_data.items():
-                gt_boxes = self.gts[base_img]
-                pred_boxes = self.preds[base_img]
+                gt_boxes = self.gts[base_img]["objects"]
+                pred_boxes = self.preds[base_img]["objects"]
 
                 tp_idx_gt = tp_fp_fn_data["tp_idx_gt"]
                 tp_idx_pred = tp_fp_fn_data["tp_idx_pred"]
@@ -420,8 +395,11 @@ class Box3DEvaluator:
 
         # calculate detection scores
         self.results["Detection_Score"] = {}
-        logger.info(" === DETECTION SCORES ===")
-        for class_name in self.mapping_information.values():
+        logger.info("========================")
+        logger.info("=== Detection scores ===")
+        logger.info("========================")
+
+        for class_name in self.eval_params.labels_to_evaluate:
             vals = {p: self.results[p][class_name]["auc"] for p in parameters}
             det_score = vals["AP"] * (vals["Center_Dist"] + vals["Size_Similarity"] +
                                       vals["OS_Yaw"] + vals["OS_Pitch_Roll"]) / 4.
@@ -434,14 +412,20 @@ class Box3DEvaluator:
                     self.results["mDetection_Score"])
         self.results["GT_stats"] = self._stats["GT_stats"]
 
-    def saveResults(self):
+    def saveResults(self, result_folder):
         """Saves ``self.results`` results to ``"results.json"`` 
         and ``self._stats`` to ``"stats.json"``.
         """
-        with open('results.json', 'w') as f:
+
+        result_file = os.path.join(result_folder, "results.json")
+        stats_file = os.path.join(result_folder, "stats.json")
+
+        with open(result_file, 'w') as f:
             json.dump(self.results, f, indent=4)
-        with open('stats.json', 'w') as f:
+        with open(stats_file, 'w') as f:
             json.dump(self._stats, f, indent=4)
+
+        return result_file
 
     def reset(self):
         """Resets state of this instance to a newly initialised one."""
@@ -459,27 +443,30 @@ class Box3DEvaluator:
         """
 
         logger.info("Loading predictions...")
-        predictions = []
-        for root, dirnames, filenames in os.walk(pred_folder):
-            for f in filenames:
-                if f.endswith(".json"):
-                    predictions.append(os.path.join(root, f))
+        predictions = getFiles(pred_folder)
 
         predictions.sort()
         logger.info("Found " + str(len(predictions)) + " prediction files")
 
         for p in predictions[:]:
-            preds_for_image = []
+            preds_for_image = []            
+            
+            # extract city_record_image from filepath
             base = os.path.basename(p)
+            
+            base = base[:base.rfind("_")]
+            
             with open(p) as f:
                 data = json.load(f)
 
-            for d in data:
-                box_data = Box3D(d["2d"], d["3d"],
-                                 d["class_name"], d["score"], d["ignore"])
-                preds_for_image.append(box_data)
+            for d in data["annotation"]:
+                if d["class_name"] in self.eval_params.labels_to_evaluate:
+                    box_data = Box3DObject(d)
+                    preds_for_image.append(box_data)
 
-            self.preds[base] = preds_for_image
+            self.preds[base] = {
+                "objects": preds_for_image
+            }
 
     def loadGT(self, gt_folder: str):
         """
@@ -490,42 +477,50 @@ class Box3DEvaluator:
         """
 
         logger.info("Loading GT...")
-        gts = []
-        for root, dirnames, filenames in os.walk(gt_folder):
-            for f in filenames:
-                if f.endswith(".json"):
-                    gts.append(os.path.join(root, f))
+        gts = getFiles(gt_folder)
 
-        gts.sort()
         logger.info("Found " + str(len(gts)) + " GT files")
 
-        self._stats["GT_stats"] = {
-            x: 0 for x in self.mapping_information.values()}
+        self._stats["GT_stats"] = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
         for p in gts[:]:
             gts_for_image = []
+            ignores_for_image = []
+            
+            # extract city_record_image from filepath
             base = os.path.basename(p)
+            base = base[:base.rfind("_")]
+
             with open(p) as f:
                 data = json.load(f)
 
-            for d in data:
-                self._stats["GT_stats"][d["class_name"]] += 1
-                box_data = Box3D(d["2d"], d["3d"],
-                                 d["class_name"], d["score"], d["ignore"])
-                gts_for_image.append(box_data)
+            # load 3D boxes
+            for d in data["annotation"]:
+                if d["class_name"] in self.eval_params.labels_to_evaluate:
+                    self._stats["GT_stats"][d["class_name"]] += 1
+                    box_data = Box3DObject(d)
+                    gts_for_image.append(box_data)
 
-            self.gts[base] = gts_for_image
+            # load ignore regions
+            for d in data["ignore"]:
+                box_data = IgnoreObject(d)
+                ignores_for_image.append(box_data)
+
+            self.gts[base] = {
+                "objects": gts_for_image,
+                "ignores": ignores_for_image
+            }
 
     def evaluate(self):
         # fill up with empty detections if prediction file not found
         for base in self.gts.keys():
             if base not in self.preds.keys():
-                logging.critical(
+                logger.critical(
                     "Could not find any prediction for image " + base)
                 self.preds[base] = []
 
         # initialize empty data
-        for s in self.score_thresholds:
+        for s in self._score_thresholds:
             self._stats[s] = {
                 "data": {}
             }
@@ -542,7 +537,7 @@ class Box3DEvaluator:
         # calculate FP stats (center dist, size similarity, orientation score)
         self.calcTpStats()
 
-        self.results["min_iou"] = self.min_iou_to_match_mapping
+        self.results["min_iou"] = self.eval_params.min_iou_to_match_mapping
 
     def _worker(self, base):
 
@@ -553,7 +548,7 @@ class Box3DEvaluator:
 
         pred_boxes = self.preds[base]
 
-        for s in self.score_thresholds:
+        for s in self._score_thresholds:
             tmp_stats[s] = {
                 "data": {}
             }
@@ -573,10 +568,15 @@ class Box3DEvaluator:
 
     def calcImageStats(self):
         """Calculate Precision and Recall values for whole dataset."""
-        # for x in self.gts.keys():
-        #    self._worker(x)
-        with concurrent.futures.ProcessPoolExecutor(max_workers=14) as executor:
-            results = list(executor.map(self._worker, self.gts.keys()))
+
+        # single threaded
+        results = []
+        for x in tqdm(self.gts.keys()):
+            results.append(self._worker(x))
+        
+        # multi threaded
+        #with concurrent.futures.ProcessPoolExecutor(max_workers=14) as executor:
+        #    results = list(tqdm(executor.map(self._worker, self.gts.keys()), total=len(self.gts.keys())))
 
         # update internal result dict with the curresponding results
         for thread_result in results:
@@ -588,42 +588,42 @@ class Box3DEvaluator:
     def calculateAp(self):
         """Calculate Average Precision (AP) values for the whole dataset."""
 
-        for s in self.score_thresholds:
+        for s in self._score_thresholds:
             score_data = self._stats[s]["data"]
             tp_per_depth = {x: {d: [] for d in range(
-                0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size)} for x in self.mapping_information.values()}
+                0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
             fp_per_depth = {x: {d: [] for d in range(
-                0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size)} for x in self.mapping_information.values()}
+                0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
             fn_per_depth = {x: {d: [] for d in range(
-                0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size)} for x in self.mapping_information.values()}
+                0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
 
             precision_per_depth = {x: {}
-                                   for x in self.mapping_information.values()}
+                                   for x in self.eval_params.labels_to_evaluate}
             recall_per_depth = {x: {}
-                                for x in self.mapping_information.values()}
-            auc_per_depth = {x: {} for x in self.mapping_information.values()}
+                                for x in self.eval_params.labels_to_evaluate}
+            auc_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
 
-            tp = {x: 0 for x in self.mapping_information.values()}
-            fp = {x: 0 for x in self.mapping_information.values()}
-            fn = {x: 0 for x in self.mapping_information.values()}
+            tp = {x: 0 for x in self.eval_params.labels_to_evaluate}
+            fp = {x: 0 for x in self.eval_params.labels_to_evaluate}
+            fn = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
-            precision = {x: 0 for x in self.mapping_information.values()}
-            recall = {x: 0 for x in self.mapping_information.values()}
-            auc = {x: 0 for x in self.mapping_information.values()}
+            precision = {x: 0 for x in self.eval_params.labels_to_evaluate}
+            recall = {x: 0 for x in self.eval_params.labels_to_evaluate}
+            auc = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
             for img_base, img_base_stats in score_data.items():
-                gt_depths = [x.getDepth() for x in self.gts[img_base]]
-                pred_depths = [x.getDepth() for x in self.preds[img_base]]
+                gt_depths = [x.getDepth() for x in self.gts[img_base]["objects"]]
+                pred_depths = [x.getDepth() for x in self.preds[img_base]["objects"]]
 
                 for class_name, idxs in img_base_stats["tp_idx_gt"].items():
                     tp[class_name] += len(idxs)
 
                     for idx in idxs:
                         tp_depth = gt_depths[idx]
-                        if tp_depth >= self.evaluation_params.max_depth:
+                        if tp_depth >= self.eval_params.max_depth:
                             continue
 
-                        tp_depth = int(tp_depth / self.evaluation_params.step_size) * self.evaluation_params.step_size
+                        tp_depth = int(tp_depth / self.eval_params.step_size) * self.eval_params.step_size
 
                         tp_per_depth[class_name][tp_depth].append(idx)
 
@@ -632,10 +632,10 @@ class Box3DEvaluator:
 
                     for idx in idxs:
                         fp_depth = pred_depths[idx]
-                        if fp_depth >= self.evaluation_params.max_depth:
+                        if fp_depth >= self.eval_params.max_depth:
                             continue
 
-                        fp_depth = int(fp_depth / self.evaluation_params.step_size) * self.evaluation_params.step_size
+                        fp_depth = int(fp_depth / self.eval_params.step_size) * self.eval_params.step_size
 
                         fp_per_depth[class_name][fp_depth].append(idx)
 
@@ -644,19 +644,19 @@ class Box3DEvaluator:
 
                     for idx in idxs:
                         fn_depth = gt_depths[idx]
-                        if fn_depth >= self.evaluation_params.max_depth:
+                        if fn_depth >= self.eval_params.max_depth:
                             continue
 
-                        fn_depth = int(fn_depth / self.evaluation_params.step_size) * self.evaluation_params.step_size
+                        fn_depth = int(fn_depth / self.eval_params.step_size) * self.eval_params.step_size
 
                         fn_per_depth[class_name][fn_depth].append(idx)
 
-            for class_name in self.mapping_information.values():
+            for class_name in self.eval_params.labels_to_evaluate:
                 accum_tp = 0
                 accum_fp = 0
                 accum_fn = 0
 
-                for i in range(0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size):
+                for i in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
                     accum_tp += len(tp_per_depth[class_name][i])
                     accum_fp += len(fp_per_depth[class_name][i])
                     accum_fn += len(fn_per_depth[class_name][i])
@@ -709,23 +709,23 @@ class Box3DEvaluator:
             x: {
                 "data": {},
                 "auc": 0.
-            } for x in self.mapping_information.values()
+            } for x in self.eval_params.labels_to_evaluate
         }
 
         ap_per_depth = {
-            x: {} for x in self.mapping_information.values()
+            x: {} for x in self.eval_params.labels_to_evaluate
         }
 
-        working_point = {x: 0 for x in self.mapping_information.values()}
+        working_point = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
         # calculate standard mAP
-        for class_name in self.mapping_information.values():
+        for class_name in self.eval_params.labels_to_evaluate:
             best_auc = 0.
             best_score = 0.
 
             recalls_ = []
             precisions_ = []
-            for s in self.score_thresholds:
+            for s in self._score_thresholds:
                 if self._stats[s]["pr_data"]["auc"][class_name] > best_auc:
                     best_auc = self._stats[s]["pr_data"]["auc"][class_name]
                     best_score = s
@@ -763,8 +763,8 @@ class Box3DEvaluator:
             working_point[class_name] = best_score
 
         # calculate depth dependent mAP
-        for class_name in self.mapping_information.values():
-            for d in range(0, self.evaluation_params.max_depth + 1, self.evaluation_params.step_size):
+        for class_name in self.eval_params.labels_to_evaluate:
+            for d in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
                 tmp_dict = {
                     "data": {},
                     "auc": 0.
@@ -774,7 +774,7 @@ class Box3DEvaluator:
                 precisions_ = []
 
                 valid_depth = True
-                for s in self.score_thresholds:
+                for s in self._score_thresholds:
                     if d not in self._stats[s]["pr_data"]["recall_per_depth"][class_name].keys():
                         valid_depth = False
                         break
@@ -823,7 +823,7 @@ class Box3DEvaluator:
                     tmp_dict["data"]["recall"] = []
                     tmp_dict["data"]["precision"] = []
 
-        self._stats["min_iou"] = self.min_iou_to_match_mapping
+        self._stats["min_iou"] = self.eval_params.min_iou_to_match_mapping
         self._stats["working_point"] = working_point
 
         self.results["AP"] = ap
@@ -836,34 +836,32 @@ class Box3DEvaluator:
         fn_idx_gt = {}
 
         # calculate stats per class
-        for i in self.mapping_information.values():
-            # get idx for pred boxes for current class with ignore == False
+        for i in self.eval_params.labels_to_evaluate:
+            # get idx for pred boxes for current class
             pred_idx = [idx for idx, box in enumerate(
-                pred_boxes) if box.ignore == False and box.class_name == i and box.score >= min_score]
+                pred_boxes["objects"]) if box.class_name == i and box.score >= min_score]
 
-            # get idx for gt boxes for current class and ignores
+            # get idx for gt boxes for current class
             gt_idx = [idx for idx, box in enumerate(
-                gt_boxes) if box.ignore == False and box.class_name == i]
-            gt_idx_ignores = [idx for idx, box in enumerate(
-                gt_boxes) if box.ignore == False and box.class_name == i]
+                gt_boxes["objects"]) if box.class_name == i]
+            gt_idx_ignores = [idx for idx, box in enumerate(gt_boxes["ignores"])]
 
             # create 2D box matrix for predictions and gts
             boxes_2d_pred = np.zeros((0, 4))
             if len(pred_idx) > 0:
-                boxes_2d_pred = np.asarray(
-                    [pred_boxes[x].box_2d for x in pred_idx])
+                boxes_2d_pred = np.asarray([pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
 
             boxes_2d_gt = np.zeros((0, 4))
             if len(gt_idx) > 0:
-                boxes_2d_gt = np.asarray([gt_boxes[x].box_2d for x in gt_idx])
+                boxes_2d_gt = np.asarray([gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
 
             boxes_2d_gt_ignores = np.zeros((0, 4))
             if len(gt_idx_ignores) > 0:
                 boxes_2d_gt_ignores = np.asarray(
-                    [gt_boxes[x].box_2d for x in gt_idx_ignores])
+                    [gt_boxes["ignores"][x].box_2d for x in gt_idx_ignores])
 
             # calculate IoU matrix between GTs and Preds
-            iou_matrix = self.calcIouMatrix(boxes_2d_gt, boxes_2d_pred)
+            iou_matrix = calcIouMatrix(boxes_2d_gt, boxes_2d_pred)
 
             # get matches
             gt_tp_row_idx, pred_tp_col_idx, _ = self.getMatches(iou_matrix)
@@ -879,13 +877,13 @@ class Box3DEvaluator:
             boxes_2d_pred_fp = np.zeros((0, 4))
             if len(pred_fp_idx_check_for_ignores) > 0:
                 boxes_2d_pred_fp = np.asarray(
-                    [pred_boxes[x].box_2d for x in pred_fp_idx_check_for_ignores])
+                    [pred_boxes["objects"][x].box_2d_amodal for x in pred_fp_idx_check_for_ignores])
 
-            intersection_matrix = self.calcIntersectionMatrix(
+            overlap_matrix = calcOverlapMatrix(
                 boxes_2d_gt_ignores, boxes_2d_pred_fp)
 
             # get matches and convert to actual box idx
-            _, pred_tp_col_idx, _ = self.getMatches(iou_matrix)
+            _, pred_tp_col_idx, _ = self.getMatches(overlap_matrix)
             pred_tp_ignores_idx = [
                 pred_fp_idx_check_for_ignores[x] for x in pred_tp_col_idx]
             pred_fp_idx = [
@@ -900,7 +898,16 @@ class Box3DEvaluator:
         return (tp_idx_gt, tp_idx_pred, fp_idx_pred, fn_idx_gt)
 
 # perform the evaluation on given GT and predction folder
-def evaluate3DObjectDetection(gt_folder, pred_folder, result_file, eval_params):
+def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params):
+    logger.info("Use the following options")
+    logger.info(" -> GT folder  : " + gt_folder)
+    logger.info(" -> Pred folder: " + pred_folder)
+    logger.info(" -> Classes    : " + ", ".join(eval_params.labels_to_evaluate))
+    logger.info(" -> Min IoU:   : " + str(eval_params.min_iou_to_match_mapping))
+    logger.info(" -> Max depth  : " + str(eval_params.max_depth))
+    logger.info(" -> Step size  : " + str(eval_params.step_size))
+
+
     # initialize the evaluator
     extended_evaluator = Box3DEvaluator(eval_params)
 
@@ -912,7 +919,7 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_file, eval_params):
     extended_evaluator.evaluate()
 
     # save results and plot them
-    extended_evaluator.saveResults(result_file)
+    result_file = extended_evaluator.saveResults(result_folder)
     data_to_plot = prepare_data(result_file)
     plot_data(data_to_plot, max_depth=eval_params.max_depth)
 
@@ -920,9 +927,9 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_file, eval_params):
 
 # main method
 def main():
-    logging.info("========================")
-    logging.info("=== Start evaluation ===")
-    logging.info("========================")
+    logger.info("========================")
+    logger.info("=== Start evaluation ===")
+    logger.info("========================")
 
     # get cityscapes paths
     cityscapesPath = os.environ.get(
@@ -935,6 +942,8 @@ def main():
         os.path.join(cityscapesPath, "results")
     )
     predictionFolder = os.path.join(predictionPath, "box3Dpred")
+
+    gtFolder = predictionFolder = "/lhome/ngaehle/Desktop/cs_QC_final_export_TEST/export/val/"
 
     parser = argparse.ArgumentParser()
     # setup location
@@ -954,11 +963,11 @@ def main():
                         ''',
                         default=predictionFolder,
                         type=str)
-    resultFile = "result3DObjectDetection.json"
+    resultFolder = ""
     parser.add_argument("--results-file",
-                        dest="resultsFile",
-                        help="File to store evaluation results. Default: {}".format(resultFile),
-                        default=resultFile,
+                        dest="resultsFolder",
+                        help="File to store evaluation results. Default: prediction folder",
+                        default=resultFolder,
                         type=str)
 
     # setup evaluation parameters
@@ -995,15 +1004,19 @@ def main():
     if not os.path.exists(args.predictionFolder):
         printErrorAndExit("Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder))
 
+    if resultFolder == "":
+        resultFolder = args.predictionFolder
+    os.makedirs(resultFolder, exist_ok=True)
+
     # setup the evaluation parameters
     eval_params = EvaluationParameters(
-        evalLabels,
-        min_iou_to_match_mapping=minIou,
-        max_depth=maxDepth,
-        step_size=stepSize
+        args.evalLabels,
+        min_iou_to_match_mapping=args.minIou,
+        max_depth=args.maxDepth,
+        step_size=args.stepSize
     )
 
-    evaluate3DObjectDetection(args.gtFolder, args.predictionFolder, args.resultsFile, eval_params)
+    evaluate3DObjectDetection(args.gtFolder, args.predictionFolder, args.resultsFolder, eval_params)
 
     return
 
