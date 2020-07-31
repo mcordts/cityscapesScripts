@@ -81,19 +81,18 @@ def create_result_table_and_legend_plot(axis: Axes, data_to_plot: dict, handles_
 
     # Legend
     x_pos_legend = 0.6
-    y_pos_legend = 0.4
+    y_pos_legend = 0.8
+    y_pos_dot_size = 0.0
     axis.text(x_pos_legend, 0.95, 'Legend',
               fontdict={'weight': 'bold', 'size': 16})
-    axis.legend(*handles_labels, frameon=False,
-                loc=(x_pos_legend+0.05, y_pos_legend), ncol=2)
+    axis.legend(*handles_labels, frameon=True,
+                loc="upper left", bbox_to_anchor=(x_pos_legend, y_pos_legend), ncol=2)
 
     # add data-point-marker size explanation
-    y_pos = y_pos_legend - 0.3
-    dot_size_explanation = "The size of each data-point-marker indicates\n\
-the number of samples for that data-point,\n\
-with large dots indicating larger sample-sizes."
-    # , fontdict={'weight': 'bold'})
-    axis.text(x_pos_legend, y_pos, dot_size_explanation)
+    dot_size_explanation = "The size of each data-point-marker indicates\n"
+    dot_size_explanation += "the number of samples for that data-point,\n"
+    dot_size_explanation += "with large dots indicating larger sample-sizes."
+    axis.text(x_pos_legend, y_pos_dot_size, dot_size_explanation)
 
 
 def create_spider_chart_plot(
@@ -275,7 +274,7 @@ def create_PR_plot(axis: Axes, data: dict, accept_classes: List[str]):
                   color=csToMplColor(class_name))
 
 
-def fill_and_finalise_subplot(
+def fill_and_finalize_subplot(
         category: str,
         data_to_plot: dict,
         accept_classes: List[str],
@@ -303,7 +302,7 @@ def fill_and_finalise_subplot(
 
     elif category in ["Center_Dist", "Size_Similarity", "OS_Yaw", "OS_Pitch_Roll"]:
 
-        axis.set_title(category.replace("_", " ") + " (TP Metric)")
+        axis.set_title(category.replace("_", " ") + " (DDTP Metric)")
 
         if category == 'Center_Dist':
             axis.set_ylim([0, 25])
@@ -315,14 +314,14 @@ def fill_and_finalise_subplot(
         for class_name in accept_classes:
             x_vals, y_vals = get_x_y_vals(
                 data_to_plot[category][class_name]["data"])
-            available_items_scaleing = get_available_items_scaling(
+            available_items_scaling = get_available_items_scaling(
                 data_to_plot[category][class_name]["items"])
 
             if category == 'Center_Dist':
                 y_vals = [(1 - y) * max_depth for y in y_vals]
 
             fill_standard_subplot(
-                axis, x_vals, y_vals, class_name, available_items_scaleing, max_depth)
+                axis, x_vals, y_vals, class_name, available_items_scaling, max_depth)
 
     else:
         raise ValueError("Unsupported category, got {}.".format(category))
@@ -353,13 +352,20 @@ def fill_standard_subplot(
                  color=csToMplColor(class_name), marker="o", alpha=1.0)
     axis.plot(x_vals, y_vals, label=class_name,
               color=csToMplColor(class_name), alpha=0.6)
-    axis.plot([x_vals[-1], max_depth], [y_vals[-1], y_vals[-1]], label=class_name,
-              color=csToMplColor(class_name), linestyle="--", alpha=0.6)
+
+    if len(x_vals) >= 1:
+        axis.plot([x_vals[-1], max_depth], [y_vals[-1], y_vals[-1]], label=class_name,
+                  color=csToMplColor(class_name), linestyle="--", alpha=0.6)
+        axis.plot([0, x_vals[0]], [y_vals[0], y_vals[0]], label=class_name,
+                  color=csToMplColor(class_name), linestyle="--", alpha=0.6)
 
 
 def get_available_items_scaling(data: dict, scale_fac: float = 100.):
     """Counts available items per data-point. Normalises and scales according to ``scale_fac``."""
     available_items = list(data.values())
+    if len(available_items) == 0:
+        return available_items
+
     max_num_item = max(available_items)
     available_items_scaling = [
         x / float(max_num_item) * scale_fac for x in available_items]
@@ -401,7 +407,7 @@ def plot_data(data_to_plot: dict, max_depth: int = 100):
 
     # 1st fill subplots (3-8)
     for idx, category in enumerate(subplot_categories):
-        fill_and_finalise_subplot(
+        fill_and_finalize_subplot(
             category, data_to_plot, accept_classes, axes[idx], max_depth)
 
     # 2nd plot Spider plot

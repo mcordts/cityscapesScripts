@@ -274,7 +274,6 @@ class Box3DEvaluator:
             result_dict = {}
             result_items = {}
             result_auc = 0.
-            accum_values = 0.
             num_items = 0
 
             depths = []
@@ -284,18 +283,18 @@ class Box3DEvaluator:
 
             for depth, values in value_dict.items():
                 if len(values) > 0:
-                    accum_values += sum(values)
                     num_items += len(values)
                     all_items += values
 
-                    # accum_values / float(num_items)
                     curr_mean = sum(values) / float(len(values))
 
                     depths.append(depth)
                     vals.append(curr_mean)
                     num_items_list.append(len(values))
 
+            # extend the list to the front and the back for easier calculation of AUC
             depths = np.asarray([0.] + depths + [self.eval_params.max_depth])
+            num_items_list = [0] + num_items_list + [0]
             if len(vals) > 0:
                 vals = np.asarray(vals[0:1] + vals + vals[-1:])
             else:
@@ -304,7 +303,8 @@ class Box3DEvaluator:
             idx = np.arange(1, len(depths), 1)
             result_auc = np.sum((depths[idx] - depths[idx - 1]) * vals[idx])
 
-            for d, v, n in zip(depths, vals, num_items_list):
+            # remove the expanded entries
+            for d, v, n in list(zip(depths, vals, num_items_list))[1:-1]:
                 result_dict[d] = v
                 result_items[d] = n
 
