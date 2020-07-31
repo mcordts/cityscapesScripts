@@ -449,7 +449,7 @@ class Box3DEvaluator:
             if base not in self.preds.keys():
                 logger.critical(
                     "Could not find any prediction for image " + base)
-                self.preds[base] = []
+                self.preds[base] = {"objects": []}
 
         # initialize empty data
         for s in self._score_thresholds:
@@ -475,8 +475,6 @@ class Box3DEvaluator:
         tmp_stats = {}
 
         gt_boxes = self.gts[base]
-        pred_boxes = []
-
         pred_boxes = self.preds[base]
 
         for s in self._score_thresholds:
@@ -770,6 +768,16 @@ class Box3DEvaluator:
                 gt_boxes["objects"]) if box.class_name == i]
             gt_idx_ignores = [idx for idx, box in enumerate(gt_boxes["ignores"])]
 
+            # if there is no prediction at all, just return an empty result
+            if len(pred_idx) == 0:
+                # dump data to result dicts
+                tp_idx_gt[i] = []
+                tp_idx_pred[i] = []
+                fp_idx_pred[i] = []
+                fn_idx_gt[i] = gt_idx
+                continue
+
+
             # create 2D box matrix for predictions and gts
             boxes_2d_pred = np.zeros((0, 4))
             if len(pred_idx) > 0:
@@ -832,17 +840,17 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
     logger.info(" -> Step size [m]: " + str(eval_params.step_size))
 
     # initialize the evaluator
-    extended_evaluator = Box3DEvaluator(eval_params)
+    boxEvaluator = Box3DEvaluator(eval_params)
 
     # load GT and predictions
-    extended_evaluator.loadGT(gt_folder)
-    extended_evaluator.loadPredictions(pred_folder)
+    boxEvaluator.loadGT(gt_folder)
+    boxEvaluator.loadPredictions(pred_folder)
 
     # perform evaluation
-    extended_evaluator.evaluate()
+    boxEvaluator.evaluate()
 
     # save results and plot them
-    result_file = extended_evaluator.saveResults(result_folder)
+    result_file = boxEvaluator.saveResults(result_folder)
     data_to_plot = prepare_data(result_file)
     plot_data(data_to_plot, max_depth=eval_params.max_depth)
 
