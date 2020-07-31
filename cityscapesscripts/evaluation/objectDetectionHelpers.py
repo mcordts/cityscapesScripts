@@ -26,15 +26,44 @@ class Box3DObject:
         annotation: dict,
     ) -> None:
 
-        self.box_2d_modal = annotation["2d"]["modal"]
-        self.box_2d_amodal = annotation["2d"]["amodal"]
-        self.center = annotation["3d"]["center"]
-        self.dims = annotation["3d"]["dimensions"]
-        self.rotation = annotation["3d"]["rotation"]
-        self.class_name = annotation["class_name"]
-        self.score = annotation["score"]
+        self._box_2d_modal = annotation["2d"]["modal"]
+        self._box_2d_amodal = annotation["2d"]["amodal"]
+        self._center = annotation["3d"]["center"]
+        self._dims = annotation["3d"]["dimensions"]
+        self._rotation = annotation["3d"]["rotation"]
+        self._class_name = annotation["class_name"]
+        self._score = annotation["score"]
 
-    def getDepth(self):
+    @property
+    def box_2d_modal(self):
+        return self._box_2d_modal
+
+    @property
+    def box_2d_amodal(self):
+        return self._box_2d_amodal
+
+    @property
+    def center(self):
+        return self._center
+
+    @property
+    def dims(self):
+        return self._dims
+
+    @property
+    def rotation(self):
+        return self._rotation
+
+    @property
+    def class_name(self):
+        return self._class_name
+
+    @property
+    def score(self):
+        return self._score
+
+    @property
+    def depth(self):
         return np.sqrt(self.center[0]**2 + self.center[2]**2).astype(int)
 
 class IgnoreObject:
@@ -48,8 +77,11 @@ class IgnoreObject:
         annotation: dict,
     ) -> None:
 
-        self.box_2d = annotation["2d"]
+        self._box_2d = annotation["2d"]
 
+    @property
+    def box_2d(self):
+        return self._box_2d
 
 class EvaluationParameters:
     """Helper class managing the evaluation parameters
@@ -69,10 +101,26 @@ class EvaluationParameters:
         step_size: int=5
     ) -> None:
 
-        self.labels_to_evaluate = labels_to_evaluate
-        self.min_iou_to_match_mapping = min_iou_to_match_mapping
-        self.max_depth = max_depth
-        self.step_size = step_size
+        self._labels_to_evaluate = labels_to_evaluate
+        self._min_iou_to_match_mapping = min_iou_to_match_mapping
+        self._max_depth = max_depth
+        self._step_size = step_size
+
+    @property
+    def labels_to_evaluate(self):
+        return self._labels_to_evaluate
+
+    @property
+    def min_iou_to_match_mapping(self):
+        return self._min_iou_to_match_mapping
+
+    @property
+    def max_depth(self):
+        return self._max_depth
+
+    @property
+    def step_size(self):
+        return self._step_size
 
 
 def calcIouMatrix(gts, preds):

@@ -540,8 +540,8 @@ class Box3DEvaluator:
             auc = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
             for img_base, img_base_stats in score_data.items():
-                gt_depths = [x.getDepth() for x in self.gts[img_base]["objects"]]
-                pred_depths = [x.getDepth() for x in self.preds[img_base]["objects"]]
+                gt_depths = [x.depth for x in self.gts[img_base]["objects"]]
+                pred_depths = [x.depth for x in self.preds[img_base]["objects"]]
 
                 for class_name, idxs in img_base_stats["tp_idx_gt"].items():
                     tp[class_name] += len(idxs)
