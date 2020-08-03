@@ -75,7 +75,7 @@ class Box3DEvaluator:
 
         self.eval_params = evaluation_params
 
-        self._num_steps = 25
+        self._num_steps = 50
         self._score_thresholds = np.arange(0.0, 1.01, 1.0 / self._num_steps)
 
         self.reset()
