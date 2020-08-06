@@ -124,6 +124,15 @@ class EvaluationParameters:
 
 
 def calcIouMatrix(gts, preds):
+    """[summary]
+
+    Args:
+        gts ([type]): [description]
+        preds ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     xmin_1, ymin_1, xmax_1, ymax_1 = np.split(gts, 4, axis=1)
     xmin_2, ymin_2, xmax_2, ymax_2 = np.split(preds, 4, axis=1)
 
@@ -141,6 +150,15 @@ def calcIouMatrix(gts, preds):
     return iou
 
 def calcOverlapMatrix(gt_ignores, preds):
+    """[summary]
+
+    Args:
+        gt_ignores ([type]): [description]
+        preds ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     xmin_1, ymin_1, xmax_1, ymax_1 = np.split(gt_ignores, 4, axis=1)
     xmin_2, ymin_2, xmax_2, ymax_2 = np.split(preds, 4, axis=1)
 
@@ -157,6 +175,14 @@ def calcOverlapMatrix(gt_ignores, preds):
     return overlap
 
 def getFiles(folder):
+    """[summary]
+
+    Args:
+        folder ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     file_list = []
     for root, dirnames, filenames in os.walk(folder):
         for f in filenames:

@@ -68,19 +68,60 @@ def printErrorAndExit(msg):
     exit(1)
 
 class Box3DEvaluator:
+    """The Box3DEvaluator object contains the data as well as the parameters
+    for the evluation of the dataset.
+    :param eval_params: evaluation params including max depth, min iou etc.
+    :type eval_params: EvaluationParameters
+    :param _num_steps: number of confidence threshold steps during evaluation
+    :type _num_steps: int
+    :
+
+    """
     def __init__(
         self,
         evaluation_params: EvaluationParameters
     ) -> None:
 
         self.eval_params = evaluation_params
-
         self._num_steps = 50
-        self._score_thresholds = np.arange(0.0, 1.01, 1.0 / self._num_steps)
 
-        self.reset()
+        # the actual confidence thresholds
+        self._conf_thresholds = np.arange(0.0, 1.01, 1.0 / self._num_steps)
+
+        # dict containing the GTs per image
+        self.gts = {}
+
+        # dict containing the predictions per image
+        self.preds = {}
+
+        # dict containing information for AP per class
+        self.ap = {}
+
+        # dict containing all required results
+        self.results = {}
+
+        # internal dict keeping addtional statistics
+        self._stats = {}
+
+    def reset(self):
+        """Resets state of this instance to a newly initialised one."""
+
+        self.gts = {}
+        self.preds = {}
+        self._stats = {}
+        self.ap = {}
+        self.results = {}
 
     def getMatches(self, iou_matrix):
+        """Gets the TP matches between the predictions and the GT data
+
+        Args:
+            iou_matrix (2x2 Array): The matrix containing the pairwise overlap or IoU
+
+        Returns:
+            Tuple(List[int],List[int],List[float]): A tuple containing the TP indices 
+            for GT and predicions and the corresponding iou
+        """
         matched_gts = []
         matched_preds = []
         matched_ious = []
@@ -104,11 +145,10 @@ class Box3DEvaluator:
             iou_matrix[used_row, ...] = 0.0
             iou_matrix[..., used_col] = 0.0
 
-        return matched_gts, matched_preds, matched_ious
+        return (matched_gts, matched_preds, matched_ious)
 
     def calcCenterDistances(self, class_name, gt_boxes, pred_boxes):
-        """
-        Calculates the BEV distance for a TP box
+        """Calculates the BEV distance for a TP box
         d = sqrt(dx*dx + dz*dz)
 
         Args:
@@ -119,11 +159,10 @@ class Box3DEvaluator:
         gt_boxes = np.asarray([x.center for x in gt_boxes])
         pred_boxes = np.asarray([x.center for x in pred_boxes])
 
-        gt_dists = np.sqrt(gt_boxes[..., 0]**2 +
-                           gt_boxes[..., 2]**2).astype(int)
+        gt_dists = np.sqrt(gt_boxes[..., 0]**2 + gt_boxes[..., 2]**2).astype(int)
+        
         center_dists = gt_boxes - pred_boxes
-        center_dists = np.sqrt(
-            center_dists[..., 0]**2 + center_dists[..., 2]**2)
+        center_dists = np.sqrt(center_dists[..., 0]**2 + center_dists[..., 2]**2)
 
         for gt_dist, center_dist in zip(gt_dists, center_dists):
             if gt_dist >= self.eval_params.max_depth:
@@ -141,8 +180,7 @@ class Box3DEvaluator:
         return gt_dists
 
     def calcSizeSimilarities(self, class_name, gt_boxes, pred_boxes, gt_dists):
-        """
-        Calculates the size similarity for a TP box
+        """Calculates the size similarity for a TP box
         s = min(w/w', w'/w) * min(h/h', h'/h) * min(l/l', l'/l)
 
         Args:
@@ -166,8 +204,7 @@ class Box3DEvaluator:
                 size_simi)
 
     def calcOrientationSimilarities(self, class_name, gt_boxes, pred_boxes, gt_dists):
-        """
-        Calculates the orientation similarity for a TP box.
+        """Calculates the orientation similarity for a TP box.
         os_yaw = (1 + cos(delta)) / 2.
         os_pitch/roll = 0.5 + (cos(delta_pitch) + cos(delta_roll)) / 4.
 
@@ -199,6 +236,11 @@ class Box3DEvaluator:
                 os_pitch_roll)
 
     def calculateAUC(self, class_name):
+        """[summary]
+
+        Args:
+            class_name ([type]): [description]
+        """
         parameter_depth_data = self._stats["working_data"][class_name]
 
         for parameter_name, value_dict in parameter_depth_data.items():
@@ -359,14 +401,6 @@ class Box3DEvaluator:
 
         return result_file
 
-    def reset(self):
-        """Resets state of this instance to a newly initialised one."""
-        self.gts = {}
-        self.preds = {}
-        self._stats = {}
-        self.ap = {}
-        self.results = {}
-
     def loadPredictions(self, pred_folder: str):
         """Loads all predictions from the given folder
 
@@ -400,9 +434,8 @@ class Box3DEvaluator:
                 "objects": preds_for_image
             }
 
-    def loadGT(self, gt_folder: str):
-        """
-        Loads ground truth from the given folder
+    def loadGT(self, gt_folder: str) -> None:
+        """Loads ground truth from the given folder
 
         Args:
             gt_folder (str): Ground truth folder
@@ -444,6 +477,8 @@ class Box3DEvaluator:
             }
 
     def evaluate(self):
+        """[summary]
+        """
         # fill up with empty detections if prediction file not found
         for base in self.gts.keys():
             if base not in self.preds.keys():
@@ -452,7 +487,7 @@ class Box3DEvaluator:
                 self.preds[base] = {"objects": []}
 
         # initialize empty data
-        for s in self._score_thresholds:
+        for s in self._conf_thresholds:
             self._stats[s] = {
                 "data": {}
             }
@@ -472,12 +507,20 @@ class Box3DEvaluator:
         self.results["min_iou"] = self.eval_params.min_iou_to_match_mapping
 
     def _worker(self, base):
+        """[summary]
+
+        Args:
+            base ([type]): [description]
+
+        Returns:
+            [type]: [description]
+        """
         tmp_stats = {}
 
         gt_boxes = self.gts[base]
         pred_boxes = self.preds[base]
 
-        for s in self._score_thresholds:
+        for s in self._conf_thresholds:
             tmp_stats[s] = {
                 "data": {}
             }
@@ -495,8 +538,8 @@ class Box3DEvaluator:
 
         return tmp_stats
 
-    def calcImageStats(self):
-        """Calculate Precision and Recall values for whole dataset."""
+    def calcImageStats(self) -> None:
+        """Calculates Precision and Recall values for whole dataset."""
 
         # single threaded
         results = []
@@ -515,10 +558,10 @@ class Box3DEvaluator:
                 for img_base, match_data in data.items():
                     self._stats[score]["data"][img_base] = match_data
 
-    def calculateAp(self):
-        """Calculate Average Precision (AP) values for the whole dataset."""
+    def calculateAp(self) -> None:
+        """Calculates Average Precision (AP) values for the whole dataset."""
 
-        for s in self._score_thresholds:
+        for s in self._conf_thresholds:
             score_data = self._stats[s]["data"]
             tp_per_depth = {x: {d: [] for d in range(
                 0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
@@ -648,7 +691,7 @@ class Box3DEvaluator:
 
             recalls_ = []
             precisions_ = []
-            for s in self._score_thresholds:
+            for s in self._conf_thresholds:
                 if self._stats[s]["pr_data"]["auc"][class_name] > best_auc:
                     best_auc = self._stats[s]["pr_data"]["auc"][class_name]
                     best_score = s
@@ -696,7 +739,7 @@ class Box3DEvaluator:
                 precisions_ = []
 
                 valid_depth = True
-                for s in self._score_thresholds:
+                for s in self._conf_thresholds:
                     if d not in self._stats[s]["pr_data"]["recall_per_depth"][class_name].keys():
                         valid_depth = False
                         break
@@ -752,6 +795,16 @@ class Box3DEvaluator:
         self.results["AP_per_depth"] = ap_per_depth
 
     def _addImageEvaluation(self, gt_boxes, pred_boxes, min_score):
+        """[summary]
+
+        Args:
+            gt_boxes ([type]): [description]
+            pred_boxes ([type]): [description]
+            min_score ([type]): [description]
+
+        Returns:
+            [type]: [description]
+        """
         tp_idx_gt = {}
         tp_idx_pred = {}
         fp_idx_pred = {}
@@ -796,7 +849,7 @@ class Box3DEvaluator:
             iou_matrix = calcIouMatrix(boxes_2d_gt, boxes_2d_pred)
 
             # get matches
-            gt_tp_row_idx, pred_tp_col_idx, _ = self.getMatches(iou_matrix)
+            (gt_tp_row_idx, pred_tp_col_idx, _) = self.getMatches(iou_matrix)
 
             # convert it to box idx
             gt_tp_idx = [gt_idx[x] for x in gt_tp_row_idx]
@@ -815,7 +868,7 @@ class Box3DEvaluator:
                 boxes_2d_gt_ignores, boxes_2d_pred_fp)
 
             # get matches and convert to actual box idx
-            _, pred_tp_col_idx, _ = self.getMatches(overlap_matrix)
+            (_, pred_tp_col_idx, _) = self.getMatches(overlap_matrix)
             pred_tp_ignores_idx = [
                 pred_fp_idx_check_for_ignores[x] for x in pred_tp_col_idx]
             pred_fp_idx = [
@@ -831,6 +884,14 @@ class Box3DEvaluator:
 
 # perform the evaluation on given GT and predction folder
 def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params):
+    """[summary]
+
+    Args:
+        gt_folder ([type]): [description]
+        pred_folder ([type]): [description]
+        result_folder ([type]): [description]
+        eval_params ([type]): [description]
+    """
     logger.info("Use the following options")
     logger.info(" -> GT folder    : " + gt_folder)
     logger.info(" -> Pred folder  : " + pred_folder)

@@ -278,8 +278,7 @@ def fill_and_finalize_subplot(
         axis: Axes,
         max_depth: int,
     ):
-    """
-    Plot data to subplots by selecting correct data for given ``category`` and looping over
+    """Plot data to subplots by selecting correct data for given ``category`` and looping over
     all classes in ``accept_classes``.
 
     Args:
@@ -422,8 +421,7 @@ def plot_data(data_to_plot: dict, max_depth: int = 100):
 
 
 def prepare_data(json_path: str) -> dict:
-    """
-    Loads data from json-file.
+    """Loads data from json-file.
 
     Args:
         json_path (str): Path to json-file from which data should be loaded
