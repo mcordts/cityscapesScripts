@@ -93,9 +93,6 @@ class Box3DEvaluator:
         self.eval_params = evaluation_params
         self._num_steps = 50
 
-        # the actual confidence thresholds
-        self._conf_thresholds = np.arange(0.0, 1.01, 1.0 / self._num_steps)
-
         # dict containing the GTs per image
         self.gts = {}
 
@@ -110,6 +107,12 @@ class Box3DEvaluator:
 
         # internal dict keeping addtional statistics
         self._stats = {}
+
+        # the actual confidence thresholds
+        self._conf_thresholds = np.arange(0.0, 1.01, 1.0 / self._num_steps)
+
+        # the actual depth bins
+        self._depth_bins = np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)
 
     def reset(self):
         """Resets state of this instance to a newly initialised one."""
@@ -327,10 +330,10 @@ class Box3DEvaluator:
 
             self._stats["working_data"] = {}
             self._stats["working_data"][class_name] = {
-                "Center_Dist": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
-                "Size_Similarity": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
-                "OS_Yaw": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
-                "OS_Pitch_Roll": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)}
+                "Center_Dist": {x: [] for x in self._depth_bins},
+                "Size_Similarity": {x: [] for x in self._depth_bins},
+                "OS_Yaw": {x: [] for x in self._depth_bins},
+                "OS_Pitch_Roll": {x: [] for x in self._depth_bins}
             }
 
             for base_img, tp_fp_fn_data in working_data.items():
@@ -582,12 +585,9 @@ class Box3DEvaluator:
             score_data = self._stats[s]["data"]
 
             # dicts containing TP, FP and FN per depth per class
-            tp_per_depth = {x: {d: [] for d in np.arange(
-                0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
-            fp_per_depth = {x: {d: [] for d in np.arange(
-                0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
-            fn_per_depth = {x: {d: [] for d in np.arange(
-                0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
+            tp_per_depth = {x: {d: [] for d in self._depth_bins} for x in self.eval_params.labels_to_evaluate}
+            fp_per_depth = {x: {d: [] for d in self._depth_bins} for x in self.eval_params.labels_to_evaluate}
+            fn_per_depth = {x: {d: [] for d in self._depth_bins} for x in self.eval_params.labels_to_evaluate}
 
             # dicts containing precision and recall and AP per depth per class
             precision_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
@@ -647,7 +647,7 @@ class Box3DEvaluator:
 
             # calculate per depth precision and recall per class
             for class_name in self.eval_params.labels_to_evaluate:
-                for i in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
+                for i in self._depth_bins:
                     tp_at_depth = len(tp_per_depth[class_name][i])
                     fp_at_depth = len(fp_per_depth[class_name][i])
                     accum_fn = len(fn_per_depth[class_name][i])
@@ -753,7 +753,7 @@ class Box3DEvaluator:
 
         # calculate depth dependent mAP
         for class_name in self.eval_params.labels_to_evaluate:
-            for d in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
+            for d in self._depth_bins:
                 tmp_dict = {
                     "data": {},
                     "auc": 0.
