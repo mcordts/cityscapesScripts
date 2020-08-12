@@ -355,7 +355,7 @@ def fill_standard_subplot(
         axis.scatter(x_vals, y_vals, s=available_items_scaling,
                      color=csToMplColor(class_name), marker="o", alpha=1.0)
     axis.plot(x_vals, y_vals, label=class_name,
-              color=csToMplColor(class_name), alpha=0.6)
+                color=csToMplColor(class_name))
 
     if len(x_vals) >= 1:
         axis.plot([x_vals[-1], max_depth], [y_vals[-1], y_vals[-1]], label=class_name,
