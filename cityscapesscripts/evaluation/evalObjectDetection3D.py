@@ -132,8 +132,10 @@ class Box3DEvaluator:
 
         # iteratively select the max of the iou_matrix and set the corresponding
         # rows and cols to 0.
-        while np.max(iou_matrix) > self.eval_params.min_iou_to_match_mapping:
-            tmp_row, tmp_col = np.where(iou_matrix == np.max(iou_matrix))
+        tmp_iou_max = np.max(iou_matrix)
+
+        while tmp_iou_max > self.eval_params.min_iou_to_match_mapping:
+            tmp_row, tmp_col = np.where(iou_matrix == tmp_iou_max)
 
             used_row = tmp_row[0]
             used_col = tmp_col[0]
@@ -144,6 +146,8 @@ class Box3DEvaluator:
 
             iou_matrix[used_row, ...] = 0.0
             iou_matrix[..., used_col] = 0.0
+
+            tmp_iou_max = np.max(iou_matrix)
 
         return (matched_gts, matched_preds, matched_ious)
 
