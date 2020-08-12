@@ -6,7 +6,8 @@
 #
 
 # python imports
-import coloredlogs, logging
+import coloredlogs
+import logging
 import numpy as np
 import json
 import os
@@ -27,9 +28,9 @@ from cityscapesscripts.evaluation.objectDetectionHelpers import (
     calcOverlapMatrix
 )
 from cityscapesscripts.evaluation.plot3DResults import (
-    prepare_data, 
+    prepare_data,
     plot_data
-) 
+)
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(level='INFO')
@@ -59,13 +60,15 @@ Each json is a list of detections or GTs
 
 """
 
+
 def printErrorAndExit(msg):
     logger.error(msg)
     logger.info("========================")
     logger.info("=== Stop evaluation ====")
     logger.info("========================")
-    
+
     exit(1)
+
 
 class Box3DEvaluator:
     """The Box3DEvaluator object contains the data as well as the parameters
@@ -77,6 +80,7 @@ class Box3DEvaluator:
     :
 
     """
+
     def __init__(
         self,
         evaluation_params: EvaluationParameters
@@ -163,10 +167,12 @@ class Box3DEvaluator:
         gt_boxes = np.asarray([x.center for x in gt_boxes])
         pred_boxes = np.asarray([x.center for x in pred_boxes])
 
-        gt_dists = np.sqrt(gt_boxes[..., 0]**2 + gt_boxes[..., 2]**2).astype(int)
-        
+        gt_dists = np.sqrt(gt_boxes[..., 0]**2 +
+                           gt_boxes[..., 2]**2).astype(int)
+
         center_dists = gt_boxes - pred_boxes
-        center_dists = np.sqrt(center_dists[..., 0]**2 + center_dists[..., 2]**2)
+        center_dists = np.sqrt(center_dists[..., 0]**2 + 
+                               center_dists[..., 2]**2)
 
         for gt_dist, center_dist in zip(gt_dists, center_dists):
             if gt_dist >= self.eval_params.max_depth:
@@ -176,7 +182,8 @@ class Box3DEvaluator:
             # e.g. if the max_depth == 100
             # score = 1. - (dist / 100)
 
-            gt_dist = int(gt_dist / self.eval_params.step_size) * self.eval_params.step_size
+            gt_dist = int(gt_dist / self.eval_params.step_size) * \
+                self.eval_params.step_size
 
             self._stats["working_data"][class_name]["Center_Dist"][gt_dist].append(
                 1. - min(center_dist / float(self.eval_params.max_depth), 1.))  # norm it to 1.
@@ -202,7 +209,8 @@ class Box3DEvaluator:
             if gt_dist >= self.eval_params.max_depth:
                 continue
 
-            gt_dist = int(gt_dist / self.eval_params.step_size) * self.eval_params.step_size
+            gt_dist = int(gt_dist / self.eval_params.step_size) * \
+                self.eval_params.step_size
 
             self._stats["working_data"][class_name]["Size_Similarity"][gt_dist].append(
                 size_simi)
@@ -232,7 +240,8 @@ class Box3DEvaluator:
             if gt_dist >= self.eval_params.max_depth:
                 continue
 
-            gt_dist = int(gt_dist / self.eval_params.step_size) * self.eval_params.step_size
+            gt_dist = int(gt_dist / self.eval_params.step_size) * \
+                self.eval_params.step_size
 
             self._stats["working_data"][class_name]["OS_Yaw"][gt_dist].append(
                 os_yaw)
@@ -287,7 +296,7 @@ class Box3DEvaluator:
 
     def calcTpStats(self):
         """Retrieves working point for each class and calculate TP stats.
-        
+
         Calculated stats are:
           - BEV mean center distance
           - size similarity
@@ -370,12 +379,12 @@ class Box3DEvaluator:
         logger.info("========================")
 
         for class_name in self.eval_params.labels_to_evaluate:
-            
+
             vals = {p: self.results[p][class_name]["auc"] for p in parameters}
             det_score = vals["AP"] * (vals["Center_Dist"] + vals["Size_Similarity"] +
                                       vals["OS_Yaw"] + vals["OS_Pitch_Roll"]) / 4.
             self.results["Detection_Score"][class_name] = det_score
-            
+
             logger.info(class_name)
             logger.info(" -> 2D AP Amodal                : %.2f" % vals["AP"])
             logger.info(" -> BEV Center Distance (DDTP)  : %.2f" % vals["Center_Dist"])
@@ -418,14 +427,14 @@ class Box3DEvaluator:
         predictions.sort()
         logger.info("Found " + str(len(predictions)) + " prediction files")
 
-        for p in predictions[:]:
-            preds_for_image = []            
-            
+        for p in predictions:
+            preds_for_image = []
+
             # extract city_record_image from filepath
             base = os.path.basename(p)
-            
+
             base = base[:base.rfind("_")]
-            
+
             with open(p) as f:
                 data = json.load(f)
 
@@ -455,7 +464,7 @@ class Box3DEvaluator:
         for p in gts[:]:
             gts_for_image = []
             ignores_for_image = []
-            
+
             # extract city_record_image from filepath
             base = os.path.basename(p)
             base = base[:base.rfind("_")]
@@ -549,7 +558,7 @@ class Box3DEvaluator:
         results = []
         for x in tqdm(self.gts.keys()):
             results.append(self._worker(x))
-        
+
         # multi threaded
         # keep in mind that this will not work out of the box due the global interpreter lock
         # with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
@@ -567,6 +576,8 @@ class Box3DEvaluator:
 
         for s in self._conf_thresholds:
             score_data = self._stats[s]["data"]
+
+            # dicts containing TP, FP and FN per depth per class
             tp_per_depth = {x: {d: [] for d in range(
                 0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
             fp_per_depth = {x: {d: [] for d in range(
@@ -574,18 +585,22 @@ class Box3DEvaluator:
             fn_per_depth = {x: {d: [] for d in range(
                 0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
 
+            # dicts containing precision and recall and AP per depth per class
             precision_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
             recall_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
             auc_per_depth = {x: {} for x in self.eval_params.labels_to_evaluate}
 
+            # dicts containing overall TP, FP and FN per class
             tp = {x: 0 for x in self.eval_params.labels_to_evaluate}
             fp = {x: 0 for x in self.eval_params.labels_to_evaluate}
             fn = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
+            # dicts containing overall precision, recall and AP per class
             precision = {x: 0 for x in self.eval_params.labels_to_evaluate}
             recall = {x: 0 for x in self.eval_params.labels_to_evaluate}
             auc = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
+            # get the statistics for each image
             for img_base, img_base_stats in score_data.items():
                 gt_depths = [x.depth for x in self.gts[img_base]["objects"]]
                 pred_depths = [x.depth for x in self.preds[img_base]["objects"]]
@@ -626,6 +641,7 @@ class Box3DEvaluator:
 
                         fn_per_depth[class_name][fn_depth].append(idx)
 
+            # calculate per depth precision and recall per class
             for class_name in self.eval_params.labels_to_evaluate:
                 for i in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
                     tp_at_depth = len(tp_per_depth[class_name][i])
@@ -674,7 +690,7 @@ class Box3DEvaluator:
                 "auc_per_depth": auc_per_depth,
             }
 
-        # calculate AP and mAP and working point
+        # dict containing data for AP and mAP
         ap = {
             x: {
                 "data": {},
@@ -686,36 +702,36 @@ class Box3DEvaluator:
             x: {} for x in self.eval_params.labels_to_evaluate
         }
 
+        # dict containing the working point for DDTP metrics
         working_point = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
-        # calculate standard mAP
+        # calculate standard AP per class
         for class_name in self.eval_params.labels_to_evaluate:
+            # best_auc and best_score are used for determining working point
             best_auc = 0.
             best_score = 0.
 
             recalls_ = []
             precisions_ = []
             for s in self._conf_thresholds:
-                if self._stats[s]["pr_data"]["auc"][class_name] > best_auc:
-                    best_auc = self._stats[s]["pr_data"]["auc"][class_name]
+                current_auc_for_score = self._stats[s]["pr_data"]["auc"][class_name]
+                if current_auc_for_score > best_auc:
+                    best_auc = current_auc_for_score
                     best_score = s
 
-                recalls_.append(
-                    self._stats[s]["pr_data"]["recall"][class_name])
-                precisions_.append(
-                    self._stats[s]["pr_data"]["precision"][class_name])
+                recalls_.append(self._stats[s]["pr_data"]["recall"][class_name])
+                precisions_.append(self._stats[s]["pr_data"]["precision"][class_name])
 
             # sort for an ascending recalls list
-            sorted_pairs = sorted(
-                zip(recalls_, precisions_), key=lambda pair: pair[0])
-            recalls = [r for r, _ in sorted_pairs]
-            precisions = [p for _, p in sorted_pairs]
+            sorted_pairs = sorted(zip(recalls_, precisions_), key=lambda pair: pair[0])
+            recalls, precisions = map(list, zip(*sorted_pairs))
 
-            # convert the data to numpy tensor for easier processing
+            # convert the data to numpy tensor for easier processing and add leading and trailing zeros/ones
             precisions = np.asarray([0] + precisions + [0])
             recalls = np.asarray([0] + recalls + [1])
 
-            # make precision values to be decreasing only
+            # precision values should be decreasing only
+            # p(r) = max{r' > r} p(r')
             for i in range(len(precisions) - 2, -1, -1):
                 precisions[i] = np.maximum(precisions[i], precisions[i + 1])
 
@@ -762,17 +778,16 @@ class Box3DEvaluator:
                     # sort for an ascending recalls list
                     sorted_pairs = sorted(
                         zip(recalls_, precisions_), key=lambda pair: pair[0])
-                    recalls = [r for r, _ in sorted_pairs]
-                    precisions = [p for _, p in sorted_pairs]
+                    recalls, precisions = map(list, zip(*sorted_pairs))
 
-                    # convert the data to numpy tensor for easier processing
+                    # convert the data to numpy tensor for easier processing and add leading and trailing zeros/ones
                     precisions = np.asarray([0] + precisions + [0])
                     recalls = np.asarray([0] + recalls + [1])
 
-                    # make precision values to be decreasing only
+                    # precision values should be decreasing only
+                    # p(r) = max{r' > r} p(r')
                     for i in range(len(precisions) - 2, -1, -1):
-                        precisions[i] = np.maximum(
-                            precisions[i], precisions[i + 1])
+                        precisions[i] = np.maximum(precisions[i], precisions[i + 1])
 
                     # gather indices of distinct recall values
                     recall_idx = np.where(recalls[1:] != recalls[:-1])[0] + 1
@@ -792,9 +807,9 @@ class Box3DEvaluator:
                     tmp_dict["data"]["recall"] = []
                     tmp_dict["data"]["precision"] = []
 
+        # dump mAP and working points to internal stats
         self._stats["min_iou"] = self.eval_params.min_iou_to_match_mapping
         self._stats["working_point"] = working_point
-
         self.results["AP"] = ap
         self.results["AP_per_depth"] = ap_per_depth
 
@@ -823,7 +838,8 @@ class Box3DEvaluator:
             # get idx for gt boxes for current class
             gt_idx = [idx for idx, box in enumerate(
                 gt_boxes["objects"]) if box.class_name == i]
-            gt_idx_ignores = [idx for idx, box in enumerate(gt_boxes["ignores"])]
+            gt_idx_ignores = [idx for idx,
+                              box in enumerate(gt_boxes["ignores"])]
 
             # if there is no prediction at all, just return an empty result
             if len(pred_idx) == 0:
@@ -834,15 +850,16 @@ class Box3DEvaluator:
                 fn_idx_gt[i] = gt_idx
                 continue
 
-
             # create 2D box matrix for predictions and gts
             boxes_2d_pred = np.zeros((0, 4))
             if len(pred_idx) > 0:
-                boxes_2d_pred = np.asarray([pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
+                boxes_2d_pred = np.asarray(
+                    [pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
 
             boxes_2d_gt = np.zeros((0, 4))
             if len(gt_idx) > 0:
-                boxes_2d_gt = np.asarray([gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
+                boxes_2d_gt = np.asarray(
+                    [gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
 
             boxes_2d_gt_ignores = np.zeros((0, 4))
             if len(gt_idx_ignores) > 0:
@@ -887,6 +904,8 @@ class Box3DEvaluator:
         return (tp_idx_gt, tp_idx_pred, fp_idx_pred, fn_idx_gt)
 
 # perform the evaluation on given GT and predction folder
+
+
 def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params):
     """[summary]
 
@@ -922,6 +941,8 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
     return
 
 # main method
+
+
 def main():
     logger.info("========================")
     logger.info("=== Start evaluation ===")
@@ -929,7 +950,8 @@ def main():
 
     # get cityscapes paths
     cityscapesPath = os.environ.get(
-        'CITYSCAPES_DATASET', os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
+        'CITYSCAPES_DATASET', os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), '..', '..')
     )
     gtFolder = os.path.join(cityscapesPath, "box3Dgt")
 
@@ -940,7 +962,7 @@ def main():
     predictionFolder = os.path.join(predictionPath, "box3Dpred")
 
     ###
-    ### TMP
+    # TMP
     ###
     gtFolder = predictionFolder = "/lhome/ngaehle/Desktop/cs_QC_final_export_TEST/export/val/"
     ###
@@ -951,7 +973,7 @@ def main():
     # setup location
     parser.add_argument("--gt-folder",
                         dest="gtFolder",
-                        help= '''path to folder that contains ground truth *.json files. If the
+                        help='''path to folder that contains ground truth *.json files. If the
                             argument is not provided this script will look for the *.json files in
                             the 'box3dgt' folder in CITYSCAPES_DATASET.
                         ''',
@@ -1001,10 +1023,12 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(args.gtFolder):
-        printErrorAndExit("Could not find gt folder {}. Please run the script with '--help'".format(args.gtFolder))
-    
+        printErrorAndExit(
+            "Could not find gt folder {}. Please run the script with '--help'".format(args.gtFolder))
+
     if not os.path.exists(args.predictionFolder):
-        printErrorAndExit("Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder))
+        printErrorAndExit(
+            "Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder))
 
     if resultFolder == "":
         resultFolder = args.predictionFolder
@@ -1026,8 +1050,7 @@ def main():
 
     return
 
+
 if __name__ == "__main__":
     # call the main method
     main()
-
-    

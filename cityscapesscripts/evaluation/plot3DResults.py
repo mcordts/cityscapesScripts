@@ -197,7 +197,7 @@ def set_up_xaxis(axis: Axes, max_depth: int, num_ticks: int):
 
 def set_up_PR_plot_axis(axis: Axes, min_iou: float):
     """Sets up the axis for the precision plot."""
-    axis.set_title("PR Curve@" + str(min_iou) + " Amodal")
+    axis.set_title("PR Curve@" + str(min_iou) + " (Amodal)")
     axis.set_xlabel("Recall")
     axis.set_ylabel("Precision")
     axis.set_xlim([0, 1.0])
