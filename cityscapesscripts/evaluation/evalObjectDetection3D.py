@@ -427,12 +427,13 @@ class Box3DEvaluator:
         """
 
         result_file = os.path.join(result_folder, "results.json")
-        stats_file = os.path.join(result_folder, "stats.json")
-
         with open(result_file, 'w') as f:
             json.dump(self.results, f, indent=4)
-        with open(stats_file, 'w') as f:
-            json.dump(self._stats, f, indent=4)
+
+        # dump internal stats for debugging        
+        # stats_file = os.path.join(result_folder, "stats.json")
+        # with open(stats_file, 'w') as f:
+        #    json.dump(self._stats, f, indent=4)
 
         return result_file
 
