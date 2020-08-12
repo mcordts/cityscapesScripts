@@ -27,6 +27,10 @@ from cityscapesscripts.evaluation.objectDetectionHelpers import (
     calcIouMatrix,
     calcOverlapMatrix
 )
+from cityscapesscripts.evaluation.objectDetectionHelpers import (
+    MATCHING_MODAL,
+    MATCHING_AMODAL
+)
 from cityscapesscripts.evaluation.plot3DResults import (
     prepare_data,
     plot_data
@@ -323,10 +327,10 @@ class Box3DEvaluator:
 
             self._stats["working_data"] = {}
             self._stats["working_data"][class_name] = {
-                "Center_Dist": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
-                "Size_Similarity": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
-                "OS_Yaw": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
-                "OS_Pitch_Roll": {x: [] for x in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)}
+                "Center_Dist": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
+                "Size_Similarity": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
+                "OS_Yaw": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)},
+                "OS_Pitch_Roll": {x: [] for x in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)}
             }
 
             for base_img, tp_fp_fn_data in working_data.items():
@@ -578,11 +582,11 @@ class Box3DEvaluator:
             score_data = self._stats[s]["data"]
 
             # dicts containing TP, FP and FN per depth per class
-            tp_per_depth = {x: {d: [] for d in range(
+            tp_per_depth = {x: {d: [] for d in np.arange(
                 0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
-            fp_per_depth = {x: {d: [] for d in range(
+            fp_per_depth = {x: {d: [] for d in np.arange(
                 0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
-            fn_per_depth = {x: {d: [] for d in range(
+            fn_per_depth = {x: {d: [] for d in np.arange(
                 0, self.eval_params.max_depth + 1, self.eval_params.step_size)} for x in self.eval_params.labels_to_evaluate}
 
             # dicts containing precision and recall and AP per depth per class
@@ -643,7 +647,7 @@ class Box3DEvaluator:
 
             # calculate per depth precision and recall per class
             for class_name in self.eval_params.labels_to_evaluate:
-                for i in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
+                for i in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
                     tp_at_depth = len(tp_per_depth[class_name][i])
                     fp_at_depth = len(fp_per_depth[class_name][i])
                     accum_fn = len(fn_per_depth[class_name][i])
@@ -749,7 +753,7 @@ class Box3DEvaluator:
 
         # calculate depth dependent mAP
         for class_name in self.eval_params.labels_to_evaluate:
-            for d in range(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
+            for d in np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size):
                 tmp_dict = {
                     "data": {},
                     "auc": 0.
@@ -853,13 +857,28 @@ class Box3DEvaluator:
             # create 2D box matrix for predictions and gts
             boxes_2d_pred = np.zeros((0, 4))
             if len(pred_idx) > 0:
-                boxes_2d_pred = np.asarray(
-                    [pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
+                # get modal or amodal boxes depending on matching strategy
+                if self.eval_params.matching_method == MATCHING_AMODAL:
+                    boxes_2d_pred = np.asarray(
+                        [pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
+                elif self.eval_params.matching_method == MATCHING_MODAL:
+                    boxes_2d_pred = np.asarray(
+                        [pred_boxes["objects"][x].box_2d_modal for x in pred_idx])
+                else:
+                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
+
 
             boxes_2d_gt = np.zeros((0, 4))
             if len(gt_idx) > 0:
-                boxes_2d_gt = np.asarray(
-                    [gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
+                # get modal or amodal boxes depending on matching strategy
+                if self.eval_params.matching_method == MATCHING_AMODAL:
+                    boxes_2d_gt = np.asarray(
+                        [gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
+                elif self.eval_params.matching_method == MATCHING_MODAL:
+                    boxes_2d_gt = np.asarray(
+                        [gt_boxes["objects"][x].box_2d_modal for x in gt_idx])
+                else:
+                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
 
             boxes_2d_gt_ignores = np.zeros((0, 4))
             if len(gt_idx_ignores) > 0:
@@ -882,9 +901,16 @@ class Box3DEvaluator:
             # check if remaining FP idx match with ignored GT
             boxes_2d_pred_fp = np.zeros((0, 4))
             if len(pred_fp_idx_check_for_ignores) > 0:
-                boxes_2d_pred_fp = np.asarray(
-                    [pred_boxes["objects"][x].box_2d_amodal for x in pred_fp_idx_check_for_ignores])
-
+                # get modal or amodal boxes depending on matching strategy
+                if self.eval_params.matching_method == MATCHING_AMODAL:
+                    boxes_2d_pred_fp = np.asarray(
+                        [pred_boxes["objects"][x].box_2d_amodal for x in pred_fp_idx_check_for_ignores])
+                elif self.eval_params.matching_method == MATCHING_MODAL:
+                    boxes_2d_pred_fp = np.asarray(
+                        [pred_boxes["objects"][x].box_2d_modal for x in pred_fp_idx_check_for_ignores])
+                else:
+                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
+                
             overlap_matrix = calcOverlapMatrix(
                 boxes_2d_gt_ignores, boxes_2d_pred_fp)
 
@@ -1014,12 +1040,16 @@ def main():
                         help="Maximum depth for DDTP metrics. Default: {}".format(maxDepth),
                         default=maxDepth,
                         type=int)
-    stepSize = 5
+    stepSize = 5.
     parser.add_argument("--step-size",
                         dest="stepSize",
                         help="Step size for DDTP metrics. Default: {}".format(stepSize),
                         default=stepSize,
-                        type=int)
+                        type=float)
+
+    parser.add_argument("--modal",
+                        action="store_true",
+                        help="Use modal 2D boxes for matching",)
     args = parser.parse_args()
 
     if not os.path.exists(args.gtFolder):
@@ -1039,7 +1069,8 @@ def main():
         args.evalLabels,
         min_iou_to_match_mapping=args.minIou,
         max_depth=args.maxDepth,
-        step_size=args.stepSize
+        step_size=args.stepSize,
+        matching_method=int(args.modal)
     )
 
     evaluate3DObjectDetection(args.gtFolder, args.predictionFolder, args.resultsFolder, eval_params)

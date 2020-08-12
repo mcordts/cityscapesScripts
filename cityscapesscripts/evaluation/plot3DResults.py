@@ -90,8 +90,8 @@ def create_result_table_and_legend_plot(axis: Axes, data_to_plot: dict, handles_
 
     # add data-point-marker size explanation
     dot_size_explanation = "The size of each data-point-marker indicates\n"
-    dot_size_explanation += "the number of samples for that data-point,\n"
-    dot_size_explanation += "with large dots indicating larger sample-sizes."
+    dot_size_explanation += "the relative amount of samples for that data-\n"
+    dot_size_explanation += "point, with large dots indicate larger samples."
     axis.text(x_pos_legend, y_pos_dot_size, dot_size_explanation)
 
 

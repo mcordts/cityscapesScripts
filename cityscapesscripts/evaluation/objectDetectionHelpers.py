@@ -9,6 +9,10 @@ import numpy as np
 
 from typing import List
 
+# matching methods
+MATCHING_AMODAL = 0
+MATCHING_MODAL = 1
+
 class Box3DObject:
     """Helper class storing information about a 3D-Box-instance.
 
@@ -91,6 +95,7 @@ class EvaluationParameters:
         min_iou_to_match_mapping: min iou required to accept as TP
         max_depth: max depth for evaluation
         step_size: step/bin size for DDTP metrics
+        matching_method: use modal or amodal 2D boxes for matching
     """
 
     def __init__(
@@ -98,13 +103,15 @@ class EvaluationParameters:
         labels_to_evaluate: List[str],
         min_iou_to_match_mapping: float=0.7,
         max_depth: int=100,
-        step_size: int=5
+        step_size: int=5,
+        matching_method: int=MATCHING_AMODAL
     ) -> None:
 
         self._labels_to_evaluate = labels_to_evaluate
         self._min_iou_to_match_mapping = min_iou_to_match_mapping
         self._max_depth = max_depth
         self._step_size = step_size
+        self._matching_method = matching_method
 
     @property
     def labels_to_evaluate(self):
@@ -121,6 +128,10 @@ class EvaluationParameters:
     @property
     def step_size(self):
         return self._step_size
+
+    @property
+    def matching_method(self):
+        return self._matching_method
 
 
 def calcIouMatrix(gts, preds):
