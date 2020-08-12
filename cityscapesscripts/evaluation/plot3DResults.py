@@ -37,7 +37,7 @@ def create_table_row(
             otherwise None
     """
 
-    axis.text(x_pos, 0.85, title, fontdict={'weight': 'bold'})
+    axis.text(x_pos, y_pos, title, fontdict={'weight': 'bold'})
     y_pos -= 0.1
     delta_x_pos = 0.17
 
@@ -71,17 +71,18 @@ def create_result_table_and_legend_plot(axis: Axes, data_to_plot: dict, handles_
     axis.axis("off")
     axis.text(0, 0.95, 'Results', fontdict={'weight': 'bold', 'size': 16})
 
-    y_pos_row = 0.8
-    # Detection score results
-    create_table_row(axis, 0.00, y_pos_row, data_to_plot,
-                     title="Detection Score", key="Detection_Score", subdict_key=None)
+    y_pos_row = 0.75
     # 2D AP results
-    create_table_row(axis, 0.28, y_pos_row, data_to_plot,
+    create_table_row(axis, 0.00, y_pos_row, data_to_plot,
                      title="2D AP", key="AP", subdict_key="auc")
+
+    # Detection score results
+    create_table_row(axis, 0.28, y_pos_row, data_to_plot,
+                     title="Detection Score", key="Detection_Score", subdict_key=None)
 
     # Legend
     x_pos_legend = 0.6
-    y_pos_legend = 0.8
+    y_pos_legend = 0.75
     y_pos_dot_size = 0.0
     axis.text(x_pos_legend, 0.95, 'Legend',
               fontdict={'weight': 'bold', 'size': 16})
@@ -195,9 +196,9 @@ def set_up_xaxis(axis: Axes, max_depth: int, num_ticks: int):
     axis.set_xticklabels(np.arange(0, max_depth + 1, num_ticks))
 
 
-def set_up_PR_plot_axis(axis: Axes, min_iou: float):
+def set_up_PR_plot_axis(axis: Axes, min_iou: float, matching_method: str):
     """Sets up the axis for the precision plot."""
-    axis.set_title("PR Curve@" + str(min_iou) + " (Amodal)")
+    axis.set_title("PR Curve@%.2f (%s)" % (min_iou, matching_method))
     axis.set_xlabel("Recall")
     axis.set_ylabel("Precision")
     axis.set_xlim([0, 1.0])
@@ -248,7 +249,11 @@ def create_PR_plot(axis: Axes, data: dict, accept_classes: List[str]):
             for all classes in ``accept_classes``
         accept_classes (list of str):
     """
-    set_up_PR_plot_axis(axis, data["min_iou"])
+    set_up_PR_plot_axis(
+        axis, 
+        data["eval_params"]["min_iou_to_match"], 
+        data["eval_params"]["matching_method"]
+    )
 
     for class_name in accept_classes:
         recalls_ = data['AP'][class_name]["data"]["recall"]
@@ -257,17 +262,19 @@ def create_PR_plot(axis: Axes, data: dict, accept_classes: List[str]):
         # sort the data ascending
         sorted_pairs = sorted(
             zip(recalls_, precisions_), key=lambda pair: pair[0])
-        x_vals = [0.] + [r for r, _ in sorted_pairs]
-        y_vals = [0.] + [p for _, p in sorted_pairs]
+        recalls, precisions = map(list, zip(*sorted_pairs))
+        recalls = [0.] + recalls
+        precisions = [0.] + precisions
 
-        x_vals += x_vals[-1:] + [1.]
-        y_vals += [0., 0.]
+        recalls += recalls[-1:] + [1.]
+        precisions += [0., 0.]
 
-        # make it monotonously decreasing
-        for i in range(len(y_vals) - 2, -1, -1):
-            y_vals[i] = np.maximum(y_vals[i], y_vals[i + 1])
+        # precision values should be decreasing only
+        # p(r) = max{r' > r} p(r')
+        for i in range(len(precisions) - 2, -1, -1):
+            precisions[i] = np.maximum(precisions[i], precisions[i + 1])
 
-        axis.plot(x_vals, y_vals, label=class_name,
+        axis.plot(recalls, precisions, label=class_name,
                   color=csToMplColor(class_name))
 
 

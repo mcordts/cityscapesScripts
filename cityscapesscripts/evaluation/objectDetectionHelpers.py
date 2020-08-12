@@ -92,7 +92,7 @@ class EvaluationParameters:
 
     Attributes:
         labels_to_evaluate: list of labels to evaluate
-        min_iou_to_match_mapping: min iou required to accept as TP
+        min_iou_to_match: min iou required to accept as TP
         max_depth: max depth for evaluation
         step_size: step/bin size for DDTP metrics
         matching_method: use modal or amodal 2D boxes for matching
@@ -101,14 +101,14 @@ class EvaluationParameters:
     def __init__(
         self,
         labels_to_evaluate: List[str],
-        min_iou_to_match_mapping: float=0.7,
+        min_iou_to_match: float=0.7,
         max_depth: int=100,
         step_size: int=5,
         matching_method: int=MATCHING_AMODAL
     ) -> None:
 
         self._labels_to_evaluate = labels_to_evaluate
-        self._min_iou_to_match_mapping = min_iou_to_match_mapping
+        self._min_iou_to_match = min_iou_to_match
         self._max_depth = max_depth
         self._step_size = step_size
         self._matching_method = matching_method
@@ -118,8 +118,8 @@ class EvaluationParameters:
         return self._labels_to_evaluate
 
     @property
-    def min_iou_to_match_mapping(self):
-        return self._min_iou_to_match_mapping
+    def min_iou_to_match(self):
+        return self._min_iou_to_match
 
     @property
     def max_depth(self):

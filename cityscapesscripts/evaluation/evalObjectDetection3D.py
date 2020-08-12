@@ -145,7 +145,7 @@ class Box3DEvaluator:
         # rows and cols to 0.
         tmp_iou_max = np.max(iou_matrix)
 
-        while tmp_iou_max > self.eval_params.min_iou_to_match_mapping:
+        while tmp_iou_max > self.eval_params.min_iou_to_match:
             tmp_row, tmp_col = np.where(iou_matrix == tmp_iou_max)
 
             used_row = tmp_row[0]
@@ -374,12 +374,23 @@ class Box3DEvaluator:
             else:
                 accept_cats.append(cat)
 
-        # calculate mean over each entry
-        for parameter_name in parameters:
-            self.results["m" + parameter_name] = np.mean(
-                [x["auc"] for cat, x in self.results[parameter_name].items() if cat in accept_cats])
+        # add GT statistics to reults
+        self.results["GT_stats"] = self._stats["GT_stats"]
 
-        # calculate detection scores
+        # add evaluation parameters to results
+        modal_amodal_modifier = "Amodal" 
+        if self.eval_params.matching_method == MATCHING_MODAL:
+            modal_amodal_modifier = "Modal"
+
+        self.results["eval_params"] = {
+            "labels": self.eval_params.labels_to_evaluate,
+            "min_iou_to_match": self.eval_params.min_iou_to_match,
+            "max_depth": self.eval_params.max_depth,
+            "step_size": self.eval_params.step_size,
+            "matching_method": modal_amodal_modifier
+        }
+
+        # calculate detection scores and them to results
         self.results["Detection_Score"] = {}
         logger.info("========================")
         logger.info("======= Results ========")
@@ -393,7 +404,7 @@ class Box3DEvaluator:
             self.results["Detection_Score"][class_name] = det_score
 
             logger.info(class_name)
-            logger.info(" -> 2D AP Amodal                : %.2f" % vals["AP"])
+            logger.info(" -> 2D AP %-6s                : %.2f" % (modal_amodal_modifier, vals["AP"]))
             logger.info(" -> BEV Center Distance (DDTP)  : %.2f" % vals["Center_Dist"])
             logger.info(" -> Yaw Similarity (DDTP)       : %.2f" % vals["OS_Yaw"])
             logger.info(" -> Pitch/Roll Similarity (DDTP): %.2f" % vals["OS_Pitch_Roll"])
@@ -404,7 +415,11 @@ class Box3DEvaluator:
             [x for cat, x in self.results["Detection_Score"].items() if cat in accept_cats])
         logger.info("Mean Detection Score: %.2f" %
                     self.results["mDetection_Score"])
-        self.results["GT_stats"] = self._stats["GT_stats"]
+
+        # add mean evaluation results
+        for parameter_name in parameters:
+            self.results["m" + parameter_name] = np.mean(
+                [x["auc"] for cat, x in self.results[parameter_name].items() if cat in accept_cats])
 
     def saveResults(self, result_folder):
         """Saves ``self.results`` results to ``"results.json"`` 
@@ -468,7 +483,7 @@ class Box3DEvaluator:
 
         self._stats["GT_stats"] = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
-        for p in gts[:]:
+        for p in gts:
             gts_for_image = []
             ignores_for_image = []
 
@@ -523,8 +538,6 @@ class Box3DEvaluator:
         logger.info("Calculate TP stats...")
         # calculate FP stats (center dist, size similarity, orientation score)
         self.calcTpStats()
-
-        self.results["min_iou"] = self.eval_params.min_iou_to_match_mapping
 
     def _worker(self, base):
         """[summary]
@@ -812,7 +825,7 @@ class Box3DEvaluator:
                     tmp_dict["data"]["precision"] = []
 
         # dump mAP and working points to internal stats
-        self._stats["min_iou"] = self.eval_params.min_iou_to_match_mapping
+        self._stats["min_iou"] = self.eval_params.min_iou_to_match
         self._stats["working_point"] = working_point
         self.results["AP"] = ap
         self.results["AP_per_depth"] = ap_per_depth
@@ -833,6 +846,10 @@ class Box3DEvaluator:
         fp_idx_pred = {}
         fn_idx_gt = {}
 
+        # pre-load all ignore regions as they are the same for all classes
+        gt_idx_ignores = [idx for idx,
+            box in enumerate(gt_boxes["ignores"])]
+
         # calculate stats per class
         for i in self.eval_params.labels_to_evaluate:
             # get idx for pred boxes for current class
@@ -842,8 +859,6 @@ class Box3DEvaluator:
             # get idx for gt boxes for current class
             gt_idx = [idx for idx, box in enumerate(
                 gt_boxes["objects"]) if box.class_name == i]
-            gt_idx_ignores = [idx for idx,
-                              box in enumerate(gt_boxes["ignores"])]
 
             # if there is no prediction at all, just return an empty result
             if len(pred_idx) == 0:
@@ -866,7 +881,6 @@ class Box3DEvaluator:
                         [pred_boxes["objects"][x].box_2d_modal for x in pred_idx])
                 else:
                     raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
-
 
             boxes_2d_gt = np.zeros((0, 4))
             if len(gt_idx) > 0:
@@ -901,15 +915,11 @@ class Box3DEvaluator:
             # check if remaining FP idx match with ignored GT
             boxes_2d_pred_fp = np.zeros((0, 4))
             if len(pred_fp_idx_check_for_ignores) > 0:
-                # get modal or amodal boxes depending on matching strategy
-                if self.eval_params.matching_method == MATCHING_AMODAL:
-                    boxes_2d_pred_fp = np.asarray(
-                        [pred_boxes["objects"][x].box_2d_amodal for x in pred_fp_idx_check_for_ignores])
-                elif self.eval_params.matching_method == MATCHING_MODAL:
-                    boxes_2d_pred_fp = np.asarray(
-                        [pred_boxes["objects"][x].box_2d_modal for x in pred_fp_idx_check_for_ignores])
-                else:
-                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
+                # as there are no amodal boxes for ignore regions
+                # matching with ignore regions should only be performed on 
+                # modal predictions.
+                boxes_2d_pred_fp = np.asarray(
+                    [pred_boxes["objects"][x].box_2d_modal for x in pred_fp_idx_check_for_ignores])
                 
             overlap_matrix = calcOverlapMatrix(
                 boxes_2d_gt_ignores, boxes_2d_pred_fp)
@@ -945,7 +955,7 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
     logger.info(" -> GT folder    : " + gt_folder)
     logger.info(" -> Pred folder  : " + pred_folder)
     logger.info(" -> Classes      : " + ", ".join(eval_params.labels_to_evaluate))
-    logger.info(" -> Min IoU:     : " + str(eval_params.min_iou_to_match_mapping))
+    logger.info(" -> Min IoU:     : " + str(eval_params.min_iou_to_match))
     logger.info(" -> Max depth [m]: " + str(eval_params.max_depth))
     logger.info(" -> Step size [m]: " + str(eval_params.step_size))
 
@@ -1067,7 +1077,7 @@ def main():
     # setup the evaluation parameters
     eval_params = EvaluationParameters(
         args.evalLabels,
-        min_iou_to_match_mapping=args.minIou,
+        min_iou_to_match=args.minIou,
         max_depth=args.maxDepth,
         step_size=args.stepSize,
         matching_method=int(args.modal)
