@@ -44,7 +44,7 @@ def create_table_row(
     for (cat, valdict) in data_dict[key].items():
         val = valdict if subdict_key is None else valdict[subdict_key]
         axis.text(x_pos, y_pos, cat)
-        axis.text(x_pos+delta_x_pos, y_pos, '{:.2f}'.format(val))
+        axis.text(x_pos+delta_x_pos, y_pos, "%.2f" % val)
         y_pos -= 0.1
 
     # add Mean
@@ -327,7 +327,7 @@ def fill_and_finalize_subplot(
                 axis, x_vals, y_vals, class_name, available_items_scaling, max_depth)
 
     else:
-        raise ValueError("Unsupported category, got {}.".format(category))
+        raise ValueError("Unsupported category, got %s." % category)
 
 
 def fill_standard_subplot(

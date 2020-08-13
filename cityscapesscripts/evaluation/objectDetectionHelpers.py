@@ -14,13 +14,44 @@ MATCHING_AMODAL = 0
 MATCHING_MODAL = 1
 
 def annotation_valid(annotation):
+    # check base annotation
     if (
-        not "amodal" in annotation["2d"].keys()
-        or not "center" in annotation["3d"].keys()
-        or not "dimensions" in annotation["3d"].keys()
-        or not "rotation" in annotation["3d"].keys()
+        type(annotation) != dict
         or not "class_name" in annotation.keys()
+        or type(annotation["class_name"]) != str
         or not "score" in annotation.keys()
+        or type(annotation["score"]) != float
+    ):
+        return False
+    
+    # check 2D elements
+    if (
+        not "2d" in annotation.keys()
+        or not "amodal" in annotation["2d"].keys()
+        or type(annotation["2d"]["amodal"]) != list
+        or len(annotation["2d"]["amodal"]) != 4
+        or (
+            "modal" in annotation["2d"].keys()
+            and (
+                type(annotation["2d"]["modal"]) != list
+                or len(annotation["2d"]["modal"]) != 4
+            )
+        )
+    ):
+        return False
+
+    # check 3D elements
+    if (
+        not "3d" in annotation.keys()
+        or not "center" in annotation["3d"].keys()
+        or type(annotation["3d"]["center"]) != list
+        or len(annotation["3d"]["center"]) != 3
+        or not "dimensions" in annotation["3d"].keys()
+        or type(annotation["3d"]["dimensions"]) != list
+        or len(annotation["3d"]["dimensions"]) != 3
+        or not "rotation" in annotation["3d"].keys()
+        or type(annotation["3d"]["rotation"]) != list
+        or len(annotation["3d"]["rotation"]) != 4
     ):
         return False
 

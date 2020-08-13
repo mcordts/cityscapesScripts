@@ -371,7 +371,7 @@ class Box3DEvaluator:
         accept_cats = []
         for cat, count in self._stats["GT_stats"].items():
             if count == 0:
-                logger.warn("Category " + cat + " has no GT!")
+                logger.warn("Category %s has no GT!" % cat)
             else:
                 accept_cats.append(cat)
 
@@ -449,7 +449,7 @@ class Box3DEvaluator:
         predictions = getFiles(pred_folder)
 
         predictions.sort()
-        logger.info("Found " + str(len(predictions)) + " prediction files")
+        logger.info("Found %d prediction files." % len(predictions))
 
         for p in predictions:
             preds_for_image = []
@@ -485,7 +485,7 @@ class Box3DEvaluator:
         logger.info("Loading GT...")
         gts = getFiles(gt_folder)
 
-        logger.info("Found " + str(len(gts)) + " GT files")
+        logger.info("Found %d GT files." % len(gts))
 
         self._stats["GT_stats"] = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
@@ -524,7 +524,7 @@ class Box3DEvaluator:
         for base in self.gts.keys():
             if base not in self.preds.keys():
                 logger.critical(
-                    "Could not find any prediction for image " + base)
+                    "Could not find any prediction for image %s." % base)
                 self.preds[base] = {"objects": []}
 
         # initialize empty data
@@ -886,7 +886,7 @@ class Box3DEvaluator:
                     boxes_2d_pred = np.asarray(
                         [pred_boxes["objects"][x].box_2d_modal for x in pred_idx])
                 else:
-                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
+                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
 
             boxes_2d_gt = np.zeros((0, 4))
             if len(gt_idx) > 0:
@@ -898,7 +898,7 @@ class Box3DEvaluator:
                     boxes_2d_gt = np.asarray(
                         [gt_boxes["objects"][x].box_2d_modal for x in gt_idx])
                 else:
-                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
+                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
 
             boxes_2d_gt_ignores = np.zeros((0, 4))
             if len(gt_idx_ignores) > 0:
@@ -958,12 +958,12 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
         eval_params ([type]): [description]
     """
     logger.info("Use the following options")
-    logger.info(" -> GT folder    : " + gt_folder)
-    logger.info(" -> Pred folder  : " + pred_folder)
-    logger.info(" -> Classes      : " + ", ".join(eval_params.labels_to_evaluate))
-    logger.info(" -> Min IoU:     : " + str(eval_params.min_iou_to_match))
-    logger.info(" -> Max depth [m]: " + str(eval_params.max_depth))
-    logger.info(" -> Step size [m]: " + str(eval_params.step_size))
+    logger.info(" -> GT folder    : %s"   % gt_folder)
+    logger.info(" -> Pred folder  : %s"   % pred_folder)
+    logger.info(" -> Classes      : %s"   % ", ".join(eval_params.labels_to_evaluate))
+    logger.info(" -> Min IoU:     : %.2f" % eval_params.min_iou_to_match)
+    logger.info(" -> Max depth [m]: %d"   % eval_params.max_depth)
+    logger.info(" -> Step size [m]: %.2f" % eval_params.step_size)
 
     # initialize the evaluator
     boxEvaluator = Box3DEvaluator(eval_params)
