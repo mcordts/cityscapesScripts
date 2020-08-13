@@ -13,6 +13,19 @@ from typing import List
 MATCHING_AMODAL = 0
 MATCHING_MODAL = 1
 
+def annotation_valid(annotation):
+    if (
+        not "amodal" in annotation["2d"].keys()
+        or not "center" in annotation["3d"].keys()
+        or not "dimensions" in annotation["3d"].keys()
+        or not "rotation" in annotation["3d"].keys()
+        or not "class_name" in annotation.keys()
+        or not "score" in annotation.keys()
+    ):
+        return False
+
+    return True
+
 class Box3DObject:
     """Helper class storing information about a 3D-Box-instance.
 
@@ -30,13 +43,22 @@ class Box3DObject:
         annotation: dict,
     ) -> None:
 
-        self._box_2d_modal = annotation["2d"]["modal"]
+        # load annotation 
         self._box_2d_amodal = annotation["2d"]["amodal"]
+
+        # if no modal 2d box is provided, use amodal one instead
+        if "modal" in annotation["2d"].keys():
+            self._box_2d_modal = annotation["2d"]["modal"]
+        else:
+            self._box_2d_modal = annotation["2d"]["amodal"]
+
         self._center = annotation["3d"]["center"]
         self._dims = annotation["3d"]["dimensions"]
         self._rotation = annotation["3d"]["rotation"]
         self._class_name = annotation["class_name"]
         self._score = annotation["score"]
+
+
 
     @property
     def box_2d_modal(self):
