@@ -20,7 +20,6 @@ import concurrent.futures
 
 from cityscapesscripts.helpers.labels import labels
 from cityscapesscripts.evaluation.objectDetectionHelpers import (
-    annotation_valid,
     Box3DObject,
     IgnoreObject,
     EvaluationParameters,
@@ -463,12 +462,16 @@ class Box3DEvaluator:
                 data = json.load(f)
 
             for d in data["annotation"]:
-                if not annotation_valid(d):
-                    logger.critical("Found incorrect annotation in %s." % p)
-                    continue
+                if (
+                    "class_name" in d.keys() and 
+                    d["class_name"] in self.eval_params.labels_to_evaluate
+                ):
+                    try:
+                        box_data = Box3DObject(d)
+                    except:
+                        logger.critical("Found incorrect annotation in %s." % p)
+                        continue
 
-                if d["class_name"] in self.eval_params.labels_to_evaluate:
-                    box_data = Box3DObject(d)
                     preds_for_image.append(box_data)
 
             self.preds[base] = {
