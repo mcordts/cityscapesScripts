@@ -36,7 +36,11 @@ from cityscapesscripts.evaluation.plot3DResults import (
     plot_data
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('EvalObjectDetection3D')
+logging.basicConfig(filename='eval.log',
+                    filemode='w',
+                    format='%(asctime)s.%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S')
 coloredlogs.install(level='INFO')
 
 
