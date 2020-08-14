@@ -329,8 +329,8 @@ class Box3DEvaluator:
             }
 
         for class_name in self.eval_params.labels_to_evaluate:
-            working_point = self._stats["working_point"][class_name]
-            working_data = self._stats[working_point]["data"]
+            working_confidence = self._stats["working_confidence"][class_name]
+            working_data = self._stats[working_confidence]["data"]
 
             self._stats["working_data"] = {}
             self._stats["working_data"][class_name] = {
@@ -733,7 +733,7 @@ class Box3DEvaluator:
         }
 
         # dict containing the working point for DDTP metrics
-        working_point = {x: 0 for x in self.eval_params.labels_to_evaluate}
+        working_confidence = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
         # calculate standard AP per class
         for class_name in self.eval_params.labels_to_evaluate:
@@ -775,7 +775,7 @@ class Box3DEvaluator:
             ap[class_name]["auc"] = float(class_ap)
             ap[class_name]["data"]["recall"] = [float(x) for x in recalls_]
             ap[class_name]["data"]["precision"] = [float(x) for x in precisions_]
-            working_point[class_name] = best_score
+            working_confidence[class_name] = best_score
 
         # calculate depth dependent mAP
         for class_name in self.eval_params.labels_to_evaluate:
@@ -839,7 +839,8 @@ class Box3DEvaluator:
 
         # dump mAP and working points to internal stats
         self._stats["min_iou"] = self.eval_params.min_iou_to_match
-        self._stats["working_point"] = working_point
+        self._stats["working_confidence"] = working_confidence
+        self.results["working_confidence"] = working_confidence
         self.results["AP"] = ap
         self.results["AP_per_depth"] = ap_per_depth
 
