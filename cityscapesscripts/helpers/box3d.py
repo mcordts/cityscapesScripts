@@ -81,7 +81,7 @@ class Box3DImageTransform(object):
         if coordinate_system == CRS_S: # convert it to CRS_C first
             center = np.matmul(K_multiplier.T, center.T).T
             image_T_sensor_quaternion = Quaternion(matrix=K_multiplier)
-            quaternion_rot_ = quaternion_rot * image_T_sensor_quaternion.inverse
+            quaternion_rot = quaternion_rot * image_T_sensor_quaternion.inverse
         if coordinate_system == CRS_C or coordinate_system == CRS_S: # center and quaternion must be corrected
             center = center - np.array(self._camera.sensor_T_ISO_8855)[0:3,3].T
             sensor_T_ISO_8855_quaternion = Quaternion(matrix=np.array(self._camera.sensor_T_ISO_8855)[:3,:3])
@@ -128,7 +128,7 @@ class Box3DImageTransform(object):
         if coordinate_system == CRS_S: 
             center = np.matmul(K_multiplier, center.T).T
             image_T_sensor_quaternion = Quaternion(matrix=K_multiplier)
-            quaternion_rot = quaternion_rot * image_T_sensor_quaternion * image_T_sensor_quaternion.inverse
+            quaternion_rot = quaternion_rot * image_T_sensor_quaternion
 
         return (self._size, center, quaternion_rot)
 
