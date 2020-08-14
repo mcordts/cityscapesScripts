@@ -8,6 +8,12 @@ import json
 from pyquaternion import Quaternion
 
 
+# Define different coordinate systems
+CRS_V = 0
+CRS_S = 1
+CRS_C = 2
+
+
 def get_K_multiplier():
     K_multiplier = np.zeros((3, 3))
     K_multiplier[0][1] = K_multiplier[1][2] = -1
@@ -41,11 +47,13 @@ class Camera(object):
 
 
 class Box3DImageTransform(object):
-    def __init__(self, size, quaternion, center, camera):
+    def __init__(self, camera):
         self._camera = camera
-        self._rotation_matrix = np.array(Quaternion(quaternion).rotation_matrix)
-        self._size = np.array(size)
-        self._center = np.array(center)
+        self._rotation_matrix = np.zeros((3, 3))
+        self._size = np.zeros((3,))
+        self._center = np.zeros((3,))
+
+        self.loc = ["BLB", "BRB", "FRB", "FLB", "BLT", "BRT", "FRT", "FLT"] 
 
         self._box_points_2d = np.zeros((8, 2))
         self._box_points_3d_vehicle = np.zeros((8, 3))
@@ -62,7 +70,67 @@ class Box3DImageTransform(object):
         self._box_top_side_cropped_2d = []
         self._box_bottom_side_cropped_2d = []
 
+    def initialize_box(self, size, quaternion, center, coordinate_system=CRS_V):
+        # Internally, the box is always stored in the ISO 8855 coordinate system V
+        # If the box is passed with another coordinate system, we transform it to V first.
+        # "size" is always given in LxWxH
+        K_multiplier = get_K_multiplier()
+        quaternion_rot = Quaternion(quaternion)
+        center = np.array(center)
+        
+        if coordinate_system == CRS_S: # convert it to CRS_C first
+            center = np.matmul(K_multiplier.T, center.T).T
+            image_T_sensor_quaternion = Quaternion(matrix=K_multiplier)
+            quaternion_rot_ = quaternion_rot * image_T_sensor_quaternion.inverse
+        if coordinate_system == CRS_C or coordinate_system == CRS_S: # center and quaternion must be corrected
+            center = center - np.array(self._camera.sensor_T_ISO_8855)[0:3,3].T
+            sensor_T_ISO_8855_quaternion = Quaternion(matrix=np.array(self._camera.sensor_T_ISO_8855)[:3,:3])
+            quaternion_rot = quaternion_rot * sensor_T_ISO_8855_quaternion.inverse
+        
+        self._size = np.array(size)
+        self._rotation_matrix = np.array(quaternion_rot.rotation_matrix)
+        self._center = center
+
         self.update()
+
+    def get_vertices(self, coordinate_system=CRS_V):
+        if coordinate_system == CRS_V:
+            box_points_3d = self._box_points_3d_vehicle
+        
+        if coordinate_system == CRS_C or coordinate_system == CRS_S:
+            box_points_3d = apply_transformation_points(
+                self._box_points_3d_vehicle, self._camera.sensor_T_ISO_8855
+            )
+        
+        if coordinate_system == CRS_S:
+            K_multiplier = get_K_multiplier()
+            box_points_3d = np.matmul(K_multiplier, box_points_3d.T).T
+
+        return {l: p for (l,p) in zip(self.loc, box_points_3d)}
+
+    def get_vertices_2d(self):
+        return {l: p for (l,p) in zip(self.loc, self._box_points_2d)}
+
+    def get_parameters(self, coordinate_system=CRS_V):
+        K_multiplier = get_K_multiplier()
+        quaternion_rot = Quaternion(matrix=self._rotation_matrix)
+        center = self._center
+
+        # center and quaternion must be corrected
+        if coordinate_system == CRS_C or coordinate_system == CRS_S: 
+            center = center + np.array(self._camera.sensor_T_ISO_8855)[0:3,3].T
+            sensor_T_ISO_8855_quaternion = Quaternion(
+                matrix=np.array(self._camera.sensor_T_ISO_8855)[:3,:3]
+            )
+            quaternion_rot = quaternion_rot * sensor_T_ISO_8855_quaternion
+
+        # change axis
+        if coordinate_system == CRS_S: 
+            center = np.matmul(K_multiplier, center.T).T
+            image_T_sensor_quaternion = Quaternion(matrix=K_multiplier)
+            quaternion_rot = quaternion_rot * image_T_sensor_quaternion * image_T_sensor_quaternion.inverse
+
+        return (self._size, center, quaternion_rot)
 
     def _get_side_visibility(self, face_center, face_normal):
         return np.dot(face_normal, face_center) < 0
