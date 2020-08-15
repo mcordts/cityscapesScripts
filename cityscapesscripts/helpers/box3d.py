@@ -41,8 +41,8 @@ For V and C it is:                   For S and I it is:
 
 # Define different coordinate systems
 CRS_V = 0
-CRS_S = 1
-CRS_C = 2
+CRS_C = 1
+CRS_S = 2
 
 
 def get_K_multiplier():
