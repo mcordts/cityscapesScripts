@@ -7,6 +7,37 @@ import numpy as np
 import json
 from pyquaternion import Quaternion
 
+"""
+In general, 4 different coordinate systems are used with 3 of them are described 
+in https://github.com/mcordts/cityscapesScripts/blob/master/docs/csCalibration.pdf
+ 1. The vehicle coordinate system V according to ISO 8855 with the origin
+    on the ground below of the rear axis center, x pointing in driving direction,
+    y pointing left, and z pointing up.
+ 2. The camera coordinate system C with the origin in the camera’s optical
+    center and same orientation as V.
+ 3. The image coordinate system I with the origin in the top-left image pixel,
+    u pointing right, and v pointing down.
+ 4. In addition, we also add the coordinate system S with the same origin as C,
+    but the orientation of I, ie. x pointing right, y down, and z into the
+    driving direction.
+
+All GT annotations are given in the ISO coordinate system V and hence, the
+evaluation requires the data to be available in this coordinate system.
+
+For V and C it is:                   For S and I it is:
+
+                    ^                         ^
+                  y |    ^                   / z/d
+                    |   / x                 /
+                    |  /                   /
+                    | /                   +------------>
+                    |/                    |         x/u
+       <------------+                     |
+         z                                |
+                                          | y/v
+                                          V
+"""
+
 
 # Define different coordinate systems
 CRS_V = 0
