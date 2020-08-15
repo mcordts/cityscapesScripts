@@ -28,7 +28,7 @@ class Box3DObject:
     def __init__(
         self,
         annotation: dict,
-    ) -> None:
+        ) -> None:
 
         # load annotation 
         self._box_2d_amodal = annotation["2d"]["amodal"]
@@ -86,7 +86,7 @@ class IgnoreObject:
     def __init__(
         self,
         annotation: dict,
-    ) -> None:
+        ) -> None:
 
         self._box_2d = annotation["2d"]
 
@@ -114,7 +114,7 @@ class EvaluationParameters:
         step_size: int=5,
         matching_method: int=MATCHING_AMODAL,
         cw: float=-1.
-    ) -> None:
+        ) -> None:
 
         self._labels_to_evaluate = labels_to_evaluate
         self._min_iou_to_match = min_iou_to_match
@@ -151,16 +151,19 @@ class EvaluationParameters:
     def cw(self, cw):
         self._cw = cw
 
-
-def calcIouMatrix(gts, preds):
-    """[summary]
+def calcIouMatrix(
+    gts: np.ndarray,
+    preds: np.ndarray
+    ) -> np.ndarray:
+    """Calculates the pairwise Intersection Over Union (IoU)
+    matrix for a set of GTs and predictions.
 
     Args:
-        gts ([type]): [description]
-        preds ([type]): [description]
+        gts (np.ndarray): GT boxes with shape Mx4
+        preds (np.ndarray): predictions with shape Nx4
 
     Returns:
-        [type]: [description]
+        np.ndarray: IoU matrix with shape MxN
     """
     xmin_1, ymin_1, xmax_1, ymax_1 = np.split(gts, 4, axis=1)
     xmin_2, ymin_2, xmax_2, ymax_2 = np.split(preds, 4, axis=1)
@@ -178,15 +181,19 @@ def calcIouMatrix(gts, preds):
 
     return iou
 
-def calcOverlapMatrix(gt_ignores, preds):
-    """[summary]
+def calcOverlapMatrix(
+    gt_ignores: np.ndarray,
+    preds: np.ndarray
+    ) -> np.ndarray:
+    """Calculates the overlap matrix for a set
+    of GT ignore regions and predictions.
 
     Args:
-        gt_ignores ([type]): [description]
-        preds ([type]): [description]
+        gt_ignores (np.ndarray): GT ignore regions with shape Mx4
+        preds (np.ndarray): predictions with shape Nx4
 
     Returns:
-        [type]: [description]
+        np.ndarray: overlap matrix with shape MxN
     """
     xmin_1, ymin_1, xmax_1, ymax_1 = np.split(gt_ignores, 4, axis=1)
     xmin_2, ymin_2, xmax_2, ymax_2 = np.split(preds, 4, axis=1)
@@ -203,19 +210,24 @@ def calcOverlapMatrix(gt_ignores, preds):
 
     return overlap
 
-def getFiles(folder):
-    """[summary]
+def getFiles(
+    folder: str,
+    suffix: str=".json"
+    ) -> List[str]:
+    """Recursivly walks through the folder and finds
+    returns all files that end with ``"suffix"``.
 
     Args:
-        folder ([type]): [description]
+        folder (str): the directory
+        suffix (str): the suffix used for filtering
 
     Returns:
-        [type]: [description]
+        List[str]: list of all found files
     """
     file_list = []
     for root, dirnames, filenames in os.walk(folder):
         for f in filenames:
-            if f.endswith(".json"):
+            if f.endswith(suffix):
                 file_list.append(os.path.join(root, f))
     file_list.sort()
 

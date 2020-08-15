@@ -12,6 +12,10 @@ import numpy as np
 import json
 import os
 import argparse
+from typing import (
+    List,
+    Tuple
+)
 
 from pyquaternion import Quaternion
 from tqdm import tqdm
@@ -43,10 +47,10 @@ logging.basicConfig(filename='eval.log',
                     datefmt='%H:%M:%S')
 coloredlogs.install(level='INFO')
 
-
 """
-File format:
-Each json is a list of detections or GTs
+The evaluation script expects one json annotation
+file per image with the format:
+
 {
     "annotation": [
         {
@@ -68,7 +72,6 @@ Each json is a list of detections or GTs
 
 """
 
-
 def printErrorAndExit(msg):
     logger.error(msg)
     logger.info("========================")
@@ -77,22 +80,26 @@ def printErrorAndExit(msg):
 
     exit(1)
 
-
 class Box3DEvaluator:
     """The Box3DEvaluator object contains the data as well as the parameters
     for the evluation of the dataset.
+
     :param eval_params: evaluation params including max depth, min iou etc.
     :type eval_params: EvaluationParameters
-    :param _num_steps: number of confidence threshold steps during evaluation
-    :type _num_steps: int
-    :
-
+    :param gts: all GT annotations per image
+    :type gts: dict
+    :param preds: all GT annotations per image
+    :type preds: dict
+    :param ap: data for Average Precision (AP) calculation
+    :type ap: dict
+    :param results: evaluation results
+    :type results: dict
     """
 
     def __init__(
         self,
         evaluation_params: EvaluationParameters
-    ) -> None:
+        ) -> None:
 
         self.eval_params = evaluation_params
         self._num_steps = 50
@@ -118,7 +125,7 @@ class Box3DEvaluator:
         # the actual depth bins
         self._depth_bins = np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)
 
-    def reset(self):
+    def reset(self) -> None:
         """Resets state of this instance to a newly initialised one."""
 
         self.gts = {}
@@ -127,7 +134,7 @@ class Box3DEvaluator:
         self.ap = {}
         self.results = {}
 
-    def checkCw(self):
+    def checkCw(self) -> None:
         """Checks chosen working confidence value."""
         if (
             not self.eval_params.cw in self._conf_thresholds and
@@ -145,17 +152,310 @@ class Box3DEvaluator:
                 )
 
             logger.warning(
-                "%.2f is used as working confidence instead of %.2f." % (self.eval_params.cw, old_cw)
+                "%.2f is used as working confidence instead of %f." % (self.eval_params.cw, old_cw)
             )
 
-    def getMatches(self, iou_matrix):
-        """Gets the TP matches between the predictions and the GT data
+    def loadGT(self, gt_folder: str) -> None:
+        """Loads ground truth from the given folder.
 
         Args:
-            iou_matrix (2x2 Array): The matrix containing the pairwise overlap or IoU
+            gt_folder (str): Ground truth folder
+        """
+
+        logger.info("Loading GT...")
+        gts = getFiles(gt_folder)
+
+        logger.info("Found %d GT files." % len(gts))
+
+        self._stats["GT_stats"] = {x: 0 for x in self.eval_params.labels_to_evaluate}
+
+        for p in gts:
+            gts_for_image = []
+            ignores_for_image = []
+
+            # extract CITY_RECORDID_IMAGE from filepath
+            base = os.path.basename(p)
+            base = base[:base.rfind("_")]
+
+            with open(p) as f:
+                data = json.load(f)
+
+            # load 3D boxes
+            for d in data["annotation"]:
+                if d["class_name"] in self.eval_params.labels_to_evaluate:
+                    self._stats["GT_stats"][d["class_name"]] += 1
+                    box_data = Box3DObject(d)
+                    gts_for_image.append(box_data)
+
+            # load ignore regions
+            for d in data["ignore"]:
+                box_data = IgnoreObject(d)
+                ignores_for_image.append(box_data)
+
+            self.gts[base] = {
+                "objects": gts_for_image,
+                "ignores": ignores_for_image
+            }
+
+    def loadPredictions(self, pred_folder: str) -> None:
+        """Loads all predictions from the given folder.
+
+        Args:
+            pred_folder (str): Prediction folder
+        """
+
+        logger.info("Loading predictions...")
+        predictions = getFiles(pred_folder)
+
+        predictions.sort()
+        logger.info("Found %d prediction files." % len(predictions))
+
+        for p in predictions:
+            preds_for_image = []
+
+            # extract CITY_RECORDID_IMAGE from filepath
+            base = os.path.basename(p)
+
+            base = base[:base.rfind("_")]
+
+            with open(p) as f:
+                data = json.load(f)
+
+            for d in data["annotation"]:
+                if (
+                    "class_name" in d.keys() and
+                    d["class_name"] in self.eval_params.labels_to_evaluate
+                ):
+                    try:
+                        box_data = Box3DObject(d)
+                    except:
+                        logger.critical("Found incorrect annotation in %s." % p)
+                        continue
+
+                    preds_for_image.append(box_data)
+
+            self.preds[base] = {
+                "objects": preds_for_image
+            }
+
+    def evaluate(self) -> None:
+        """Main evaluation routine."""
+
+        # fill up predictions dict with empty detections if prediction file not found
+        for base in self.gts.keys():
+            if base not in self.preds.keys():
+                logger.critical(
+                    "Could not find any prediction for image %s." % base)
+                self.preds[base] = {"objects": []}
+
+        # initialize empty data
+        for s in self._conf_thresholds:
+            self._stats[s] = {
+                "data": {}
+            }
+
+        logger.info("Evaluating images...")
+        # calculate stats for each image
+        self._calcImageStats()
+
+        logger.info("Calculate AP...")
+        # calculate 2D ap
+        self._calculateAp()
+
+        logger.info("Calculate TP stats...")
+        # calculate FP stats (center dist, size similarity, orientation score)
+        self._calcTpStats()
+
+    def saveResults(self, result_folder: str) -> str:
+        """Saves the evaluation results to ``"results.json"``
+
+        Args:
+            result_folder (str): directory in which the result files are saved
 
         Returns:
-            Tuple(List[int],List[int],List[float]): A tuple containing the TP indices 
+            str: filepath of ``"results.json"``
+        """
+
+        result_file = os.path.join(result_folder, "results.json")
+        with open(result_file, 'w') as f:
+            json.dump(self.results, f, indent=4)
+
+        # dump internal stats for debugging
+        # stats_file = os.path.join(result_folder, "stats.json")
+        # with open(stats_file, 'w') as f:
+        #    json.dump(self._stats, f, indent=4)
+
+        return result_file
+
+    def _calcImageStats(self) -> None:
+        """Internal method that calculates Precision and Recall values for whole dataset."""
+
+        # single threaded
+        results = []
+        for x in tqdm(self.gts.keys()):
+            results.append(self._worker(x))
+
+        # multi threaded
+        # keep in mind that this will not work out of the box due the global interpreter lock
+        # with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        #    results = list(tqdm(executor.map(self._worker, self.gts.keys()), total=len(self.gts.keys())))
+
+        # update internal result dict with the curresponding results
+        for thread_result in results:
+            for score, eval_data in thread_result.items():
+                data = eval_data["data"]
+                for img_base, match_data in data.items():
+                    self._stats[score]["data"][img_base] = match_data
+
+    def _worker(self, base: str) -> dict:
+        """Internal method to run evaluation for a single image."""
+        tmp_stats = {}
+
+        gt_boxes = self.gts[base]
+        pred_boxes = self.preds[base]
+
+        for s in self._conf_thresholds:
+            tmp_stats[s] = {
+                "data": {}
+            }
+            (tp_idx_gt, tp_idx_pred, fp_idx_pred,
+             fn_idx_gt) = self._addImageEvaluation(gt_boxes, pred_boxes, s)
+
+            assert len(tp_idx_gt) == len(tp_idx_pred)
+
+            tmp_stats[s]["data"][base] = {
+                "tp_idx_gt": tp_idx_gt,
+                "tp_idx_pred": tp_idx_pred,
+                "fp_idx_pred": fp_idx_pred,
+                "fn_idx_gt": fn_idx_gt
+            }
+
+        return tmp_stats
+
+    def _addImageEvaluation(
+        self,
+        gt_boxes: List[Box3DObject],
+        pred_boxes: List[Box3DObject],
+        min_score: float) -> Tuple[dict, dict, dict, dict]:
+        """Internal method to evaluate a single image.
+
+        Args:
+            gt_boxes (List[Box3DObject]): GT boxes
+            pred_boxes (List[Box3DObject]): Predicted boxes
+            min_score (float): minimum required score
+
+        Returns:
+            tuple(dict, dict, dict, dict): tuple of TP, FP and FN data
+        """
+        tp_idx_gt = {}
+        tp_idx_pred = {}
+        fp_idx_pred = {}
+        fn_idx_gt = {}
+
+        # pre-load all ignore regions as they are the same for all classes
+        gt_idx_ignores = [idx for idx,
+            box in enumerate(gt_boxes["ignores"])]
+
+        # calculate stats per class
+        for i in self.eval_params.labels_to_evaluate:
+            # get idx for pred boxes for current class
+            pred_idx = [idx for idx, box in enumerate(
+                pred_boxes["objects"]) if box.class_name == i and box.score >= min_score]
+
+            # get idx for gt boxes for current class
+            gt_idx = [idx for idx, box in enumerate(
+                gt_boxes["objects"]) if box.class_name == i]
+
+            # if there is no prediction at all, just return an empty result
+            if len(pred_idx) == 0:
+                # dump data to result dicts
+                tp_idx_gt[i] = []
+                tp_idx_pred[i] = []
+                fp_idx_pred[i] = pred_idx
+                fn_idx_gt[i] = gt_idx
+                continue
+
+            # create 2D box matrix for predictions and gts
+            boxes_2d_pred = np.zeros((0, 4))
+            if len(pred_idx) > 0:
+                # get modal or amodal boxes depending on matching strategy
+                if self.eval_params.matching_method == MATCHING_AMODAL:
+                    boxes_2d_pred = np.asarray(
+                        [pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
+                elif self.eval_params.matching_method == MATCHING_MODAL:
+                    boxes_2d_pred = np.asarray(
+                        [pred_boxes["objects"][x].box_2d_modal for x in pred_idx])
+                else:
+                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
+
+            boxes_2d_gt = np.zeros((0, 4))
+            if len(gt_idx) > 0:
+                # get modal or amodal boxes depending on matching strategy
+                if self.eval_params.matching_method == MATCHING_AMODAL:
+                    boxes_2d_gt = np.asarray(
+                        [gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
+                elif self.eval_params.matching_method == MATCHING_MODAL:
+                    boxes_2d_gt = np.asarray(
+                        [gt_boxes["objects"][x].box_2d_modal for x in gt_idx])
+                else:
+                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
+
+            boxes_2d_gt_ignores = np.zeros((0, 4))
+            if len(gt_idx_ignores) > 0:
+                boxes_2d_gt_ignores = np.asarray(
+                    [gt_boxes["ignores"][x].box_2d for x in gt_idx_ignores])
+
+            # calculate IoU matrix between GTs and Preds
+            iou_matrix = calcIouMatrix(boxes_2d_gt, boxes_2d_pred)
+
+            # get matches
+            (gt_tp_row_idx, pred_tp_col_idx, _) = self._getMatches(iou_matrix)
+
+            # convert it to box idx
+            gt_tp_idx = [gt_idx[x] for x in gt_tp_row_idx]
+            pred_tp_idx = [pred_idx[x] for x in pred_tp_col_idx]
+            gt_fn_idx = [x for x in gt_idx if x not in gt_tp_idx]
+            pred_fp_idx_check_for_ignores = [
+                x for x in pred_idx if x not in pred_tp_idx]
+
+            # check if remaining FP idx match with ignored GT
+            boxes_2d_pred_fp = np.zeros((0, 4))
+            if len(pred_fp_idx_check_for_ignores) > 0:
+                # as there are no amodal boxes for ignore regions
+                # matching with ignore regions should only be performed on
+                # modal predictions.
+                boxes_2d_pred_fp = np.asarray(
+                    [pred_boxes["objects"][x].box_2d_modal for x in pred_fp_idx_check_for_ignores])
+
+            overlap_matrix = calcOverlapMatrix(
+                boxes_2d_gt_ignores, boxes_2d_pred_fp)
+
+            # get matches and convert to actual box idx
+            (_, pred_tp_col_idx, _) = self._getMatches(overlap_matrix)
+            pred_tp_ignores_idx = [
+                pred_fp_idx_check_for_ignores[x] for x in pred_tp_col_idx]
+            pred_fp_idx = [
+                x for x in pred_fp_idx_check_for_ignores if x not in pred_tp_ignores_idx]
+
+            # dump data to result dicts
+            tp_idx_gt[i] = gt_tp_idx
+            tp_idx_pred[i] = pred_tp_idx
+            fp_idx_pred[i] = pred_fp_idx
+            fn_idx_gt[i] = gt_fn_idx
+
+        return (tp_idx_gt, tp_idx_pred, fp_idx_pred, fn_idx_gt)
+
+    def _getMatches(
+        self,
+        iou_matrix: np.ndarray
+        ) -> Tuple[List[int], List[int], List[int]]:
+        """Internal method that gets the TP matches between the predictions and the GT data.
+
+        Args:
+            iou_matrix (np.ndarray): The NxM matrix containing the pairwise overlap or IoU
+
+        Returns:
+            tuple(list[int],list[int],list[float]): A tuple containing the TP indices
             for GT and predicions and the corresponding iou
         """
         matched_gts = []
@@ -187,13 +487,22 @@ class Box3DEvaluator:
 
         return (matched_gts, matched_preds, matched_ious)
 
-    def calcCenterDistances(self, class_name, gt_boxes, pred_boxes):
-        """Calculates the BEV distance for a TP box
+    def _calcCenterDistances(
+        self,
+        class_name: str,
+        gt_boxes: List[Box3DObject],
+        pred_boxes: List[Box3DObject]
+        ) -> np.ndarray:
+        """Internal method that calculates the BEV distance for a TP box
         d = sqrt(dx*dx + dz*dz)
 
         Args:
-            gt_boxes:   GT boxes
-            pred_boxes: Predicted boxes
+            class_name (str): the class that will be evaluated
+            gt_boxes (List[Box3DObject]): GT boxes
+            pred_boxes (List[Box3DObject]): Predicted boxes
+
+        Returns:
+            np.ndarray: array containing the GT distances
         """
 
         gt_boxes = np.asarray([x.center for x in gt_boxes])
@@ -222,13 +531,22 @@ class Box3DEvaluator:
 
         return gt_dists
 
-    def calcSizeSimilarities(self, class_name, gt_boxes, pred_boxes, gt_dists):
-        """Calculates the size similarity for a TP box
+    def _calcSizeSimilarities(
+        self,
+        class_name: str,
+        gt_boxes: List[Box3DObject],
+        pred_boxes: List[Box3DObject],
+        gt_dists: np.ndarray
+        ) -> None:
+
+        """Internal method that calculates the size similarity for a TP box
         s = min(w/w', w'/w) * min(h/h', h'/h) * min(l/l', l'/l)
 
         Args:
-            gt_boxes:   GT boxes
-            pred_boxes: Predicted boxes
+            class_name (str): the class that will be evaluated
+            gt_boxes (List[Box3DObject]): GT boxes
+            pred_boxes (List[Box3DObject]): Predicted boxes
+            gt_dists (np.ndarray): GT distances
         """
 
         gt_boxes = np.asarray([x.dims for x in gt_boxes])
@@ -247,15 +565,22 @@ class Box3DEvaluator:
             self._stats["working_data"][class_name]["Size_Similarity"][gt_dist].append(
                 size_simi)
 
-    def calcOrientationSimilarities(self, class_name, gt_boxes, pred_boxes, gt_dists):
-        """Calculates the orientation similarity for a TP box.
+    def _calcOrientationSimilarities(
+        self,
+        class_name: str,
+        gt_boxes: List[Box3DObject],
+        pred_boxes: List[Box3DObject],
+        gt_dists: np.ndarray
+        ) -> None:
+        """Internal method that calculates the orientation similarity for a TP box.
         os_yaw = (1 + cos(delta)) / 2.
         os_pitch/roll = 0.5 + (cos(delta_pitch) + cos(delta_roll)) / 4.
 
         Args:
-            class_name (str): name of the class
-            gt_boxes:   GT boxes
-            pred_boxes: Predicted boxes
+            class_name (str): the class that will be evaluated
+            gt_boxes (List[Box3DObject]): GT boxes
+            pred_boxes (List[Box3DObject]): Predicted boxes
+            gt_dists (np.ndarray): GT distances
         """
 
         gt_vals = np.asarray(
@@ -280,11 +605,12 @@ class Box3DEvaluator:
             self._stats["working_data"][class_name]["OS_Pitch_Roll"][gt_dist].append(
                 os_pitch_roll)
 
-    def calculateAUC(self, class_name):
-        """[summary]
+    def _calculateAUC(self, class_name: str) -> None:
+        """Internal method that calculates the Area Under Curve (AUC)
+        for the available DDTP metrics.
 
         Args:
-            class_name ([type]): [description]
+            class_name (str): the class that will be evaluated
         """
         parameter_depth_data = self._stats["working_data"][class_name]
 
@@ -326,8 +652,8 @@ class Box3DEvaluator:
             self.results[parameter_name][class_name]["auc"] = result_auc
             self.results[parameter_name][class_name]["items"] = result_items
 
-    def calcTpStats(self):
-        """Retrieves working point for each class and calculate TP stats.
+    def _calcTpStats(self) -> None:
+        """Internal method that calculates working point for each class and calculate TP stats.
 
         Calculated stats are:
           - BEV mean center distance
@@ -338,6 +664,7 @@ class Box3DEvaluator:
         parameters = ["AP", "Center_Dist",
                       "Size_Similarity", "OS_Yaw", "OS_Pitch_Roll"]
 
+        # setup result dict
         for parameter in parameters:
             if parameter == "AP":
                 continue
@@ -349,6 +676,7 @@ class Box3DEvaluator:
                 } for x in self.eval_params.labels_to_evaluate
             }
 
+        # calculate the statistics for each class
         for class_name in self.eval_params.labels_to_evaluate:
             working_confidence = self._stats["working_confidence"][class_name]
             working_data = self._stats[working_confidence]["data"]
@@ -361,6 +689,7 @@ class Box3DEvaluator:
                 "OS_Pitch_Roll": {x: [] for x in self._depth_bins}
             }
 
+            # loop over all images
             for base_img, tp_fp_fn_data in working_data.items():
                 gt_boxes = self.gts[base_img]["objects"]
                 pred_boxes = self.preds[base_img]["objects"]
@@ -377,19 +706,19 @@ class Box3DEvaluator:
                     continue
 
                 # calculate center_dists for image
-                gt_dists = self.calcCenterDistances(
+                gt_dists = self._calcCenterDistances(
                     class_name, gt_boxes, pred_boxes)
 
                 # calculate size similarities
-                self.calcSizeSimilarities(
+                self._calcSizeSimilarities(
                     class_name, gt_boxes, pred_boxes, gt_dists)
 
                 # calculate orientation similarities
-                self.calcOrientationSimilarities(
+                self._calcOrientationSimilarities(
                     class_name, gt_boxes, pred_boxes, gt_dists)
 
             # calc AUC and detection score
-            self.calculateAUC(class_name)
+            self._calculateAUC(class_name)
 
         # determine which categories have GT data and can be used for mean calculation
         accept_cats = []
@@ -404,7 +733,7 @@ class Box3DEvaluator:
         self.results["working_confidence"] = self._stats["working_confidence"]
 
         # add evaluation parameters to results
-        modal_amodal_modifier = "Amodal" 
+        modal_amodal_modifier = "Amodal"
         if self.eval_params.matching_method == MATCHING_MODAL:
             modal_amodal_modifier = "Modal"
 
@@ -422,8 +751,8 @@ class Box3DEvaluator:
         logger.info("======= Results ========")
         logger.info("========================")
 
+        # calculate detection store for each class
         for class_name in self.eval_params.labels_to_evaluate:
-
             vals = {p: self.results[p][class_name]["auc"] for p in parameters}
             det_score = vals["AP"] * (vals["Center_Dist"] + vals["Size_Similarity"] +
                                       vals["OS_Yaw"] + vals["OS_Pitch_Roll"]) / 4.
@@ -439,195 +768,15 @@ class Box3DEvaluator:
 
         self.results["mDetection_Score"] = np.mean(
             [x for cat, x in self.results["Detection_Score"].items() if cat in accept_cats])
-        logger.info("Mean Detection Score: %.2f" %
-                    self.results["mDetection_Score"])
+        logger.info("Mean Detection Score: %.2f" % self.results["mDetection_Score"])
 
         # add mean evaluation results
         for parameter_name in parameters:
             self.results["m" + parameter_name] = np.mean(
                 [x["auc"] for cat, x in self.results[parameter_name].items() if cat in accept_cats])
 
-    def saveResults(self, result_folder):
-        """Saves ``self.results`` results to ``"results.json"`` 
-        and ``self._stats`` to ``"stats.json"``.
-        """
-
-        result_file = os.path.join(result_folder, "results.json")
-        with open(result_file, 'w') as f:
-            json.dump(self.results, f, indent=4)
-
-        # dump internal stats for debugging        
-        # stats_file = os.path.join(result_folder, "stats.json")
-        # with open(stats_file, 'w') as f:
-        #    json.dump(self._stats, f, indent=4)
-
-        return result_file
-
-    def loadPredictions(self, pred_folder: str):
-        """Loads all predictions from the given folder
-
-        Args:
-            pred_folder (str): Prediction folder
-        """
-
-        logger.info("Loading predictions...")
-        predictions = getFiles(pred_folder)
-
-        predictions.sort()
-        logger.info("Found %d prediction files." % len(predictions))
-
-        for p in predictions:
-            preds_for_image = []
-
-            # extract city_record_image from filepath
-            base = os.path.basename(p)
-
-            base = base[:base.rfind("_")]
-
-            with open(p) as f:
-                data = json.load(f)
-
-            for d in data["annotation"]:
-                if (
-                    "class_name" in d.keys() and 
-                    d["class_name"] in self.eval_params.labels_to_evaluate
-                ):
-                    try:
-                        box_data = Box3DObject(d)
-                    except:
-                        logger.critical("Found incorrect annotation in %s." % p)
-                        continue
-
-                    preds_for_image.append(box_data)
-
-            self.preds[base] = {
-                "objects": preds_for_image
-            }
-
-    def loadGT(self, gt_folder: str) -> None:
-        """Loads ground truth from the given folder
-
-        Args:
-            gt_folder (str): Ground truth folder
-        """
-
-        logger.info("Loading GT...")
-        gts = getFiles(gt_folder)
-
-        logger.info("Found %d GT files." % len(gts))
-
-        self._stats["GT_stats"] = {x: 0 for x in self.eval_params.labels_to_evaluate}
-
-        for p in gts:
-            gts_for_image = []
-            ignores_for_image = []
-
-            # extract city_record_image from filepath
-            base = os.path.basename(p)
-            base = base[:base.rfind("_")]
-
-            with open(p) as f:
-                data = json.load(f)
-
-            # load 3D boxes
-            for d in data["annotation"]:
-                if d["class_name"] in self.eval_params.labels_to_evaluate:
-                    self._stats["GT_stats"][d["class_name"]] += 1
-                    box_data = Box3DObject(d)
-                    gts_for_image.append(box_data)
-
-            # load ignore regions
-            for d in data["ignore"]:
-                box_data = IgnoreObject(d)
-                ignores_for_image.append(box_data)
-
-            self.gts[base] = {
-                "objects": gts_for_image,
-                "ignores": ignores_for_image
-            }
-
-    def evaluate(self):
-        """[summary]
-        """
-        # fill up with empty detections if prediction file not found
-        for base in self.gts.keys():
-            if base not in self.preds.keys():
-                logger.critical(
-                    "Could not find any prediction for image %s." % base)
-                self.preds[base] = {"objects": []}
-
-        # initialize empty data
-        for s in self._conf_thresholds:
-            self._stats[s] = {
-                "data": {}
-            }
-
-        logger.info("Evaluating images...")
-        # calculate stats for each image
-        self.calcImageStats()
-
-        logger.info("Calculate AP...")
-        # calculate 2D ap
-        self.calculateAp()
-
-        logger.info("Calculate TP stats...")
-        # calculate FP stats (center dist, size similarity, orientation score)
-        self.calcTpStats()
-
-    def _worker(self, base):
-        """[summary]
-
-        Args:
-            base ([type]): [description]
-
-        Returns:
-            [type]: [description]
-        """
-        tmp_stats = {}
-
-        gt_boxes = self.gts[base]
-        pred_boxes = self.preds[base]
-
-        for s in self._conf_thresholds:
-            tmp_stats[s] = {
-                "data": {}
-            }
-            (tp_idx_gt, tp_idx_pred, fp_idx_pred,
-             fn_idx_gt) = self._addImageEvaluation(gt_boxes, pred_boxes, s)
-
-            assert len(tp_idx_gt) == len(tp_idx_pred)
-
-            tmp_stats[s]["data"][base] = {
-                "tp_idx_gt": tp_idx_gt,
-                "tp_idx_pred": tp_idx_pred,
-                "fp_idx_pred": fp_idx_pred,
-                "fn_idx_gt": fn_idx_gt
-            }
-
-        return tmp_stats
-
-    def calcImageStats(self) -> None:
-        """Calculates Precision and Recall values for whole dataset."""
-
-        # single threaded
-        results = []
-        for x in tqdm(self.gts.keys()):
-            results.append(self._worker(x))
-
-        # multi threaded
-        # keep in mind that this will not work out of the box due the global interpreter lock
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        #    results = list(tqdm(executor.map(self._worker, self.gts.keys()), total=len(self.gts.keys())))
-
-        # update internal result dict with the curresponding results
-        for thread_result in results:
-            for score, eval_data in thread_result.items():
-                data = eval_data["data"]
-                for img_base, match_data in data.items():
-                    self._stats[score]["data"][img_base] = match_data
-
-    def calculateAp(self) -> None:
-        """Calculates Average Precision (AP) values for the whole dataset."""
+    def _calculateAp(self) -> None:
+        """Internal method that calculates Average Precision (AP) values for the whole dataset."""
 
         for s in self._conf_thresholds:
             score_data = self._stats[s]["data"]
@@ -870,126 +1019,20 @@ class Box3DEvaluator:
         self.results["AP"] = ap
         self.results["AP_per_depth"] = ap_per_depth
 
-    def _addImageEvaluation(self, gt_boxes, pred_boxes, min_score):
-        """[summary]
-
-        Args:
-            gt_boxes ([type]): [description]
-            pred_boxes ([type]): [description]
-            min_score ([type]): [description]
-
-        Returns:
-            [type]: [description]
-        """
-        tp_idx_gt = {}
-        tp_idx_pred = {}
-        fp_idx_pred = {}
-        fn_idx_gt = {}
-
-        # pre-load all ignore regions as they are the same for all classes
-        gt_idx_ignores = [idx for idx,
-            box in enumerate(gt_boxes["ignores"])]
-
-        # calculate stats per class
-        for i in self.eval_params.labels_to_evaluate:
-            # get idx for pred boxes for current class
-            pred_idx = [idx for idx, box in enumerate(
-                pred_boxes["objects"]) if box.class_name == i and box.score >= min_score]
-
-            # get idx for gt boxes for current class
-            gt_idx = [idx for idx, box in enumerate(
-                gt_boxes["objects"]) if box.class_name == i]
-
-            # if there is no prediction at all, just return an empty result
-            if len(pred_idx) == 0:
-                # dump data to result dicts
-                tp_idx_gt[i] = []
-                tp_idx_pred[i] = []
-                fp_idx_pred[i] = pred_idx
-                fn_idx_gt[i] = gt_idx
-                continue
-
-            # create 2D box matrix for predictions and gts
-            boxes_2d_pred = np.zeros((0, 4))
-            if len(pred_idx) > 0:
-                # get modal or amodal boxes depending on matching strategy
-                if self.eval_params.matching_method == MATCHING_AMODAL:
-                    boxes_2d_pred = np.asarray(
-                        [pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
-                elif self.eval_params.matching_method == MATCHING_MODAL:
-                    boxes_2d_pred = np.asarray(
-                        [pred_boxes["objects"][x].box_2d_modal for x in pred_idx])
-                else:
-                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
-
-            boxes_2d_gt = np.zeros((0, 4))
-            if len(gt_idx) > 0:
-                # get modal or amodal boxes depending on matching strategy
-                if self.eval_params.matching_method == MATCHING_AMODAL:
-                    boxes_2d_gt = np.asarray(
-                        [gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
-                elif self.eval_params.matching_method == MATCHING_MODAL:
-                    boxes_2d_gt = np.asarray(
-                        [gt_boxes["objects"][x].box_2d_modal for x in gt_idx])
-                else:
-                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
-
-            boxes_2d_gt_ignores = np.zeros((0, 4))
-            if len(gt_idx_ignores) > 0:
-                boxes_2d_gt_ignores = np.asarray(
-                    [gt_boxes["ignores"][x].box_2d for x in gt_idx_ignores])
-
-            # calculate IoU matrix between GTs and Preds
-            iou_matrix = calcIouMatrix(boxes_2d_gt, boxes_2d_pred)
-
-            # get matches
-            (gt_tp_row_idx, pred_tp_col_idx, _) = self.getMatches(iou_matrix)
-
-            # convert it to box idx
-            gt_tp_idx = [gt_idx[x] for x in gt_tp_row_idx]
-            pred_tp_idx = [pred_idx[x] for x in pred_tp_col_idx]
-            gt_fn_idx = [x for x in gt_idx if x not in gt_tp_idx]
-            pred_fp_idx_check_for_ignores = [
-                x for x in pred_idx if x not in pred_tp_idx]
-
-            # check if remaining FP idx match with ignored GT
-            boxes_2d_pred_fp = np.zeros((0, 4))
-            if len(pred_fp_idx_check_for_ignores) > 0:
-                # as there are no amodal boxes for ignore regions
-                # matching with ignore regions should only be performed on 
-                # modal predictions.
-                boxes_2d_pred_fp = np.asarray(
-                    [pred_boxes["objects"][x].box_2d_modal for x in pred_fp_idx_check_for_ignores])
-                
-            overlap_matrix = calcOverlapMatrix(
-                boxes_2d_gt_ignores, boxes_2d_pred_fp)
-
-            # get matches and convert to actual box idx
-            (_, pred_tp_col_idx, _) = self.getMatches(overlap_matrix)
-            pred_tp_ignores_idx = [
-                pred_fp_idx_check_for_ignores[x] for x in pred_tp_col_idx]
-            pred_fp_idx = [
-                x for x in pred_fp_idx_check_for_ignores if x not in pred_tp_ignores_idx]
-
-            # dump data to result dicts
-            tp_idx_gt[i] = gt_tp_idx
-            tp_idx_pred[i] = pred_tp_idx
-            fp_idx_pred[i] = pred_fp_idx
-            fn_idx_gt[i] = gt_fn_idx
-
-        return (tp_idx_gt, tp_idx_pred, fp_idx_pred, fn_idx_gt)
-
-# perform the evaluation on given GT and predction folder
-
-
-def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params):
-    """[summary]
+# evaluation method
+def evaluate3DObjectDetection(
+    gt_folder: str,
+    pred_folder: str,
+    result_folder: str,
+    eval_params: EvaluationParameters
+    ) -> None:
+    """Performs the 3D object detection evaluation.
 
     Args:
-        gt_folder ([type]): [description]
-        pred_folder ([type]): [description]
-        result_folder ([type]): [description]
-        eval_params ([type]): [description]
+        gt_folder (str): directory of the GT annotation files
+        pred_folder (str): directory of the prediction files
+        result_folder (str): directory in which the result files are saved
+        eval_params (EvaluationParameters): evaluation parameters
     """
 
     # initialize the evaluator
@@ -1004,7 +1047,7 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
     logger.info(" -> Max depth [m]: %d"   % eval_params.max_depth)
     logger.info(" -> Step size [m]: %.2f" % eval_params.step_size)
     if boxEvaluator.eval_params.cw == -1.0:
-        logger.info(" -> cw           : %s" % "Auto")
+        logger.info(" -> cw           : %s" % "-- Automatically determined --")
     else:
         logger.info(" -> cw           : %.2f" % boxEvaluator.eval_params.cw)
 
@@ -1017,14 +1060,11 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
 
     # save results and plot them
     result_file = boxEvaluator.saveResults(result_folder)
-    data_to_plot = prepare_data(result_file)
-    plot_data(data_to_plot, max_depth=eval_params.max_depth)
+    plot_data(boxEvaluator.results)
 
     return
 
 # main method
-
-
 def main():
     logger.info("========================")
     logger.info("=== Start evaluation ===")
@@ -1045,24 +1085,28 @@ def main():
 
     parser = argparse.ArgumentParser()
     # setup location
-    parser.add_argument("--gt-folder",
+    parser.add_argument("-gt", "--gt-folder",
                         dest="gtFolder",
                         help='''path to folder that contains ground truth *.json files. If the
                             argument is not provided this script will look for the *.json files in
                             the 'box3dgt' folder in CITYSCAPES_DATASET.
                         ''',
                         default=gtFolder,
-                        type=str)
-    parser.add_argument("--prediction-folder",
+                        type=str,
+                        required=True)
+
+    parser.add_argument("-pred", "--prediction-folder",
                         dest="predictionFolder",
                         help='''path to folder that contains ground truth *.json files. If the
                             argument is not provided this script will look for the *.json files in
                             the 'box3dpred' folder in CITYSCAPES_RESULTS.
                         ''',
                         default=predictionFolder,
-                        type=str)
+                        type=str,
+                        required=True)
+
     resultFolder = ""
-    parser.add_argument("--results-file",
+    parser.add_argument("--results-folder",
                         dest="resultsFolder",
                         help="File to store evaluation results. Default: prediction folder",
                         default=resultFolder,
@@ -1136,7 +1180,6 @@ def main():
     logger.info("========================")
 
     return
-
 
 if __name__ == "__main__":
     # call the main method

@@ -192,8 +192,8 @@ def set_up_xaxis(axis: Axes, max_depth: int, num_ticks: int):
         num_ticks (int): number of ticks on the x-axis
     """
     axis.set_xlim([0, max_depth])
-    axis.set_xticks(np.arange(0, max_depth + 1, num_ticks))
-    axis.set_xticklabels(np.arange(0, max_depth + 1, num_ticks))
+    axis.set_xticks(np.linspace(0, max_depth, num_ticks + 1))
+    axis.set_xticklabels(["%.1f" % x for x in np.linspace(0, max_depth, num_ticks + 1)])
 
 
 def set_up_PR_plot_axis(axis: Axes, min_iou: float, matching_method: str):
@@ -383,17 +383,19 @@ def get_x_y_vals(data: dict):
     return x_vals, y_vals
 
 
-def plot_data(data_to_plot: dict, max_depth: int = 100):
+def plot_data(data_to_plot: dict):
     """Creates the visualisation of the data in ``data_to_plot``.
 
     Args:
         data_to_plot (dict): Dictionary containing data to be visualised.
             Has to contain the keys "AP", "Center_Dist", "Size_Similarity",
             "OS_Yaw", "OS_Pitch_Roll".
-        max_depth (int): Maximal depth value that will be encountered in ``data_to_plot``.
-            The maximal value of corresponding x-axes is set to ``max_depth+1``.
     """
 
+    # get max depth
+    max_depth = data_to_plot["eval_params"]["max_depth"]
+
+    # setup all categories
     categories = ["AP", "Center_Dist", "Size_Similarity",
                   "OS_Yaw", "OS_Pitch_Roll"]
     subplot_categories = ["PR", *categories]
@@ -448,4 +450,4 @@ if __name__ == "__main__":
 
     DATA_TO_PLOT = prepare_data(RESULT_PATH)
 
-    plot_data(DATA_TO_PLOT, max_depth=100)
+    plot_data(DATA_TO_PLOT)
