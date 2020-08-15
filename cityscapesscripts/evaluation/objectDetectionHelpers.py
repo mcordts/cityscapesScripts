@@ -103,6 +103,7 @@ class EvaluationParameters:
         max_depth: max depth for evaluation
         step_size: step/bin size for DDTP metrics
         matching_method: use modal or amodal 2D boxes for matching
+        cw: working confidence. If set to -1, it will be determined automatically
     """
 
     def __init__(
@@ -111,7 +112,8 @@ class EvaluationParameters:
         min_iou_to_match: float=0.7,
         max_depth: int=100,
         step_size: int=5,
-        matching_method: int=MATCHING_AMODAL
+        matching_method: int=MATCHING_AMODAL,
+        cw: float=-1.
     ) -> None:
 
         self._labels_to_evaluate = labels_to_evaluate
@@ -119,6 +121,7 @@ class EvaluationParameters:
         self._max_depth = max_depth
         self._step_size = step_size
         self._matching_method = matching_method
+        self._cw = cw
 
     @property
     def labels_to_evaluate(self):
@@ -139,6 +142,14 @@ class EvaluationParameters:
     @property
     def matching_method(self):
         return self._matching_method
+
+    @property
+    def cw(self):
+        return self._cw
+
+    @cw.setter
+    def cw(self, cw):
+        self._cw = cw
 
 
 def calcIouMatrix(gts, preds):

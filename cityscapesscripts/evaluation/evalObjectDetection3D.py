@@ -127,6 +127,27 @@ class Box3DEvaluator:
         self.ap = {}
         self.results = {}
 
+    def checkCw(self):
+        """Checks chosen working confidence value."""
+        if (
+            not self.eval_params.cw in self._conf_thresholds and
+            self.eval_params.cw != -1.0
+        ):
+            old_cw = self.eval_params.cw
+            # set 0 and 1 as lower and upper bound
+            if old_cw < 0.0:
+                self.eval_params.cw = 0.0
+            elif old_cw > 1.0:
+                self.eval_params.cw = 1.0
+            else: # determine closest possible confidence
+                self.eval_params.cw = min(
+                    filter(lambda c: c >= self.eval_params.cw, self._conf_thresholds)
+                )
+
+            logger.warning(
+                "%.2f is used as working confidence instead of %.2f." % (self.eval_params.cw, old_cw)
+            )
+
     def getMatches(self, iou_matrix):
         """Gets the TP matches between the predictions and the GT data
 
@@ -378,8 +399,9 @@ class Box3DEvaluator:
             else:
                 accept_cats.append(cat)
 
-        # add GT statistics to reults
+        # add GT statistics and working confidence to results
         self.results["GT_stats"] = self._stats["GT_stats"]
+        self.results["working_confidence"] = self._stats["working_confidence"]
 
         # add evaluation parameters to results
         modal_amodal_modifier = "Amodal" 
@@ -775,7 +797,12 @@ class Box3DEvaluator:
             ap[class_name]["auc"] = float(class_ap)
             ap[class_name]["data"]["recall"] = [float(x) for x in recalls_]
             ap[class_name]["data"]["precision"] = [float(x) for x in precisions_]
-            working_confidence[class_name] = best_score
+
+            # store best confidence value or use specified default
+            if (self.eval_params.cw == -1.0):
+                working_confidence[class_name] = best_score
+            else:
+                working_confidence[class_name] = self.eval_params.cw
 
         # calculate depth dependent mAP
         for class_name in self.eval_params.labels_to_evaluate:
@@ -840,7 +867,6 @@ class Box3DEvaluator:
         # dump mAP and working points to internal stats
         self._stats["min_iou"] = self.eval_params.min_iou_to_match
         self._stats["working_confidence"] = working_confidence
-        self.results["working_confidence"] = working_confidence
         self.results["AP"] = ap
         self.results["AP_per_depth"] = ap_per_depth
 
@@ -965,6 +991,11 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
         result_folder ([type]): [description]
         eval_params ([type]): [description]
     """
+
+    # initialize the evaluator
+    boxEvaluator = Box3DEvaluator(eval_params)
+    boxEvaluator.checkCw()
+
     logger.info("Use the following options")
     logger.info(" -> GT folder    : %s"   % gt_folder)
     logger.info(" -> Pred folder  : %s"   % pred_folder)
@@ -972,9 +1003,10 @@ def evaluate3DObjectDetection(gt_folder, pred_folder, result_folder, eval_params
     logger.info(" -> Min IoU:     : %.2f" % eval_params.min_iou_to_match)
     logger.info(" -> Max depth [m]: %d"   % eval_params.max_depth)
     logger.info(" -> Step size [m]: %.2f" % eval_params.step_size)
-
-    # initialize the evaluator
-    boxEvaluator = Box3DEvaluator(eval_params)
+    if boxEvaluator.eval_params.cw == -1.0:
+        logger.info(" -> cw           : %s" % "Auto")
+    else:
+        logger.info(" -> cw           : %.2f" % boxEvaluator.eval_params.cw)
 
     # load GT and predictions
     boxEvaluator.loadGT(gt_folder)
@@ -1010,14 +1042,6 @@ def main():
         os.path.join(cityscapesPath, "results")
     )
     predictionFolder = os.path.join(predictionPath, "box3Dpred")
-
-    ###
-    # TMP
-    ###
-    gtFolder = predictionFolder = "/lhome/ngaehle/Desktop/cs_QC_final_export_TEST/export/val/"
-    ###
-    ###
-    ###
 
     parser = argparse.ArgumentParser()
     # setup location
@@ -1071,6 +1095,13 @@ def main():
                         default=stepSize,
                         type=float)
 
+    cw = -1.
+    parser.add_argument("--cw",
+                        dest="cw",
+                        help="Working confidence. If not set, it will be determined automatically during evaluation",
+                        default=cw,
+                        type=float)
+
     parser.add_argument("--modal",
                         action="store_true",
                         help="Use modal 2D boxes for matching",)
@@ -1094,7 +1125,8 @@ def main():
         min_iou_to_match=args.minIou,
         max_depth=args.maxDepth,
         step_size=args.stepSize,
-        matching_method=int(args.modal)
+        matching_method=int(args.modal),
+        cw=args.cw
     )
 
     evaluate3DObjectDetection(args.gtFolder, args.predictionFolder, args.resultsFolder, eval_params)
