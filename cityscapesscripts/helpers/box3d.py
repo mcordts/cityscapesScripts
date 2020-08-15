@@ -18,7 +18,7 @@ in https://github.com/mcordts/cityscapesScripts/blob/master/docs/csCalibration.p
  3. The image coordinate system I with the origin in the top-left image pixel,
     u pointing right, and v pointing down.
  4. In addition, we also add the coordinate system S with the same origin as C,
-    but the orientation of I, ie. x pointing right, y down, and z into the
+    but the orientation of I, ie. x pointing right, y down, and z in the
     driving direction.
 
 All GT annotations are given in the ISO coordinate system V and hence, the
