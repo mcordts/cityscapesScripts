@@ -112,11 +112,25 @@ class Box3DImageTransform(object):
         if coordinate_system == CRS_S: # convert it to CRS_C first
             center = np.matmul(K_multiplier.T, center.T).T
             image_T_sensor_quaternion = Quaternion(matrix=K_multiplier)
-            quaternion_rot = quaternion_rot * image_T_sensor_quaternion.inverse
-        if coordinate_system == CRS_C or coordinate_system == CRS_S: # center and quaternion must be corrected
-            center = center - np.array(self._camera.sensor_T_ISO_8855)[0:3,3].T
-            sensor_T_ISO_8855_quaternion = Quaternion(matrix=np.array(self._camera.sensor_T_ISO_8855)[:3,:3])
-            quaternion_rot = quaternion_rot * sensor_T_ISO_8855_quaternion.inverse
+            quaternion_rot = (
+                image_T_sensor_quaternion.inverse * 
+                quaternion_rot * 
+                image_T_sensor_quaternion
+            )
+
+        # center and quaternion must be corrected
+        if coordinate_system == CRS_C or coordinate_system == CRS_S: 
+            sensor_T_ISO_8855_4x4 = np.eye(4)
+            sensor_T_ISO_8855_4x4[:3,:] = np.array(self._camera.sensor_T_ISO_8855)
+            sensor_T_ISO_8855_4x4_inv = np.linalg.inv(sensor_T_ISO_8855_4x4)
+            center_T = np.ones((4,1))
+            center_T[:3,0] = center.T
+            center = np.matmul(sensor_T_ISO_8855_4x4_inv, center_T)
+            center = (center.T)[0,:3]
+            
+            sensor_T_ISO_8855_quaternion = Quaternion(
+                matrix=np.array(self._camera.sensor_T_ISO_8855)[:3,:3])
+            quaternion_rot = sensor_T_ISO_8855_quaternion.inverse * quaternion_rot
         
         self._size = np.array(size)
         self._rotation_matrix = np.array(quaternion_rot.rotation_matrix)
@@ -149,17 +163,26 @@ class Box3DImageTransform(object):
 
         # center and quaternion must be corrected
         if coordinate_system == CRS_C or coordinate_system == CRS_S: 
-            center = center + np.array(self._camera.sensor_T_ISO_8855)[0:3,3].T
+            sensor_T_ISO_8855_4x4 = np.eye(4)
+            sensor_T_ISO_8855_4x4[:3,:] = np.array(self._camera.sensor_T_ISO_8855)
+            center_T = np.ones((4,1))
+            center_T[:3,0] = center.T
+            center = np.matmul(sensor_T_ISO_8855_4x4, center_T)
+            center = (center.T)[0,:3]
             sensor_T_ISO_8855_quaternion = Quaternion(
                 matrix=np.array(self._camera.sensor_T_ISO_8855)[:3,:3]
             )
-            quaternion_rot = quaternion_rot * sensor_T_ISO_8855_quaternion
+            quaternion_rot = sensor_T_ISO_8855_quaternion * quaternion_rot 
 
         # change axis
         if coordinate_system == CRS_S: 
             center = np.matmul(K_multiplier, center.T).T
             image_T_sensor_quaternion = Quaternion(matrix=K_multiplier)
-            quaternion_rot = quaternion_rot * image_T_sensor_quaternion
+            quaternion_rot = (
+                image_T_sensor_quaternion * 
+                quaternion_rot * 
+                image_T_sensor_quaternion.inverse
+            )
 
         return (self._size, center, quaternion_rot)
 
