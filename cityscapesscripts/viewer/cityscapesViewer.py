@@ -903,10 +903,10 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             for label in self.annotation3D["annotation"]:
                 color = QtGui.QColor(*name2label[label["class_name"]].color)
                 if label["3d"] is not None and self.selected3Dlabeltype == 1:
-                    box3d_annotation = Box3DImageTransform(size=label["3d"]["dimensions"],
-                                                       quaternion=label["3d"]["rotation"],
-                                                       center=label["3d"]["center"],
-                                                       camera=camera)
+                    box3d_annotation = Box3DImageTransform(camera=camera)
+                    box3d_annotation.initialize_box(size=label["3d"]["dimensions"],
+                                                    quaternion=label["3d"]["rotation"],
+                                                    center=label["3d"]["center"])
                     self.drawCityscapes3DBox3D(box3d_annotation, qp2, color)
                 elif label["2d"]["modal"] is not None and self.selected3Dlabeltype == 2:
                     box2d_annotation = QtCore.QRectF(QtCore.QPointF(label["2d"]["modal"][0], label["2d"]["modal"][1]),
