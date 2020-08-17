@@ -150,7 +150,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Disparity extension
         self.dispExt = "_disparity.png"
         # 3D label extension
-        self.gt3DExt = "_box3Dgt.json"
+        self.gt3DExt = "_gtBbox3d.json"
         # Selected 3D label type
         self.available3DLabeltypes = ["None", "3D Box", "2D Box Modal", "2D Box Amodal", "Ignore Regions"]
         self.selected3Dlabeltype = 0
@@ -1369,7 +1369,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                 self.dispPath = os.path.normpath(
                     os.path.join(csPath, "disparity", split, city))
                 self.label3DPath = os.path.normpath(
-                    os.path.join(csPath, "box3Dgt", split, city))
+                    os.path.join(csPath, "gtBbox3d", split, city))
                 if gt in ["gtFine", "gtCoarse"]:
                     self.gtType = CsObjectType.POLY
                 elif gt in ["gtBboxCityPersons"]:
