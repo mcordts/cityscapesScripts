@@ -101,6 +101,15 @@ class Box3DImageTransform(object):
         self._box_top_side_cropped_2d = []
         self._box_bottom_side_cropped_2d = []
 
+    def initialize_box(self, csBbox3dAnnotation, coordinate_system=CRS_V):
+        # Unpack annotation and call initialize_box() method
+        self.initialize_box(
+            csBbox3dAnnotation.size,
+            csBbox3dAnnotation.quaternion,
+            csBbox3dAnnotation.center,
+            coordinate_system=coordinate_system
+            )
+
     def initialize_box(self, size, quaternion, center, coordinate_system=CRS_V):
         # Internally, the box is always stored in the ISO 8855 coordinate system V
         # If the box is passed with another coordinate system, we transform it to V first.

@@ -37,7 +37,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from cityscapesscripts.helpers.annotation import Annotation, CsObjectType
 from cityscapesscripts.helpers.labels import name2label, assureSingleInstanceName
 from cityscapesscripts.helpers.labels_cityPersons import name2labelCp
-from cityscapesscripts.helpers.box3d import Camera, Box3DImageTransform
+from cityscapesscripts.helpers.box3dImageTransform import Camera, Box3DImageTransform
 
 #################
 # Main GUI class
