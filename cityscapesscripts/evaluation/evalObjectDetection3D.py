@@ -22,9 +22,11 @@ from tqdm import tqdm
 from copy import deepcopy
 
 from cityscapesscripts.helpers.labels import labels
+from cityscapesscripts.helpers.annotation import (
+    CsBbox3d,
+    CsIgnore2d
+)
 from cityscapesscripts.evaluation.objectDetectionHelpers import (
-    Box3DObject,
-    IgnoreObject,
     EvaluationParameters,
     getFiles,
     calcIouMatrix,
@@ -184,12 +186,14 @@ class Box3DEvaluator:
             for d in data["annotation"]:
                 if d["class_name"] in self.eval_params.labels_to_evaluate:
                     self._stats["GT_stats"][d["class_name"]] += 1
-                    box_data = Box3DObject(d)
+                    box_data = CsBbox3d()
+                    box_data.fromJsonText(d)
                     gts_for_image.append(box_data)
 
             # load ignore regions
             for d in data["ignore"]:
-                box_data = IgnoreObject(d)
+                box_data = CsIgnore2d()
+                box_data.fromJsonText(d)
                 ignores_for_image.append(box_data)
 
             self.gts[base] = {
@@ -227,7 +231,8 @@ class Box3DEvaluator:
                     d["class_name"] in self.eval_params.labels_to_evaluate
                 ):
                     try:
-                        box_data = Box3DObject(d)
+                        box_data = CsBbox3d()
+                        box_data.fromJsonText(d)
                     except:
                         logger.critical("Found incorrect annotation in %s." % p)
                         continue
@@ -329,14 +334,14 @@ class Box3DEvaluator:
 
     def _addImageEvaluation(
         self,
-        gt_boxes: List[Box3DObject],
-        pred_boxes: List[Box3DObject],
+        gt_boxes: List[CsBbox3d],
+        pred_boxes: List[CsBbox3d],
         min_score: float) -> Tuple[dict, dict, dict, dict]:
         """Internal method to evaluate a single image.
 
         Args:
-            gt_boxes (List[Box3DObject]): GT boxes
-            pred_boxes (List[Box3DObject]): Predicted boxes
+            gt_boxes (List[CsBbox3d]): GT boxes
+            pred_boxes (List[CsBbox3d]): Predicted boxes
             min_score (float): minimum required score
 
         Returns:
@@ -485,16 +490,16 @@ class Box3DEvaluator:
     def _calcCenterDistances(
         self,
         class_name: str,
-        gt_boxes: List[Box3DObject],
-        pred_boxes: List[Box3DObject]
+        gt_boxes: List[CsBbox3d],
+        pred_boxes: List[CsBbox3d]
         ) -> np.ndarray:
         """Internal method that calculates the BEV distance for a TP box
         d = sqrt(dx*dx + dz*dz)
 
         Args:
             class_name (str): the class that will be evaluated
-            gt_boxes (List[Box3DObject]): GT boxes
-            pred_boxes (List[Box3DObject]): Predicted boxes
+            gt_boxes (List[CsBbox3d]): GT boxes
+            pred_boxes (List[CsBbox3d]): Predicted boxes
 
         Returns:
             np.ndarray: array containing the GT distances
@@ -529,8 +534,8 @@ class Box3DEvaluator:
     def _calcSizeSimilarities(
         self,
         class_name: str,
-        gt_boxes: List[Box3DObject],
-        pred_boxes: List[Box3DObject],
+        gt_boxes: List[CsBbox3d],
+        pred_boxes: List[CsBbox3d],
         gt_dists: np.ndarray
         ) -> None:
 
@@ -539,8 +544,8 @@ class Box3DEvaluator:
 
         Args:
             class_name (str): the class that will be evaluated
-            gt_boxes (List[Box3DObject]): GT boxes
-            pred_boxes (List[Box3DObject]): Predicted boxes
+            gt_boxes (List[CsBbox3d]): GT boxes
+            pred_boxes (List[CsBbox3d]): Predicted boxes
             gt_dists (np.ndarray): GT distances
         """
 
@@ -563,8 +568,8 @@ class Box3DEvaluator:
     def _calcOrientationSimilarities(
         self,
         class_name: str,
-        gt_boxes: List[Box3DObject],
-        pred_boxes: List[Box3DObject],
+        gt_boxes: List[CsBbox3d],
+        pred_boxes: List[CsBbox3d],
         gt_dists: np.ndarray
         ) -> None:
         """Internal method that calculates the orientation similarity for a TP box.
@@ -573,8 +578,8 @@ class Box3DEvaluator:
 
         Args:
             class_name (str): the class that will be evaluated
-            gt_boxes (List[Box3DObject]): GT boxes
-            pred_boxes (List[Box3DObject]): Predicted boxes
+            gt_boxes (List[CsBbox3d]): GT boxes
+            pred_boxes (List[CsBbox3d]): Predicted boxes
             gt_dists (np.ndarray): GT distances
         """
 

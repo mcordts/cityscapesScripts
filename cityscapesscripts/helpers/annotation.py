@@ -6,6 +6,7 @@
 from __future__ import print_function, absolute_import, division
 import os
 import json
+import numpy as np
 from collections import namedtuple
 
 # get current date and time
@@ -21,6 +22,8 @@ from abc import ABCMeta, abstractmethod
 class CsObjectType():
     POLY = 1 # polygon
     BBOX = 2 # bounding box
+    BBOX3D = 3 # 3d bounding box
+    IGNORE2D = 4 # 2d ignore region
 
 # Abstract base class for annotation objects
 class CsObject:
@@ -176,6 +179,90 @@ class CsBbox(CsObject):
         objDict['bboxVis'] = self.bboxVis
 
         return objDict
+
+# Class that contains the information of a single annotated object as 3D bounding box
+class CsBbox3d(CsObject):
+    # Constructor
+    def __init__(self):
+        CsObject.__init__(self, CsObjectType.BBOX3D)
+
+        # modal and amodal refer to bbox and bboxVis
+        self.box_2d_amodal = []
+        self.box_2d_modal = []
+
+        self.center = []
+        self.dims = []
+        self.rotation = []
+        self.label = []
+        self.score = []
+
+    def __str__(self):
+        bbox2dText = ""
+        bbox2dText += 'Modal 2D:  xmin: {}, ymin: {}, xmax: {}, ymax: {}'.format(
+            self.box_2d_modal[0], self.box_2d_modal[1], self.box_2d_modal[2], self.box_2d_modal[3])
+        bbox2dText += 'Amodal 2D: xmin: {}, ymin: {}, xmax: {}, ymax: {}'.format(
+            self.box_2d_amodal[0], self.box_2d_amodal[1], self.box_2d_amodal[2], self.box_2d_amodal[3])
+
+        bbox3dText = ""
+        bbox3dText += 'Center (x/y/z) [m]: {}/{}/{}'.format(
+            self.center[0], self.center[1],  self.center[2])
+        bbox3dText += 'Dimensions (l/w/h) [m]: {}/{}/{}'.format(
+            self.dims[0], self.dims[1],  self.dims[2])
+        bbox3dText += 'Rotation: {}/{}/{}/{}'.format(
+            self.rotation[0], self.rotation[1], self.rotation[2], self.rotation[3])
+
+
+        text = "Object: {} - 2D {} - 3D {}".format(self.label, bbox2dText, bbox3dText)
+        return text
+
+    def fromJsonText(self, jsonText):
+        self.box_2d_amodal = jsonText["2d"]["amodal"]
+
+        # if no modal 2d box is provided, use amodal one instead
+        if "modal" in jsonText["2d"].keys():
+            self.box_2d_modal = jsonText["2d"]["modal"]
+        else:
+            self.box_2d_modal = jsonText["2d"]["amodal"]
+
+        self.center = jsonText["3d"]["center"]
+        self.dims = jsonText["3d"]["dimensions"]
+        self.rotation = jsonText["3d"]["rotation"]
+        self.class_name = jsonText["class_name"]
+        self.score = jsonText["score"]
+
+    def toJsonText(self):
+        objDict = {}
+        objDict["class_name"] = self.label
+        objDict["2d"]["amodal"] = self.box_2d_amodal
+        objDict["2d"]["modal"] = self.box_2d_modal
+        objDict["3d"]["center"] = self.center
+        objDict["3d"]["dimensions"] = self.dims
+        objDict["3d"]["rotation"] = self.rotation
+
+        return objDict
+
+    @property
+    def depth(self):
+        return np.sqrt(self.center[0]**2 + self.center[2]**2).astype(int)
+
+# Class that contains the information of a single annotated 2d ignore region
+class CsIgnore2d(CsObject):
+    # Constructor
+    def __init__(self):
+        CsObject.__init__(self, CsObjectType.IGNORE2D)
+
+        # modal and amodal refer to bbox and bboxVis
+        self.box_2d = []
+
+    def __str__(self):
+        bbox2dText = ""
+        bbox2dText += 'Ignore Region:  xmin: {}, ymin: {}, xmax: {}, ymax: {}'.format(
+            self.bbox[0], self.bbox[1], self.bbox[2], self.bbox[3])
+
+        return text
+
+    def fromJsonText(self, jsonText):
+        self.box_2d = jsonText["2d"]
 
 # The annotation of a whole image (doesn't support mixed annotations, i.e. combining CsPoly and CsBbox)
 class Annotation:
