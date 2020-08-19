@@ -27,13 +27,13 @@ evaluation requires the data to be available in this coordinate system.
 For V and C it is:                   For S and I it is:
 
                     ^                         ^
-                  y |    ^                   / z/d
+                  z |    ^                   / z/d
                     |   / x                 /
                     |  /                   /
                     | /                   +------------>
                     |/                    |         x/u
        <------------+                     |
-         z                                |
+         y                                |
                                           | y/v
                                           V
 """
