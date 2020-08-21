@@ -62,3 +62,6 @@ target/
 
 # configuration files
 cityscapesLabelTool.conf
+
+# MAC OS
+.DS_Store
