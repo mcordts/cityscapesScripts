@@ -155,7 +155,7 @@ class Box3DEvaluator:
                 )
 
             logger.warning(
-                "%.2f is used as working confidence instead of %f." % (self.eval_params.cw, old_cw)
+                "{:.2f} is used as working confidence instead of {}.".format(self.eval_params.cw, old_cw)
             )
 
     def loadGT(self, gt_folder: str) -> None:
@@ -168,7 +168,7 @@ class Box3DEvaluator:
         logger.info("Loading GT...")
         gts = getFiles(gt_folder)
 
-        logger.info("Found %d GT files." % len(gts))
+        logger.info("Found {} GT files.".format(len(gts)))
 
         self._stats["GT_stats"] = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
@@ -213,7 +213,7 @@ class Box3DEvaluator:
         predictions = getFiles(pred_folder)
 
         predictions.sort()
-        logger.info("Found %d prediction files." % len(predictions))
+        logger.info("Found {} prediction files.".format(len(predictions)))
 
         for p in predictions:
             preds_for_image = []
@@ -235,7 +235,7 @@ class Box3DEvaluator:
                         box_data = CsBbox3d()
                         box_data.fromJsonText(d)
                     except:
-                        logger.critical("Found incorrect annotation in %s." % p)
+                        logger.critical("Found incorrect annotation in {}.".format(p))
                         continue
 
                     preds_for_image.append(box_data)
@@ -251,7 +251,7 @@ class Box3DEvaluator:
         for base in self.gts.keys():
             if base not in self.preds.keys():
                 logger.critical(
-                    "Could not find any prediction for image %s." % base)
+                    "Could not find any prediction for image {}.".format(base))
                 self.preds[base] = {"objects": []}
 
         # initialize empty data
@@ -387,7 +387,7 @@ class Box3DEvaluator:
                     boxes_2d_pred = np.asarray(
                         [pred_boxes["objects"][x].box_2d_modal for x in pred_idx])
                 else:
-                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
+                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
 
             boxes_2d_gt = np.zeros((0, 4))
             if len(gt_idx) > 0:
@@ -399,7 +399,7 @@ class Box3DEvaluator:
                     boxes_2d_gt = np.asarray(
                         [gt_boxes["objects"][x].box_2d_modal for x in gt_idx])
                 else:
-                    raise ValueError("Matching method %d not known!" % self.eval_params.matching_method)
+                    raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
 
             boxes_2d_gt_ignores = np.zeros((0, 4))
             if len(gt_idx_ignores) > 0:
@@ -725,7 +725,7 @@ class Box3DEvaluator:
         accept_cats = []
         for cat, count in self._stats["GT_stats"].items():
             if count == 0:
-                logger.warn("Category %s has no GT!" % cat)
+                logger.warn("Category {} has no GT!".format(cat))
             else:
                 accept_cats.append(cat)
 
@@ -760,16 +760,16 @@ class Box3DEvaluator:
             self.results["Detection_Score"][label] = det_score
 
             logger.info(label)
-            logger.info(" -> 2D AP %-6s                : %.2f" % (modal_amodal_modifier, vals["AP"]))
-            logger.info(" -> BEV Center Distance (DDTP)  : %.2f" % vals["Center_Dist"])
-            logger.info(" -> Yaw Similarity (DDTP)       : %.2f" % vals["OS_Yaw"])
-            logger.info(" -> Pitch/Roll Similarity (DDTP): %.2f" % vals["OS_Pitch_Roll"])
-            logger.info(" -> Size Similarity (DDTP)      : %.2f" % vals["Size_Similarity"])
-            logger.info(" -> Detection Score             : %.2f" % det_score)
+            logger.info(" -> 2D AP {:<6}                : {:.2f}".format(modal_amodal_modifier, vals["AP"]))
+            logger.info(" -> BEV Center Distance (DDTP)  : {:.2f}".format(vals["Center_Dist"]))
+            logger.info(" -> Yaw Similarity (DDTP)       : {:.2f}".format(vals["OS_Yaw"]))
+            logger.info(" -> Pitch/Roll Similarity (DDTP): {:.2f}".format(vals["OS_Pitch_Roll"]))
+            logger.info(" -> Size Similarity (DDTP)      : {:.2f}".format(vals["Size_Similarity"]))
+            logger.info(" -> Detection Score             : {:.2f}".format(det_score))
 
         self.results["mDetection_Score"] = np.mean(
             [x for cat, x in self.results["Detection_Score"].items() if cat in accept_cats])
-        logger.info("Mean Detection Score: %.2f" % self.results["mDetection_Score"])
+        logger.info("Mean Detection Score: {:.2f}".format(self.results["mDetection_Score"]))
 
         # add mean evaluation results
         for parameter_name in parameters:
@@ -1043,16 +1043,16 @@ def evaluate3DObjectDetection(
     boxEvaluator.checkCw()
 
     logger.info("Use the following options")
-    logger.info(" -> GT folder    : %s"   % gt_folder)
-    logger.info(" -> Pred folder  : %s"   % pred_folder)
-    logger.info(" -> Classes      : %s"   % ", ".join(eval_params.labels_to_evaluate))
-    logger.info(" -> Min IoU:     : %.2f" % eval_params.min_iou_to_match)
-    logger.info(" -> Max depth [m]: %d"   % eval_params.max_depth)
-    logger.info(" -> Step size [m]: %.2f" % eval_params.step_size)
+    logger.info(" -> GT folder    : {}".format(gt_folder))
+    logger.info(" -> Pred folder  : {}".format(pred_folder))
+    logger.info(" -> Labels       : {}".format(", ".join(eval_params.labels_to_evaluate)))
+    logger.info(" -> Min IoU:     : {:.2f}".format(eval_params.min_iou_to_match))
+    logger.info(" -> Max depth [m]: {}".format(eval_params.max_depth))
+    logger.info(" -> Step size [m]: {:.2f}".format(eval_params.step_size))
     if boxEvaluator.eval_params.cw == -1.0:
-        logger.info(" -> cw           : %s" % "-- automatically determined --")
+        logger.info(" -> cw           : -- automatically determined --")
     else:
-        logger.info(" -> cw           : %.2f" % boxEvaluator.eval_params.cw)
+        logger.info(" -> cw           : {:.2f}".format(boxEvaluator.eval_params.cw))
 
     # load GT and predictions
     boxEvaluator.loadGT(gt_folder)
