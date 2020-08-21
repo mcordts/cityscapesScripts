@@ -17,6 +17,7 @@ import locale
 Point = namedtuple('Point', ['x', 'y'])
 
 from abc import ABCMeta, abstractmethod
+from .box3dImageTransform import Camera
 
 # Type of an object
 class CsObjectType():
@@ -307,6 +308,8 @@ class Annotation:
         # the list of objects and ignores
         self.objects = []
         self.ignore = []
+        # the camera calibration
+        self.camera = None
         assert objType in CsObjectType.__dict__.values()
         self.objectType = objType
 
@@ -335,6 +338,14 @@ class Annotation:
                 obj = CsIgnore2d()
                 obj.fromJsonText(ignoreIn, ignoreId)
                 self.ignore.append(obj)
+
+        # load camera calibration
+        if 'sensor' in jsonDict.keys():
+            self.camera = Camera(fx=jsonDict['sensor']['fx'],
+                                 fy=jsonDict['sensor']['fy'],
+                                 u0=jsonDict['sensor']['u0'],
+                                 v0=jsonDict['sensor']['v0'],
+                                 sensor_T_ISO_8855=jsonDict['sensor']['sensor_T_ISO_8855'])
 
     def toJsonText(self):
         jsonDict = {}
