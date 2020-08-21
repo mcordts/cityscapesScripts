@@ -53,7 +53,7 @@ The evaluation script expects one json annotation
 file per image with the format:
 
 {
-    "annotation": [
+    "objects": [
         {
             "2d": {
                 "modal": [xmin, ymin, xmax, ymax],
@@ -184,7 +184,7 @@ class Box3DEvaluator:
                 data = json.load(f)
 
             # load 3D boxes
-            for d in data["annotation"]:
+            for d in data["objects"]:
                 if d["label"] in self.eval_params.labels_to_evaluate:
                     self._stats["GT_stats"][d["label"]] += 1
                     box_data = CsBbox3d()
@@ -226,7 +226,7 @@ class Box3DEvaluator:
             with open(p) as f:
                 data = json.load(f)
 
-            for d in data["annotation"]:
+            for d in data["objects"]:
                 if (
                     "label" in d.keys() and
                     d["label"] in self.eval_params.labels_to_evaluate

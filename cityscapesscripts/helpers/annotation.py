@@ -249,7 +249,9 @@ class CsBbox3d(CsObject):
         self.rotation = jsonText['3d']['rotation']
         self.label = jsonText['label']
         self.score = jsonText['score']
-        self.instanceId = jsonText['instanceId']
+
+        if 'instanceId' in jsonText.keys():
+            self.instanceId = jsonText['instanceId']
 
     def toJsonText(self):
         objDict = {}
@@ -262,6 +264,14 @@ class CsBbox3d(CsObject):
         objDict['3d']['rotation'] = self.rotation
 
         return objDict
+
+    @property
+    def box_2d_amodal(self):
+        return self.bbox_2d.bbox_amodal
+
+    @property
+    def box_2d_modal(self):
+        return self.bbox_2d.bbox_modal
 
     @property
     def depth(self):
