@@ -70,7 +70,7 @@ file per image with the format:
     ]
 }
 
-Please note, that ["2d"]["amodal"] is optional. If not provided,
+Please note, that ["2d"]["modal"] is optional. If not provided,
 ["d"]["amodal"] is used for both type of boxes.
 """
 
@@ -1025,7 +1025,8 @@ def evaluate3DObjectDetection(
     gt_folder: str,
     pred_folder: str,
     result_folder: str,
-    eval_params: EvaluationParameters
+    eval_params: EvaluationParameters,
+    plot: bool=True
     ) -> None:
     """Performs the 3D object detection evaluation.
 
@@ -1034,6 +1035,7 @@ def evaluate3DObjectDetection(
         pred_folder (str): directory of the prediction files
         result_folder (str): directory in which the result files are saved
         eval_params (EvaluationParameters): evaluation parameters
+        plot (bool): plot the evaluation results
     """
 
     # initialize the evaluator
@@ -1060,8 +1062,10 @@ def evaluate3DObjectDetection(
     boxEvaluator.evaluate()
 
     # save results and plot them
-    result_file = boxEvaluator.saveResults(result_folder)
-    plot_data(boxEvaluator.results)
+    boxEvaluator.saveResults(result_folder)
+
+    if plot:
+        plot_data(boxEvaluator.results)
 
     return
 
@@ -1149,7 +1153,12 @@ def main():
 
     parser.add_argument("--modal",
                         action="store_true",
-                        help="Use modal 2D boxes for matching",)
+                        help="Use modal 2D boxes for matching")
+
+    parser.add_argument("--noplot",
+                        action="store_false",
+                        help="Don't plot the graphical results")
+
     args = parser.parse_args()
 
     if not os.path.exists(args.gtFolder):
@@ -1174,7 +1183,13 @@ def main():
         cw=args.cw
     )
 
-    evaluate3DObjectDetection(args.gtFolder, args.predictionFolder, args.resultsFolder, eval_params)
+    evaluate3DObjectDetection(
+        args.gtFolder,
+        args.predictionFolder,
+        args.resultsFolder,
+        eval_params,
+        plot=args.noplot
+        )
 
     logger.info("========================")
     logger.info("=== Stop evaluation ====")
