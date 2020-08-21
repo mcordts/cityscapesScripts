@@ -10,8 +10,8 @@ from matplotlib.axes import Axes
 from cityscapesscripts.helpers.labels import name2label
 
 
-def csToMplColor(class_name):
-    color = name2label[class_name].color
+def csToMplColor(label):
+    color = name2label[label].color
     return [x/255. for x in color]
 
 def create_table_row(
@@ -142,14 +142,14 @@ def create_spider_chart_plot(
     axis.set_xticks(np.arange(0, 2.0*np.pi, np.pi/2.5))
     axis.set_xticklabels(lables)
 
-    for idx, class_name in enumerate(accept_classes):
+    for idx, label in enumerate(accept_classes):
         values = [x[idx] for x in [vals[cat] for cat in categories]]
         values += values[:1]
 
         axis.plot(angles, values, linewidth=1,
-                  linestyle='solid', color=csToMplColor(class_name))
+                  linestyle='solid', color=csToMplColor(label))
         axis.fill(
-            angles, values, color=csToMplColor(class_name), alpha=0.05)
+            angles, values, color=csToMplColor(label), alpha=0.05)
 
     axis.plot(angles, [np.mean(x) for x in [vals[cat] for cat in categories] + [
         vals["AP"]]], linewidth=1, linestyle='solid', color="r", label="Mean")
@@ -174,13 +174,13 @@ def create_AP_plot(axis: Axes, data_to_plot: dict, accept_classes: List[str], ma
     axis.set_ylim([0, 1.01])
     axis.set_ylabel("AP")
 
-    for class_name in accept_classes:
-        aps = data_to_plot["AP_per_depth"][class_name]
+    for label in accept_classes:
+        aps = data_to_plot["AP_per_depth"][label]
 
         x_vals = [float(x) for x in list(aps.keys())]
         y_vals = [float(x["auc"]) for x in list(aps.values())]
 
-        fill_standard_subplot(axis, x_vals, y_vals, class_name, [], max_depth)
+        fill_standard_subplot(axis, x_vals, y_vals, label, [], max_depth)
 
 
 def set_up_xaxis(axis: Axes, max_depth: int, num_ticks: int):
@@ -255,9 +255,9 @@ def create_PR_plot(axis: Axes, data: dict, accept_classes: List[str]):
         data["eval_params"]["matching_method"]
     )
 
-    for class_name in accept_classes:
-        recalls_ = data['AP'][class_name]["data"]["recall"]
-        precisions_ = data['AP'][class_name]["data"]["precision"]
+    for label in accept_classes:
+        recalls_ = data['AP'][label]["data"]["recall"]
+        precisions_ = data['AP'][label]["data"]["precision"]
 
         # sort the data ascending
         sorted_pairs = sorted(
@@ -274,8 +274,8 @@ def create_PR_plot(axis: Axes, data: dict, accept_classes: List[str]):
         for i in range(len(precisions) - 2, -1, -1):
             precisions[i] = np.maximum(precisions[i], precisions[i + 1])
 
-        axis.plot(recalls, precisions, label=class_name,
-                  color=csToMplColor(class_name))
+        axis.plot(recalls, precisions, label=label,
+                  color=csToMplColor(label))
 
 
 def fill_and_finalize_subplot(
@@ -314,17 +314,17 @@ def fill_and_finalize_subplot(
             axis.set_ylim([0., 1.01])
             axis.set_ylabel("Similarity")
 
-        for class_name in accept_classes:
+        for label in accept_classes:
             x_vals, y_vals = get_x_y_vals(
-                data_to_plot[category][class_name]["data"])
+                data_to_plot[category][label]["data"])
             available_items_scaling = get_available_items_scaling(
-                data_to_plot[category][class_name]["items"])
+                data_to_plot[category][label]["items"])
 
             if category == 'Center_Dist':
                 y_vals = [(1 - y) * max_depth for y in y_vals]
 
             fill_standard_subplot(
-                axis, x_vals, y_vals, class_name, available_items_scaling, max_depth)
+                axis, x_vals, y_vals, label, available_items_scaling, max_depth)
 
     else:
         raise ValueError("Unsupported category, got %s." % category)
@@ -334,11 +334,11 @@ def fill_standard_subplot(
         axis: Axes,
         x_vals: List[float],
         y_vals: List[float],
-        class_name: str,
+        label: str,
         available_items_scaling: List[float],
         max_depth: int,
     ):
-    """Fills standard-subplots with data for ``class_name`` with data.
+    """Fills standard-subplots with data for ``label`` with data.
 
     Includes scatter-plot with size-scaled data-points, line-plot and
     a dashed line from maximal value in ``x_vals`` to ``max_depth``.
@@ -347,21 +347,21 @@ def fill_standard_subplot(
         axis (Axes): Axes-instances to use for the subplot
         x_vals (list of float): x-values to visualize
         y_vals (list of float): y-values to visualize
-        class_name (str): name of class to visualize data for
+        label (str): name of class to visualize data for
         available_items_scaling (list of float): size of data-points
         max_depth (int): maximal value of x-axis
     """
     if len(available_items_scaling) > 0:
         axis.scatter(x_vals, y_vals, s=available_items_scaling,
-                     color=csToMplColor(class_name), marker="o", alpha=1.0)
-    axis.plot(x_vals, y_vals, label=class_name,
-                color=csToMplColor(class_name))
+                     color=csToMplColor(label), marker="o", alpha=1.0)
+    axis.plot(x_vals, y_vals, label=label,
+                color=csToMplColor(label))
 
     if len(x_vals) >= 1:
-        axis.plot([x_vals[-1], max_depth], [y_vals[-1], y_vals[-1]], label=class_name,
-                  color=csToMplColor(class_name), linestyle="--", alpha=0.6)
-        axis.plot([0, x_vals[0]], [y_vals[0], y_vals[0]], label=class_name,
-                  color=csToMplColor(class_name), linestyle="--", alpha=0.6)
+        axis.plot([x_vals[-1], max_depth], [y_vals[-1], y_vals[-1]], label=label,
+                  color=csToMplColor(label), linestyle="--", alpha=0.6)
+        axis.plot([0, x_vals[0]], [y_vals[0], y_vals[0]], label=label,
+                  color=csToMplColor(label), linestyle="--", alpha=0.6)
 
 
 def get_available_items_scaling(data: dict, scale_fac: float = 100.):

@@ -63,14 +63,15 @@ file per image with the format:
                 "center": [x, y, z],
                 "dimensions": [length, width, height],
                 "rotation": [q1, q2, q3, q4],
-                "format": "CRS_ISO8855"
             },
-            "class_name": str,
+            "label": str,
             "score": 1.0
         }
     ]
 }
 
+Please note, that ["2d"]["amodal"] is optional. If not provided,
+["d"]["amodal"] is used for both type of boxes.
 """
 
 def printErrorAndExit(msg):
@@ -184,8 +185,8 @@ class Box3DEvaluator:
 
             # load 3D boxes
             for d in data["annotation"]:
-                if d["class_name"] in self.eval_params.labels_to_evaluate:
-                    self._stats["GT_stats"][d["class_name"]] += 1
+                if d["label"] in self.eval_params.labels_to_evaluate:
+                    self._stats["GT_stats"][d["label"]] += 1
                     box_data = CsBbox3d()
                     box_data.fromJsonText(d)
                     gts_for_image.append(box_data)
@@ -227,8 +228,8 @@ class Box3DEvaluator:
 
             for d in data["annotation"]:
                 if (
-                    "class_name" in d.keys() and
-                    d["class_name"] in self.eval_params.labels_to_evaluate
+                    "label" in d.keys() and
+                    d["label"] in self.eval_params.labels_to_evaluate
                 ):
                     try:
                         box_data = CsBbox3d()
@@ -360,11 +361,11 @@ class Box3DEvaluator:
         for i in self.eval_params.labels_to_evaluate:
             # get idx for pred boxes for current class
             pred_idx = [idx for idx, box in enumerate(
-                pred_boxes["objects"]) if box.class_name == i and box.score >= min_score]
+                pred_boxes["objects"]) if box.label == i and box.score >= min_score]
 
             # get idx for gt boxes for current class
             gt_idx = [idx for idx, box in enumerate(
-                gt_boxes["objects"]) if box.class_name == i]
+                gt_boxes["objects"]) if box.label == i]
 
             # if there is no prediction at all, just return an empty result
             if len(pred_idx) == 0:
@@ -489,7 +490,7 @@ class Box3DEvaluator:
 
     def _calcCenterDistances(
         self,
-        class_name: str,
+        label: str,
         gt_boxes: List[CsBbox3d],
         pred_boxes: List[CsBbox3d]
         ) -> np.ndarray:
@@ -497,7 +498,7 @@ class Box3DEvaluator:
         d = sqrt(dx*dx + dz*dz)
 
         Args:
-            class_name (str): the class that will be evaluated
+            label (str): the class that will be evaluated
             gt_boxes (List[CsBbox3d]): GT boxes
             pred_boxes (List[CsBbox3d]): Predicted boxes
 
@@ -526,14 +527,14 @@ class Box3DEvaluator:
             gt_dist = int(gt_dist / self.eval_params.step_size) * \
                 self.eval_params.step_size
 
-            self._stats["working_data"][class_name]["Center_Dist"][gt_dist].append(
+            self._stats["working_data"][label]["Center_Dist"][gt_dist].append(
                 1. - min(center_dist / float(self.eval_params.max_depth), 1.))  # norm it to 1.
 
         return gt_dists
 
     def _calcSizeSimilarities(
         self,
-        class_name: str,
+        label: str,
         gt_boxes: List[CsBbox3d],
         pred_boxes: List[CsBbox3d],
         gt_dists: np.ndarray
@@ -543,7 +544,7 @@ class Box3DEvaluator:
         s = min(w/w', w'/w) * min(h/h', h'/h) * min(l/l', l'/l)
 
         Args:
-            class_name (str): the class that will be evaluated
+            label (str): the class that will be evaluated
             gt_boxes (List[CsBbox3d]): GT boxes
             pred_boxes (List[CsBbox3d]): Predicted boxes
             gt_dists (np.ndarray): GT distances
@@ -562,12 +563,12 @@ class Box3DEvaluator:
             gt_dist = int(gt_dist / self.eval_params.step_size) * \
                 self.eval_params.step_size
 
-            self._stats["working_data"][class_name]["Size_Similarity"][gt_dist].append(
+            self._stats["working_data"][label]["Size_Similarity"][gt_dist].append(
                 size_simi)
 
     def _calcOrientationSimilarities(
         self,
-        class_name: str,
+        label: str,
         gt_boxes: List[CsBbox3d],
         pred_boxes: List[CsBbox3d],
         gt_dists: np.ndarray
@@ -577,7 +578,7 @@ class Box3DEvaluator:
         os_pitch/roll = 0.5 + (cos(delta_pitch) + cos(delta_roll)) / 4.
 
         Args:
-            class_name (str): the class that will be evaluated
+            label (str): the class that will be evaluated
             gt_boxes (List[CsBbox3d]): GT boxes
             pred_boxes (List[CsBbox3d]): Predicted boxes
             gt_dists (np.ndarray): GT distances
@@ -600,19 +601,19 @@ class Box3DEvaluator:
             gt_dist = int(gt_dist / self.eval_params.step_size) * \
                 self.eval_params.step_size
 
-            self._stats["working_data"][class_name]["OS_Yaw"][gt_dist].append(
+            self._stats["working_data"][label]["OS_Yaw"][gt_dist].append(
                 os_yaw)
-            self._stats["working_data"][class_name]["OS_Pitch_Roll"][gt_dist].append(
+            self._stats["working_data"][label]["OS_Pitch_Roll"][gt_dist].append(
                 os_pitch_roll)
 
-    def _calculateAUC(self, class_name: str) -> None:
+    def _calculateAUC(self, label: str) -> None:
         """Internal method that calculates the Area Under Curve (AUC)
         for the available DDTP metrics.
 
         Args:
-            class_name (str): the class that will be evaluated
+            label (str): the class that will be evaluated
         """
-        parameter_depth_data = self._stats["working_data"][class_name]
+        parameter_depth_data = self._stats["working_data"][label]
 
         for parameter_name, value_dict in parameter_depth_data.items():
             curr_mean = -1.
@@ -648,9 +649,9 @@ class Box3DEvaluator:
                 result_dict[d] = v
                 result_items[d] = n
 
-            self.results[parameter_name][class_name]["data"] = result_dict
-            self.results[parameter_name][class_name]["auc"] = result_auc
-            self.results[parameter_name][class_name]["items"] = result_items
+            self.results[parameter_name][label]["data"] = result_dict
+            self.results[parameter_name][label]["auc"] = result_auc
+            self.results[parameter_name][label]["items"] = result_items
 
     def _calcTpStats(self) -> None:
         """Internal method that calculates working point for each class and calculate TP stats.
@@ -677,12 +678,12 @@ class Box3DEvaluator:
             }
 
         # calculate the statistics for each class
-        for class_name in self.eval_params.labels_to_evaluate:
-            working_confidence = self._stats["working_confidence"][class_name]
+        for label in self.eval_params.labels_to_evaluate:
+            working_confidence = self._stats["working_confidence"][label]
             working_data = self._stats[working_confidence]["data"]
 
             self._stats["working_data"] = {}
-            self._stats["working_data"][class_name] = {
+            self._stats["working_data"][label] = {
                 "Center_Dist": {x: [] for x in self._depth_bins},
                 "Size_Similarity": {x: [] for x in self._depth_bins},
                 "OS_Yaw": {x: [] for x in self._depth_bins},
@@ -698,8 +699,8 @@ class Box3DEvaluator:
                 tp_idx_pred = tp_fp_fn_data["tp_idx_pred"]
 
                 # only select the GT boxes
-                gt_boxes = [gt_boxes[x] for x in tp_idx_gt[class_name]]
-                pred_boxes = [pred_boxes[x] for x in tp_idx_pred[class_name]]
+                gt_boxes = [gt_boxes[x] for x in tp_idx_gt[label]]
+                pred_boxes = [pred_boxes[x] for x in tp_idx_pred[label]]
 
                 # there is no prediction or GT -> no TP statistics
                 if len(gt_boxes) == 0 or len(pred_boxes) == 0:
@@ -707,18 +708,18 @@ class Box3DEvaluator:
 
                 # calculate center_dists for image
                 gt_dists = self._calcCenterDistances(
-                    class_name, gt_boxes, pred_boxes)
+                    label, gt_boxes, pred_boxes)
 
                 # calculate size similarities
                 self._calcSizeSimilarities(
-                    class_name, gt_boxes, pred_boxes, gt_dists)
+                    label, gt_boxes, pred_boxes, gt_dists)
 
                 # calculate orientation similarities
                 self._calcOrientationSimilarities(
-                    class_name, gt_boxes, pred_boxes, gt_dists)
+                    label, gt_boxes, pred_boxes, gt_dists)
 
             # calc AUC and detection score
-            self._calculateAUC(class_name)
+            self._calculateAUC(label)
 
         # determine which categories have GT data and can be used for mean calculation
         accept_cats = []
@@ -752,13 +753,13 @@ class Box3DEvaluator:
         logger.info("========================")
 
         # calculate detection store for each class
-        for class_name in self.eval_params.labels_to_evaluate:
-            vals = {p: self.results[p][class_name]["auc"] for p in parameters}
+        for label in self.eval_params.labels_to_evaluate:
+            vals = {p: self.results[p][label]["auc"] for p in parameters}
             det_score = vals["AP"] * (vals["Center_Dist"] + vals["Size_Similarity"] +
                                       vals["OS_Yaw"] + vals["OS_Pitch_Roll"]) / 4.
-            self.results["Detection_Score"][class_name] = det_score
+            self.results["Detection_Score"][label] = det_score
 
-            logger.info(class_name)
+            logger.info(label)
             logger.info(" -> 2D AP %-6s                : %.2f" % (modal_amodal_modifier, vals["AP"]))
             logger.info(" -> BEV Center Distance (DDTP)  : %.2f" % vals["Center_Dist"])
             logger.info(" -> Yaw Similarity (DDTP)       : %.2f" % vals["OS_Yaw"])
@@ -806,8 +807,8 @@ class Box3DEvaluator:
                 gt_depths = [x.depth for x in self.gts[img_base]["objects"]]
                 pred_depths = [x.depth for x in self.preds[img_base]["objects"]]
 
-                for class_name, idxs in img_base_stats["tp_idx_gt"].items():
-                    tp[class_name] += len(idxs)
+                for label, idxs in img_base_stats["tp_idx_gt"].items():
+                    tp[label] += len(idxs)
 
                     for idx in idxs:
                         tp_depth = gt_depths[idx]
@@ -816,10 +817,10 @@ class Box3DEvaluator:
 
                         tp_depth = int(tp_depth / self.eval_params.step_size) * self.eval_params.step_size
 
-                        tp_per_depth[class_name][tp_depth].append(idx)
+                        tp_per_depth[label][tp_depth].append(idx)
 
-                for class_name, idxs in img_base_stats["fp_idx_pred"].items():
-                    fp[class_name] += len(idxs)
+                for label, idxs in img_base_stats["fp_idx_pred"].items():
+                    fp[label] += len(idxs)
 
                     for idx in idxs:
                         fp_depth = pred_depths[idx]
@@ -828,10 +829,10 @@ class Box3DEvaluator:
 
                         fp_depth = int(fp_depth / self.eval_params.step_size) * self.eval_params.step_size
 
-                        fp_per_depth[class_name][fp_depth].append(idx)
+                        fp_per_depth[label][fp_depth].append(idx)
 
-                for class_name, idxs in img_base_stats["fn_idx_gt"].items():
-                    fn[class_name] += len(idxs)
+                for label, idxs in img_base_stats["fn_idx_gt"].items():
+                    fn[label] += len(idxs)
 
                     for idx in idxs:
                         fn_depth = gt_depths[idx]
@@ -840,40 +841,40 @@ class Box3DEvaluator:
 
                         fn_depth = int(fn_depth / self.eval_params.step_size) * self.eval_params.step_size
 
-                        fn_per_depth[class_name][fn_depth].append(idx)
+                        fn_per_depth[label][fn_depth].append(idx)
 
             # calculate per depth precision and recall per class
-            for class_name in self.eval_params.labels_to_evaluate:
+            for label in self.eval_params.labels_to_evaluate:
                 for i in self._depth_bins:
-                    tp_at_depth = len(tp_per_depth[class_name][i])
-                    fp_at_depth = len(fp_per_depth[class_name][i])
-                    accum_fn = len(fn_per_depth[class_name][i])
+                    tp_at_depth = len(tp_per_depth[label][i])
+                    fp_at_depth = len(fp_per_depth[label][i])
+                    accum_fn = len(fn_per_depth[label][i])
 
                     if tp_at_depth == 0 and accum_fn == 0:
-                        precision_per_depth[class_name][i] = -1
-                        recall_per_depth[class_name][i] = -1
+                        precision_per_depth[label][i] = -1
+                        recall_per_depth[label][i] = -1
                     elif tp_at_depth == 0:
-                        precision_per_depth[class_name][i] = 0
-                        recall_per_depth[class_name][i] = 0
+                        precision_per_depth[label][i] = 0
+                        recall_per_depth[label][i] = 0
                     else:
-                        precision_per_depth[class_name][i] = tp_at_depth / \
+                        precision_per_depth[label][i] = tp_at_depth / \
                             float(tp_at_depth + fp_at_depth)
-                        recall_per_depth[class_name][i] = tp_at_depth / \
+                        recall_per_depth[label][i] = tp_at_depth / \
                             float(tp_at_depth + accum_fn)
 
-                    auc_per_depth[class_name][i] = precision_per_depth[class_name][i] * \
-                        recall_per_depth[class_name][i]
+                    auc_per_depth[label][i] = precision_per_depth[label][i] * \
+                        recall_per_depth[label][i]
 
-                if tp[class_name] == 0:
-                    precision[class_name] = 0
-                    recall[class_name] = 0
+                if tp[label] == 0:
+                    precision[label] = 0
+                    recall[label] = 0
                 else:
-                    precision[class_name] = tp[class_name] / \
-                        float(tp[class_name] + fp[class_name])
-                    recall[class_name] = tp[class_name] / \
-                        float(tp[class_name] + fn[class_name])
+                    precision[label] = tp[label] / \
+                        float(tp[label] + fp[label])
+                    recall[label] = tp[label] / \
+                        float(tp[label] + fn[label])
 
-                auc[class_name] = precision[class_name] * recall[class_name]
+                auc[label] = precision[label] * recall[label]
 
             # write to stats
             self._stats[s]["pr_data"] = {
@@ -907,7 +908,7 @@ class Box3DEvaluator:
         working_confidence = {x: 0 for x in self.eval_params.labels_to_evaluate}
 
         # calculate standard AP per class
-        for class_name in self.eval_params.labels_to_evaluate:
+        for label in self.eval_params.labels_to_evaluate:
             # best_auc and best_score are used for determining working point
             best_auc = 0.
             best_score = 0.
@@ -915,13 +916,13 @@ class Box3DEvaluator:
             recalls_ = []
             precisions_ = []
             for s in self._conf_thresholds:
-                current_auc_for_score = self._stats[s]["pr_data"]["auc"][class_name]
+                current_auc_for_score = self._stats[s]["pr_data"]["auc"][label]
                 if current_auc_for_score > best_auc:
                     best_auc = current_auc_for_score
                     best_score = s
 
-                recalls_.append(self._stats[s]["pr_data"]["recall"][class_name])
-                precisions_.append(self._stats[s]["pr_data"]["precision"][class_name])
+                recalls_.append(self._stats[s]["pr_data"]["recall"][label])
+                precisions_.append(self._stats[s]["pr_data"]["precision"][label])
 
             # sort for an ascending recalls list
             sorted_pairs = sorted(zip(recalls_, precisions_), key=lambda pair: pair[0])
@@ -943,18 +944,18 @@ class Box3DEvaluator:
             class_ap = np.sum(
                 (recalls[recall_idx] - recalls[recall_idx - 1]) * precisions[recall_idx])
 
-            ap[class_name]["auc"] = float(class_ap)
-            ap[class_name]["data"]["recall"] = [float(x) for x in recalls_]
-            ap[class_name]["data"]["precision"] = [float(x) for x in precisions_]
+            ap[label]["auc"] = float(class_ap)
+            ap[label]["data"]["recall"] = [float(x) for x in recalls_]
+            ap[label]["data"]["precision"] = [float(x) for x in precisions_]
 
             # store best confidence value or use specified default
             if (self.eval_params.cw == -1.0):
-                working_confidence[class_name] = best_score
+                working_confidence[label] = best_score
             else:
-                working_confidence[class_name] = self.eval_params.cw
+                working_confidence[label] = self.eval_params.cw
 
         # calculate depth dependent mAP
-        for class_name in self.eval_params.labels_to_evaluate:
+        for label in self.eval_params.labels_to_evaluate:
             for d in self._depth_bins:
                 tmp_dict = {
                     "data": {},
@@ -966,12 +967,12 @@ class Box3DEvaluator:
 
                 valid_depth = True
                 for s in self._conf_thresholds:
-                    if d not in self._stats[s]["pr_data"]["recall_per_depth"][class_name].keys():
+                    if d not in self._stats[s]["pr_data"]["recall_per_depth"][label].keys():
                         valid_depth = False
                         break
 
-                    tmp_recall = self._stats[s]["pr_data"]["recall_per_depth"][class_name][d]
-                    tmp_precision = self._stats[s]["pr_data"]["precision_per_depth"][class_name][d]
+                    tmp_recall = self._stats[s]["pr_data"]["recall_per_depth"][label][d]
+                    tmp_precision = self._stats[s]["pr_data"]["precision_per_depth"][label][d]
 
                     if tmp_recall >= 0 and tmp_precision >= 0:
                         recalls_.append(tmp_recall)
@@ -1007,7 +1008,7 @@ class Box3DEvaluator:
                     tmp_dict["data"]["precision"] = [
                         float(x) for x in precisions_]
 
-                    ap_per_depth[class_name][d] = tmp_dict
+                    ap_per_depth[label][d] = tmp_dict
                 else:  # no valid detection until this depth
                     tmp_dict["auc"] = -1.
                     tmp_dict["data"]["recall"] = []

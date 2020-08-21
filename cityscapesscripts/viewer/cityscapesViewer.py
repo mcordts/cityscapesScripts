@@ -710,7 +710,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             # Draw the labels on top
             elif self.gtType == CsObjectType.POLY:
                 overlay = self.drawLabels(qp)
-            elif self.gtType == CsObjectType.BBOX:
+            elif self.gtType == CsObjectType.BBOX2D:
                 overlay = self.drawBboxes(qp)
             # Draw the label name next to the mouse
             self.drawLabelAtMouse(qp)
@@ -901,7 +901,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                             v0=self.annotation3D["sensor"]["v0"],
                             sensor_T_ISO_8855=self.annotation3D["sensor"]["sensor_T_ISO_8855"])
             for label in self.annotation3D["annotation"]:
-                color = QtGui.QColor(*name2label[label["class_name"]].color)
+                color = QtGui.QColor(*name2label[label["label"]].color)
                 if label["3d"] is not None and self.selected3Dlabeltype == 1:
                     box3d_annotation = Box3DImageTransform(camera=camera)
                     box3d_annotation.initialize_box(size=label["3d"]["dimensions"],
@@ -920,7 +920,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                     self.drawCityscapes3DBox2D(box2d_annotation, qp2, color)
             if self.selected3Dlabeltype == 4:
                 for ignore_label in self.annotation3D["ignore"]:
-                    color = QtGui.QColor(*name2label[ignore_label["class_name"]].color)
+                    color = QtGui.QColor(*name2label[ignore_label["label"]].color)
 
                     box2d_annotation = QtCore.QRectF(QtCore.QPointF(ignore_label["2d"][0], ignore_label["2d"][1]),
                                                      QtCore.QPointF(ignore_label["2d"][2], ignore_label["2d"][3]))
@@ -1305,7 +1305,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                 if self.getPolygon(obj).containsPoint(self.mousePosScaled, QtCore.Qt.OddEvenFill):
                     self.mouseObj = idx
                     break
-            elif obj.objectType == CsObjectType.BBOX:
+            elif obj.objectType == CsObjectType.BBOX2D:
                 bbox, _ = self.getBoundingBox(obj)
                 if bbox.contains(self.mousePosScaled):
                     self.mouseObj = idx
@@ -1373,7 +1373,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                 if gt in ["gtFine", "gtCoarse"]:
                     self.gtType = CsObjectType.POLY
                 elif gt in ["gtBboxCityPersons"]:
-                    self.gtType = CsObjectType.BBOX
+                    self.gtType = CsObjectType.BBOX2D
                 self.loadCity()
                 self.imageChanged()
 

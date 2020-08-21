@@ -21,7 +21,7 @@ from abc import ABCMeta, abstractmethod
 # Type of an object
 class CsObjectType():
     POLY = 1 # polygon
-    BBOX = 2 # bounding box
+    BBOX2D = 2 # bounding box
     BBOX3D = 3 # 3d bounding box
     IGNORE2D = 4 # 2d ignore region
 
@@ -142,43 +142,73 @@ class CsPoly(CsObject):
         return objDict
 
 # Class that contains the information of a single annotated object as bounding box
-class CsBbox(CsObject):
+class CsBbox2d(CsObject):
     # Constructor
     def __init__(self):
-        CsObject.__init__(self, CsObjectType.BBOX)
+        CsObject.__init__(self, CsObjectType.BBOX2D)
         # the polygon as list of points
-        self.bbox  = []
-        self.bboxVis  = []
+        self.bbox_amodal = []
+        self.bbox_modal  = []
 
         # the ID of the corresponding object
         self.instanceId = -1
+        # the label of the corresponding object
+        self.label = ""
 
     def __str__(self):
-        bboxText = ""
-        bboxText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
-            self.bbox[0] , self.bbox[1] ,  self.bbox[2] ,  self.bbox[3] )
+        bboxAmodalText = ""
+        bboxAmodalText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
+            self.bbox_amodal[0] , self.bbox_amodal[1] ,  self.bbox_amodal[2] ,  self.bbox_amodal[3] )
 
-        bboxVisText = ""
-        bboxVisText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
-            self.bboxVis[0] , self.bboxVis[1] , self.bboxVis[2], self.bboxVis[3] )
+        bboxModalText = ""
+        bboxModalText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
+            self.bbox_modal[0] , self.bbox_modal[1] , self.bbox_modal[2], self.bbox_modal[3] )
 
-        text = "Object: {} - bbox {} - visible {}".format( self.label , bboxText, bboxVisText )
+        text = "Object: {} - Amodal {} - Modal {}".format( self.label , bboxAmodalText, bboxModalText )
         return text
 
+    # provide legacy interfaces
+    @property
+    def bbox(self):
+        return self.bbox_amodal
+
+    @property
+    def bboxVis(self):
+        return self.bbox_modal
+
     def fromJsonText(self, jsonText, objId=-1):
-        self.bbox = jsonText['bbox']
-        self.bboxVis = jsonText['bboxVis']
-        self.label = str(jsonText['label'])
-        self.instanceId = jsonText['instanceId']
+        # try to load from cityperson format
+        if 'bbox' in jsonText.keys() and 'bboxVis' inn jsonText.keys():
+            self.bbox_amodal = jsonText['bbox']
+            self.bbox_modal = jsonText['bboxVis']
+        # both modal and amodal boxes are provided
+        elif "modal" in jsonText.keys() and "amodal" in jsonText.keys():
+            self.bbox_amodal = jsonText['amodal']
+            self.bbox_modal = jsonText['modal']
+        # only amodal boxes are provided
+        else:
+            self.box_2d_modal = jsonText['2d']['amodal']:
+            self.box_2d_amodal = jsonText['2d']['amodal']:
+
+        # load label and instanceId if available
+        if 'label' in jsonText.keys() and 'instanceId' in jsonText.keys():
+            self.label = str(jsonText['label'])
+            self.instanceId = jsonText['instanceId']
 
     def toJsonText(self):
         objDict = {}
         objDict['label'] = self.label
         objDict['instanceId'] = self.instanceId
-        objDict['bbox'] = self.bbox
-        objDict['bboxVis'] = self.bboxVis
+        objDict['modal'] = self.bbox_modal
+        objDict['amodal'] = self.bbox_amodal
+        # keey bbox and bboxVis for legacy
+        objDict['bbox'] = self.bbox_amodal
+        objDict['bboxVis'] = self.bbox_modal
 
         return objDict
+
+# provide the legacy class of CsBbox
+CsBbox = CsBbox2d
 
 # Class that contains the information of a single annotated object as 3D bounding box
 class CsBbox3d(CsObject):
@@ -186,22 +216,17 @@ class CsBbox3d(CsObject):
     def __init__(self):
         CsObject.__init__(self, CsObjectType.BBOX3D)
 
-        # modal and amodal refer to bbox and bboxVis
-        self.box_2d_amodal = []
-        self.box_2d_modal = []
+        self.bbox_2d = None
 
         self.center = []
         self.dims = []
         self.rotation = []
+        self.instanceId = -1
         self.label = []
         self.score = []
 
     def __str__(self):
-        bbox2dText = ""
-        bbox2dText += 'Modal 2D:  xmin: {}, ymin: {}, xmax: {}, ymax: {}'.format(
-            self.box_2d_modal[0], self.box_2d_modal[1], self.box_2d_modal[2], self.box_2d_modal[3])
-        bbox2dText += 'Amodal 2D: xmin: {}, ymin: {}, xmax: {}, ymax: {}'.format(
-            self.box_2d_amodal[0], self.box_2d_amodal[1], self.box_2d_amodal[2], self.box_2d_amodal[3])
+        bbox2dText = str(self.bbox_2d)
 
         bbox3dText = ""
         bbox3dText += 'Center (x/y/z) [m]: {}/{}/{}'.format(
@@ -211,33 +236,30 @@ class CsBbox3d(CsObject):
         bbox3dText += 'Rotation: {}/{}/{}/{}'.format(
             self.rotation[0], self.rotation[1], self.rotation[2], self.rotation[3])
 
-
         text = "Object: {} - 2D {} - 3D {}".format(self.label, bbox2dText, bbox3dText)
         return text
 
-    def fromJsonText(self, jsonText):
-        self.box_2d_amodal = jsonText["2d"]["amodal"]
+    def fromJsonText(self, jsonText, objId=-1):
+        # load 2D box
+        self.bbox_2d = CsBbox2d()
+        self.bbox_2d.fromJsonText(jsonText['2d'])
 
-        # if no modal 2d box is provided, use amodal one instead
-        if "modal" in jsonText["2d"].keys():
-            self.box_2d_modal = jsonText["2d"]["modal"]
-        else:
-            self.box_2d_modal = jsonText["2d"]["amodal"]
-
-        self.center = jsonText["3d"]["center"]
-        self.dims = jsonText["3d"]["dimensions"]
-        self.rotation = jsonText["3d"]["rotation"]
-        self.class_name = jsonText["class_name"]
-        self.score = jsonText["score"]
+        self.center = jsonText['3d']['center']
+        self.dims = jsonText['3d']['dimensions']
+        self.rotation = jsonText['3d']['rotation']
+        self.label = jsonText['label']
+        self.score = jsonText['score']
+        self.instanceId = jsonText['instanceId']
 
     def toJsonText(self):
         objDict = {}
-        objDict["class_name"] = self.label
-        objDict["2d"]["amodal"] = self.box_2d_amodal
-        objDict["2d"]["modal"] = self.box_2d_modal
-        objDict["3d"]["center"] = self.center
-        objDict["3d"]["dimensions"] = self.dims
-        objDict["3d"]["rotation"] = self.rotation
+        objDict['label'] = self.label
+        objDict['instanceId'] = self.instanceId
+        objDict['2d']['amodal'] = self.bbox_2d.bbox_amodal
+        objDict['2d']['modal'] = self.bbox_2d.box_2d_modal
+        objDict['3d']['center'] = self.center
+        objDict['3d']['dimensions'] = self.dims
+        objDict['3d']['rotation'] = self.rotation
 
         return objDict
 
@@ -261,10 +283,10 @@ class CsIgnore2d(CsObject):
 
         return text
 
-    def fromJsonText(self, jsonText):
-        self.box_2d = jsonText["2d"]
+    def fromJsonText(self, jsonText, objId=-1):
+        self.box_2d = jsonText['2d']
 
-# The annotation of a whole image (doesn't support mixed annotations, i.e. combining CsPoly and CsBbox)
+# The annotation of a whole image (doesn't support mixed annotations, i.e. combining CsPoly and CsBbox2d)
 class Annotation:
     # Constructor
     def __init__(self, objType=CsObjectType.POLY):
@@ -272,8 +294,9 @@ class Annotation:
         self.imgWidth  = 0
         # the height of that image and thus of the label image
         self.imgHeight = 0
-        # the list of objects
+        # the list of objects and ignores
         self.objects = []
+        self.ignore = []
         assert objType in CsObjectType.__dict__.values()
         self.objectType = objType
 
@@ -285,13 +308,23 @@ class Annotation:
         self.imgWidth  = int(jsonDict['imgWidth'])
         self.imgHeight = int(jsonDict['imgHeight'])
         self.objects   = []
+        # load objects
         for objId, objIn in enumerate(jsonDict[ 'objects' ]):
             if self.objectType == CsObjectType.POLY:
                 obj = CsPoly()
-            elif self.objectType == CsObjectType.BBOX:
-                obj = CsBbox()
+            elif self.objectType == CsObjectType.BBOX2D:
+                obj = CsBbox2d()
+            elif self.objectType == CsObjectType.BBOX3D:
+                obj = CsBbox3d()
             obj.fromJsonText(objIn, objId)
             self.objects.append(obj)
+
+        # load ignores
+        if 'ignore' in jsonDict.keys():
+            for ignoreId, ignoreIn in enumerate(jsonDict[ 'objects' ]):
+                obj = CsIgnore2d()
+                obj.fromJsonText(ignoreIn, ignoreId)
+                self.ignore.append(obj)
 
     def toJsonText(self):
         jsonDict = {}
