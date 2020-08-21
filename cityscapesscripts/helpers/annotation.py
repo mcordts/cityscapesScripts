@@ -170,7 +170,7 @@ class CsBbox2d(CsObject):
 
     # access 2d boxes in [xmin, ymin, xmax, ymax] format
     @property
-    def bbox_amodal(self)
+    def bbox_amodal(self):
         return [
             self.bbox_amodal_xywh[0],
             self.bbox_amodal_xywh[1],
@@ -179,7 +179,7 @@ class CsBbox2d(CsObject):
             ]
 
     @property
-    def bbox_modal(self)
+    def bbox_modal(self):
         return [
             self.bbox_modal_xywh[0],
             self.bbox_modal_xywh[1],
