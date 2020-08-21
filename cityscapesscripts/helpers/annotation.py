@@ -148,8 +148,8 @@ class CsBbox2d(CsObject):
     def __init__(self):
         CsObject.__init__(self, CsObjectType.BBOX2D)
         # the polygon as list of points
-        self.bbox_amodal = []
-        self.bbox_modal  = []
+        self.bbox_amodal_xywh = []
+        self.bbox_modal_xywh  = []
 
         # the ID of the corresponding object
         self.instanceId = -1
@@ -159,37 +159,56 @@ class CsBbox2d(CsObject):
     def __str__(self):
         bboxAmodalText = ""
         bboxAmodalText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
-            self.bbox_amodal[0] , self.bbox_amodal[1] ,  self.bbox_amodal[2] ,  self.bbox_amodal[3] )
+            self.bbox_amodal_xywh[0] , self.bbox_amodal_xywh[1] ,  self.bbox_amodal_xywh[2] ,  self.bbox_amodal_xywh[3] )
 
         bboxModalText = ""
         bboxModalText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
-            self.bbox_modal[0] , self.bbox_modal[1] , self.bbox_modal[2], self.bbox_modal[3] )
+            self.bbox_modal_xywh[0] , self.bbox_modal_xywh[1] , self.bbox_modal_xywh[2], self.bbox_modal_xywh[3] )
 
         text = "Object: {} - Amodal {} - Modal {}".format( self.label , bboxAmodalText, bboxModalText )
         return text
 
+    # access 2d boxes in [xmin, ymin, xmax, ymax] format
+    @property
+    def bbox_amodal(self)
+        return [
+            self.bbox_amodal_xywh[0],
+            self.bbox_amodal_xywh[1],
+            self.bbox_amodal_xywh[0] + self.bbox_amodal_xywh[2],
+            self.bbox_amodal_xywh[1] + self.bbox_amodal_xywh[3]
+            ]
+
+    @property
+    def bbox_modal(self)
+        return [
+            self.bbox_modal_xywh[0],
+            self.bbox_modal_xywh[1],
+            self.bbox_modal_xywh[0] + self.bbox_modal_xywh[2],
+            self.bbox_modal_xywh[1] + self.bbox_modal_xywh[3]
+            ]
+
     # provide legacy interfaces
     @property
     def bbox(self):
-        return self.bbox_amodal
+        return self.bbox_amodal_xywh
 
     @property
     def bboxVis(self):
-        return self.bbox_modal
+        return self.bbox_modal_xywh
 
     def fromJsonText(self, jsonText, objId=-1):
         # try to load from cityperson format
         if 'bbox' in jsonText.keys() and 'bboxVis' in jsonText.keys():
-            self.bbox_amodal = jsonText['bbox']
-            self.bbox_modal = jsonText['bboxVis']
+            self.bbox_amodal_xywh = jsonText['bbox']
+            self.bbox_modal_xywh = jsonText['bboxVis']
         # both modal and amodal boxes are provided
         elif "modal" in jsonText.keys() and "amodal" in jsonText.keys():
-            self.bbox_amodal = jsonText['amodal']
-            self.bbox_modal = jsonText['modal']
+            self.bbox_amodal_xywh = jsonText['amodal']
+            self.bbox_modal_xywh = jsonText['modal']
         # only amodal boxes are provided
         else:
-            self.box_2d_modal = jsonText['2d']['amodal']
-            self.box_2d_amodal = jsonText['2d']['amodal']
+            self.bbox_modal_xywh = jsonText['2d']['amodal']
+            self.bbox_amodal_xywh = jsonText['2d']['amodal']
 
         # load label and instanceId if available
         if 'label' in jsonText.keys() and 'instanceId' in jsonText.keys():
@@ -200,11 +219,11 @@ class CsBbox2d(CsObject):
         objDict = {}
         objDict['label'] = self.label
         objDict['instanceId'] = self.instanceId
-        objDict['modal'] = self.bbox_modal
-        objDict['amodal'] = self.bbox_amodal
+        objDict['modal'] = self.bbox_modal_xywh
+        objDict['amodal'] = self.bbox_amodal_xywh
         # keey bbox and bboxVis for legacy
-        objDict['bbox'] = self.bbox_amodal
-        objDict['bboxVis'] = self.bbox_modal
+        objDict['bbox'] = self.bbox_amodal_xywh
+        objDict['bboxVis'] = self.bbox_amodal_xywh
 
         return objDict
 
