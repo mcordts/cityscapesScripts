@@ -101,11 +101,11 @@ class Box3DImageTransform(object):
         self._box_top_side_cropped_2d = []
         self._box_bottom_side_cropped_2d = []
 
-    def initialize_box(self, csBbox3dAnnotation, coordinate_system=CRS_V):
+    def initialize_box_from_annotation(self, csBbox3dAnnotation, coordinate_system=CRS_V):
         # Unpack annotation and call initialize_box() method
         self.initialize_box(
-            csBbox3dAnnotation.size,
-            csBbox3dAnnotation.quaternion,
+            csBbox3dAnnotation.dims,
+            csBbox3dAnnotation.rotation,
             csBbox3dAnnotation.center,
             coordinate_system=coordinate_system
             )
