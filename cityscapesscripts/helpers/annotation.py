@@ -353,7 +353,7 @@ class Annotation:
 
         # load ignores
         if 'ignore' in jsonDict.keys():
-            for ignoreId, ignoreIn in enumerate(jsonDict[ 'objects' ]):
+            for ignoreId, ignoreIn in enumerate(jsonDict[ 'ignore' ]):
                 obj = CsIgnore2d()
                 obj.fromJsonText(ignoreIn, ignoreId)
                 self.ignore.append(obj)
