@@ -178,7 +178,7 @@ class CsBbox2d(CsObject):
 
     def fromJsonText(self, jsonText, objId=-1):
         # try to load from cityperson format
-        if 'bbox' in jsonText.keys() and 'bboxVis' inn jsonText.keys():
+        if 'bbox' in jsonText.keys() and 'bboxVis' in jsonText.keys():
             self.bbox_amodal = jsonText['bbox']
             self.bbox_modal = jsonText['bboxVis']
         # both modal and amodal boxes are provided
