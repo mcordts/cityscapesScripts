@@ -27,6 +27,22 @@ if 'CYTHONIZE_EVAL' in os.environ:
 with open("README.md") as f:
     readme = f.read()
 
+console_scripts = [
+    'csEvalPixelLevelSemanticLabeling = cityscapesscripts.evaluation.evalPixelLevelSemanticLabeling:main',
+    'csEvalInstanceLevelSemanticLabeling = cityscapesscripts.evaluation.evalInstanceLevelSemanticLabeling:main',
+    'csEvalPanopticSemanticLabeling = cityscapesscripts.evaluation.evalPanopticSemanticLabeling:main',
+    'csEvalObjectDetection3d = cityscapesscripts.evaluation.evalObjectDetection3d:main',
+    'csCreateTrainIdLabelImgs = cityscapesscripts.preparation.createTrainIdLabelImgs:main',
+    'csCreateTrainIdInstanceImgs = cityscapesscripts.preparation.createTrainIdInstanceImgs:main',
+    'csCreatePanopticImgs = cityscapesscripts.preparation.createPanopticImgs:main',
+    'csDownload = cityscapesscripts.download.downloader:main'
+]
+
+gui_scripts = [
+    'csViewer = cityscapesscripts.viewer.cityscapesViewer:main [gui]',
+    'csLabelTool = cityscapesscripts.annotation.cityscapesLabelTool:main [gui]'
+]
+
 config = {
     'name': 'cityscapesScripts',
     'description': 'Scripts for the Cityscapes Dataset',
@@ -36,23 +52,16 @@ config = {
     'url': 'https://github.com/mcordts/cityscapesScripts',
     'author_email': 'mail@cityscapes-dataset.net',
     'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/license.txt',
-    'version': '1.5.0',
-    'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs'],
+    'version': '2.0.0',
+    'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs', 'pyquaternion', 'coloredlogs', 'tqdm', 'typing'],
     'setup_requires': ['setuptools>=18.0'],
     'extras_require': {
         'gui': ['PyQt5']
     },
     'packages': find_packages(),
     'scripts': [],
-    'entry_points': {'gui_scripts': ['csViewer = cityscapesscripts.viewer.cityscapesViewer:main [gui]',
-                                     'csLabelTool = cityscapesscripts.annotation.cityscapesLabelTool:main [gui]'],
-                     'console_scripts': ['csEvalPixelLevelSemanticLabeling = cityscapesscripts.evaluation.evalPixelLevelSemanticLabeling:main',
-                                         'csEvalInstanceLevelSemanticLabeling = cityscapesscripts.evaluation.evalInstanceLevelSemanticLabeling:main',
-                                         'csEvalPanopticSemanticLabeling = cityscapesscripts.evaluation.evalPanopticSemanticLabeling:main',
-                                         'csCreateTrainIdLabelImgs = cityscapesscripts.preparation.createTrainIdLabelImgs:main',
-                                         'csCreateTrainIdInstanceImgs = cityscapesscripts.preparation.createTrainIdInstanceImgs:main',
-                                         'csCreatePanopticImgs = cityscapesscripts.preparation.createPanopticImgs:main',
-                                         'csDownload = cityscapesscripts.download.downloader:main']},
+    'entry_points': {'gui_scripts': gui_scripts,
+                     'console_scripts': console_scripts},
     'package_data': {'': ['icons/*.png']},
     'ext_modules': ext_modules,
     'include_dirs': include_dirs
