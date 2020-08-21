@@ -56,8 +56,8 @@ file per image with the format:
     "objects": [
         {
             "2d": {
-                "modal": [xmin, ymin, xmax, ymax],
-                "amodal": [xmin, ymin, xmax, ymax]
+                "modal": [xmin, ymin, w, h],
+                "amodal": [xmin, ymin, w, h]
             },
             "3d": {
                 "center": [x, y, z],

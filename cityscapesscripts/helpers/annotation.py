@@ -103,7 +103,7 @@ class CsPoly(CsObject):
         text = "Object: {} - {}".format( self.label , polyText )
         return text
 
-    def fromJsonText(self, jsonText, objId):
+    def fromJsonText(self, jsonText, objId=-1):
         self.id = objId
         self.label = str(jsonText['label'])
         self.polygon = [ Point(p[0],p[1]) for p in jsonText['polygon'] ]
@@ -165,7 +165,7 @@ class CsBbox2d(CsObject):
         bboxModalText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
             self.bbox_modal_xywh[0] , self.bbox_modal_xywh[1] , self.bbox_modal_xywh[2], self.bbox_modal_xywh[3] )
 
-        text = "Object: {} - Amodal {} - Modal {}".format( self.label , bboxAmodalText, bboxModalText )
+        text = "Object: {}\n - Amodal {}\n - Modal {}".format( self.label , bboxAmodalText, bboxModalText )
         return text
 
     # access 2d boxes in [xmin, ymin, xmax, ymax] format
@@ -249,14 +249,14 @@ class CsBbox3d(CsObject):
         bbox2dText = str(self.bbox_2d)
 
         bbox3dText = ""
-        bbox3dText += 'Center (x/y/z) [m]: {}/{}/{}'.format(
+        bbox3dText += '\n - Center (x/y/z) [m]: {}/{}/{}'.format(
             self.center[0], self.center[1],  self.center[2])
-        bbox3dText += 'Dimensions (l/w/h) [m]: {}/{}/{}'.format(
+        bbox3dText += '\n - Dimensions (l/w/h) [m]: {}/{}/{}'.format(
             self.dims[0], self.dims[1],  self.dims[2])
-        bbox3dText += 'Rotation: {}/{}/{}/{}'.format(
+        bbox3dText += '\n - Rotation: {}/{}/{}/{}'.format(
             self.rotation[0], self.rotation[1], self.rotation[2], self.rotation[3])
 
-        text = "Object: {} - 2D {} - 3D {}".format(self.label, bbox2dText, bbox3dText)
+        text = "Object: {}\n2D {}\n - 3D {}".format(self.label, bbox2dText, bbox3dText)
         return text
 
     def fromJsonText(self, jsonText, objId=-1):
