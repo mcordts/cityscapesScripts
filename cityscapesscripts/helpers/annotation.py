@@ -171,6 +171,7 @@ class CsBbox2d(CsObject):
     # access 2d boxes in [xmin, ymin, xmax, ymax] format
     @property
     def bbox_amodal(self):
+        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
         return [
             self.bbox_amodal_xywh[0],
             self.bbox_amodal_xywh[1],
@@ -180,6 +181,7 @@ class CsBbox2d(CsObject):
 
     @property
     def bbox_modal(self):
+        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
         return [
             self.bbox_modal_xywh[0],
             self.bbox_modal_xywh[1],
@@ -190,10 +192,12 @@ class CsBbox2d(CsObject):
     # provide legacy interfaces
     @property
     def bbox(self):
+        """Returns the 2d box as [x, y, w, h]"""
         return self.bbox_amodal_xywh
 
     @property
     def bboxVis(self):
+        """Returns the 2d box as [x, y, w, h]"""
         return self.bbox_modal_xywh
 
     def fromJsonText(self, jsonText, objId=-1):
@@ -287,10 +291,12 @@ class CsBbox3d(CsObject):
 
     @property
     def box_2d_amodal(self):
+        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
         return self.bbox_2d.bbox_amodal
 
     @property
     def box_2d_modal(self):
+        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
         return self.bbox_2d.bbox_modal
 
     @property
@@ -303,18 +309,28 @@ class CsIgnore2d(CsObject):
     def __init__(self):
         CsObject.__init__(self, CsObjectType.IGNORE2D)
 
-        # modal and amodal refer to bbox and bboxVis
-        self.box_2d = []
+        self.box_2d_xywh = []
 
     def __str__(self):
         bbox2dText = ""
-        bbox2dText += 'Ignore Region:  xmin: {}, ymin: {}, xmax: {}, ymax: {}'.format(
-            self.bbox[0], self.bbox[1], self.bbox[2], self.bbox[3])
+        bbox2dText += 'Ignore Region:  (x1: {}, y1: {}), (w: {}, h: {})'.format(
+            self.box_2d_xywh[0], self.box_2d_xywh[1], self.box_2d_xywh[2], self.box_2d_xywh[3])
 
         return text
 
     def fromJsonText(self, jsonText, objId=-1):
-        self.box_2d = jsonText['2d']
+        self.box_2d_xywh = jsonText['2d']
+
+    @property
+    def box_2d(self):
+        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
+        return [
+            self.box_2d_xywh[0],
+            self.box_2d_xywh[1],
+            self.box_2d_xywh[0] + self.box_2d_xywh[2],
+            self.box_2d_xywh[1] + self.box_2d_xywh[3]
+            ]
+
 
 # The annotation of a whole image (doesn't support mixed annotations, i.e. combining CsPoly and CsBbox2d)
 class Annotation:
