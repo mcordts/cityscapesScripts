@@ -1115,7 +1115,7 @@ def main():
 
     # setup evaluation parameters
     evalLabels = ["car", "truck", "bus", "train", "motorcycle", "bicycle"]
-    parser.add_argument("--eval-labels",
+    parser.add_argument("--labels",
                         dest="evalLabels",
                         help="Labels to be evaluated separated with a space. Default: {}".format(" ".join(evalLabels)),
                         default=evalLabels,
