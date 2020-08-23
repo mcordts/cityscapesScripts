@@ -4,11 +4,10 @@
 from __future__ import print_function, absolute_import, division
 
 import numpy as np
-import json
 from pyquaternion import Quaternion
 
 """
-In general, 4 different coordinate systems are used with 3 of them are described 
+In general, 4 different coordinate systems are used with 3 of them are described
 in https://github.com/mcordts/cityscapesScripts/blob/master/docs/csCalibration.pdf
  1. The vehicle coordinate system V according to ISO 8855 with the origin
     on the ground below of the rear axis center, x pointing in driving direction,
