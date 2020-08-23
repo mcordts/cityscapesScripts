@@ -402,10 +402,10 @@ class Box3dEvaluator:
                 # get modal or amodal boxes depending on matching strategy
                 if self.eval_params.matching_method == MATCHING_AMODAL:
                     boxes_2d_pred = np.asarray(
-                        [pred_boxes["objects"][x].box_2d_amodal for x in pred_idx])
+                        [pred_boxes["objects"][x].bbox_2d.bbox_amodal for x in pred_idx])
                 elif self.eval_params.matching_method == MATCHING_MODAL:
                     boxes_2d_pred = np.asarray(
-                        [pred_boxes["objects"][x].box_2d_modal for x in pred_idx])
+                        [pred_boxes["objects"][x].bbox_2d.bbox_modal for x in pred_idx])
                 else:
                     raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
 
@@ -414,17 +414,17 @@ class Box3dEvaluator:
                 # get modal or amodal boxes depending on matching strategy
                 if self.eval_params.matching_method == MATCHING_AMODAL:
                     boxes_2d_gt = np.asarray(
-                        [gt_boxes["objects"][x].box_2d_amodal for x in gt_idx])
+                        [gt_boxes["objects"][x].bbox_2d.bbox_amodal for x in gt_idx])
                 elif self.eval_params.matching_method == MATCHING_MODAL:
                     boxes_2d_gt = np.asarray(
-                        [gt_boxes["objects"][x].box_2d_modal for x in gt_idx])
+                        [gt_boxes["objects"][x].bbox_2d.bbox_modal for x in gt_idx])
                 else:
                     raise ValueError("Matching method {} not known!".format(self.eval_params.matching_method))
 
             boxes_2d_gt_ignores = np.zeros((0, 4))
             if len(gt_idx_ignores) > 0:
                 boxes_2d_gt_ignores = np.asarray(
-                    [gt_boxes["ignores"][x].box_2d for x in gt_idx_ignores])
+                    [gt_boxes["ignores"][x].bbox for x in gt_idx_ignores])
 
             # calculate IoU matrix between GTs and Preds
             iou_matrix = calcIouMatrix(boxes_2d_gt, boxes_2d_pred)
@@ -446,7 +446,7 @@ class Box3dEvaluator:
                 # matching with ignore regions should only be performed on
                 # modal predictions.
                 boxes_2d_pred_fp = np.asarray(
-                    [pred_boxes["objects"][x].box_2d_modal for x in pred_fp_idx_check_for_ignores])
+                    [pred_boxes["objects"][x].bbox_2d.bbox_modal for x in pred_fp_idx_check_for_ignores])
 
             overlap_matrix = calcOverlapMatrix(
                 boxes_2d_gt_ignores, boxes_2d_pred_fp)

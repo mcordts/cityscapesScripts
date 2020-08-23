@@ -69,7 +69,7 @@ class CsObject:
             locale.setlocale(locale.LC_ALL, 'us_us.utf8')
         except locale.Error:
             locale.setlocale(locale.LC_ALL, 'us_us')
-        except:
+        except Exception:
             pass
         self.date = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
 
@@ -171,7 +171,8 @@ class CsBbox2d(CsObject):
         bboxModalText += '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
             self.bbox_modal_xywh[0], self.bbox_modal_xywh[1], self.bbox_modal_xywh[2], self.bbox_modal_xywh[3])
 
-        text = "Object: {}\n - Amodal {}\n - Modal {}".format(self.label, bboxAmodalText, bboxModalText)
+        text = "Object: {}\n - Amodal {}\n - Modal {}".format(
+            self.label, bboxAmodalText, bboxModalText)
         return text
 
     # access 2d boxes in [xmin, ymin, xmax, ymax] format
@@ -194,17 +195,6 @@ class CsBbox2d(CsObject):
             self.bbox_modal_xywh[0] + self.bbox_modal_xywh[2],
             self.bbox_modal_xywh[1] + self.bbox_modal_xywh[3]
         ]
-
-    # provide legacy interfaces
-    @property
-    def bbox(self):
-        """Returns the 2d box as [x, y, w, h]"""
-        return self.bbox_amodal_xywh
-
-    @property
-    def bboxVis(self):
-        """Returns the 2d box as [x, y, w, h]"""
-        return self.bbox_modal_xywh
 
     def fromJsonText(self, jsonText, objId=-1):
         # try to load from cityperson format
@@ -231,15 +221,8 @@ class CsBbox2d(CsObject):
         objDict['instanceId'] = self.instanceId
         objDict['modal'] = self.bbox_modal_xywh
         objDict['amodal'] = self.bbox_amodal_xywh
-        # keep bbox and bboxVis for legacy
-        objDict['bbox'] = self.bbox_amodal_xywh
-        objDict['bboxVis'] = self.bbox_amodal_xywh
 
         return objDict
-
-
-# provide the legacy class of CsBbox
-CsBbox = CsBbox2d
 
 
 class CsBbox3d(CsObject):
@@ -255,8 +238,8 @@ class CsBbox3d(CsObject):
         self.dims = []
         self.rotation = []
         self.instanceId = -1
-        self.label = []
-        self.score = []
+        self.label = ""
+        self.score = -1.
 
     def __str__(self):
         bbox2dText = str(self.bbox_2d)
@@ -269,7 +252,8 @@ class CsBbox3d(CsObject):
         bbox3dText += '\n - Rotation: {}/{}/{}/{}'.format(
             self.rotation[0], self.rotation[1], self.rotation[2], self.rotation[3])
 
-        text = "Object: {}\n2D {}\n - 3D {}".format(self.label, bbox2dText, bbox3dText)
+        text = "Object: {}\n2D {}\n - 3D {}".format(
+            self.label, bbox2dText, bbox3dText)
         return text
 
     def fromJsonText(self, jsonText, objId=-1):
@@ -290,23 +274,13 @@ class CsBbox3d(CsObject):
         objDict = {}
         objDict['label'] = self.label
         objDict['instanceId'] = self.instanceId
-        objDict['2d']['amodal'] = self.bbox_2d.bbox_amodal
-        objDict['2d']['modal'] = self.bbox_2d.box_modal
+        objDict['2d']['amodal'] = self.bbox_2d.bbox_amodal_xywh
+        objDict['2d']['modal'] = self.bbox_2d.bbox_modal_xywh
         objDict['3d']['center'] = self.center
         objDict['3d']['dimensions'] = self.dims
         objDict['3d']['rotation'] = self.rotation
 
         return objDict
-
-    @property
-    def box_2d_amodal(self):
-        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
-        return self.bbox_2d.bbox_amodal
-
-    @property
-    def box_2d_modal(self):
-        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
-        return self.bbox_2d.bbox_modal
 
     @property
     def depth(self):
@@ -320,43 +294,52 @@ class CsIgnore2d(CsObject):
     def __init__(self):
         CsObject.__init__(self, CsObjectType.IGNORE2D)
 
-        self.box_2d_xywh = []
+        self.bbox_xywh = []
         self.label = ""
         self.instanceId = -1
 
     def __str__(self):
         bbox2dText = ""
         bbox2dText += 'Ignore Region:  (x1: {}, y1: {}), (w: {}, h: {})'.format(
-            self.box_2d_xywh[0], self.box_2d_xywh[1], self.box_2d_xywh[2], self.box_2d_xywh[3])
+            self.bbox_xywh[0], self.bbox_xywh[1], self.bbox_xywh[2], self.bbox_xywh[3])
 
         return bbox2dText
 
     def fromJsonText(self, jsonText, objId=-1):
-        self.box_2d_xywh = jsonText['2d']
+        self.bbox_xywh = jsonText['2d']
 
-        if ('label' in jsonText.keys()):
+        if 'label' in jsonText.keys():
             self.label = jsonText['label']
 
-        if ('instanceId' in jsonText.keys()):
+        if 'instanceId' in jsonText.keys():
             self.instanceId = jsonText['instanceId']
 
     def toJsonText(self):
         objDict = {}
         objDict['label'] = self.label
         objDict['instanceId'] = self.instanceId
-        objDict['2d'] = self.box_2d_xywh
+        objDict['2d'] = self.bbox_xywh
 
         return objDict
 
     @property
-    def box_2d(self):
+    def bbox(self):
         """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
         return [
-            self.box_2d_xywh[0],
-            self.box_2d_xywh[1],
-            self.box_2d_xywh[0] + self.box_2d_xywh[2],
-            self.box_2d_xywh[1] + self.box_2d_xywh[3]
+            self.bbox_xywh[0],
+            self.bbox_xywh[1],
+            self.bbox_xywh[0] + self.bbox_xywh[2],
+            self.bbox_xywh[1] + self.bbox_xywh[3]
         ]
+
+    # Extend api to be compatible to bbox2d
+    @property
+    def bbox_amodal_xywh(self):
+        return self.bbox_xywh
+
+    @property
+    def bbox_modal_xywh(self):
+        return self.bbox_xywh
 
 
 class Annotation:
@@ -368,9 +351,8 @@ class Annotation:
         self.imgWidth = 0
         # the height of that image and thus of the label image
         self.imgHeight = 0
-        # the list of objects and ignores
+        # the list of objects
         self.objects = []
-        self.ignore = []
         # the camera calibration
         self.camera = None
         assert objType in CsObjectType.__dict__.values()
@@ -385,22 +367,23 @@ class Annotation:
         self.imgHeight = int(jsonDict['imgHeight'])
         self.objects = []
         # load objects
-        for objId, objIn in enumerate(jsonDict['objects']):
-            if self.objectType == CsObjectType.POLY:
-                obj = CsPoly()
-            elif self.objectType == CsObjectType.BBOX2D:
-                obj = CsBbox2d()
-            elif self.objectType == CsObjectType.BBOX3D:
-                obj = CsBbox3d()
-            obj.fromJsonText(objIn, objId)
-            self.objects.append(obj)
+        if self.objectType != CsObjectType.IGNORE2D:
+            for objId, objIn in enumerate(jsonDict['objects']):
+                if self.objectType == CsObjectType.POLY:
+                    obj = CsPoly()
+                elif self.objectType == CsObjectType.BBOX2D:
+                    obj = CsBbox2d()
+                elif self.objectType == CsObjectType.BBOX3D:
+                    obj = CsBbox3d()
+                obj.fromJsonText(objIn, objId)
+                self.objects.append(obj)
 
         # load ignores
         if 'ignore' in jsonDict.keys():
             for ignoreId, ignoreIn in enumerate(jsonDict['ignore']):
                 obj = CsIgnore2d()
                 obj.fromJsonText(ignoreIn, ignoreId)
-                self.ignore.append(obj)
+                self.objects.append(obj)
 
         # load camera calibration
         if 'sensor' in jsonDict.keys():
