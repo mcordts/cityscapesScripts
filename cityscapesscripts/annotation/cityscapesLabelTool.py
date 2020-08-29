@@ -32,6 +32,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 # Helper classes
 #################
 
+from cityscapesscripts.helpers.version import version as VERSION
+
 # annotation helper
 from cityscapesscripts.helpers.annotation import Point, Annotation, CsPoly
 from cityscapesscripts.helpers.labels import name2label, assureSingleInstanceName
@@ -617,7 +619,7 @@ class CityscapesLabelTool(QtWidgets.QMainWindow):
         screenShape = QtWidgets.QDesktopWidget().screenGeometry()
         self.resize(screenShape.width(), screenShape.height())
         # Set a title
-        self.applicationTitle = 'Cityscapes Label Tool v1.0'
+        self.applicationTitle = 'Cityscapes Label Tool v{}'.format(VERSION)
         self.setWindowTitle(self.applicationTitle)
         # And show the application
         self.show()
