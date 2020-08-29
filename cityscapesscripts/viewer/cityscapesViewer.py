@@ -29,7 +29,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 # Helper classes
 #################
 
-# annotation helper
+from cityscapesscripts.helpers.version import version as VERSION
+
+# annotation helpers
 from cityscapesscripts.helpers.annotation import Annotation, CsObjectType
 from cityscapesscripts.helpers.labels import name2label, assureSingleInstanceName
 from cityscapesscripts.helpers.labels_cityPersons import name2labelCp
@@ -322,7 +324,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         # Open in full screen
         self.show()
         # Set a title
-        self.applicationTitle = 'Cityscapes Viewer v1.1'
+        self.applicationTitle = 'Cityscapes Viewer v{}'.format(VERSION)
         self.setWindowTitle(self.applicationTitle)
         self.displayHelpMessage()
         self.getCityFromUser()
@@ -748,6 +750,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         qp2.setPen(QtGui.QColor('white'))
         # Draw all objects
         for obj in self.annotation.objects:
+            if obj.deleted:
+                continue
 
             # The label of the object
             name = assureSingleInstanceName(obj.label)

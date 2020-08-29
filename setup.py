@@ -27,6 +27,9 @@ if 'CYTHONIZE_EVAL' in os.environ:
 with open("README.md") as f:
     readme = f.read()
 
+with open(os.path.join('cityscapesscripts', 'VERSION')) as f:
+    version = f.read().strip()
+
 console_scripts = [
     'csEvalPixelLevelSemanticLabeling = cityscapesscripts.evaluation.evalPixelLevelSemanticLabeling:main',
     'csEvalInstanceLevelSemanticLabeling = cityscapesscripts.evaluation.evalInstanceLevelSemanticLabeling:main',
@@ -52,7 +55,7 @@ config = {
     'url': 'https://github.com/mcordts/cityscapesScripts',
     'author_email': 'mail@cityscapes-dataset.net',
     'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/license.txt',
-    'version': '2.0.0',
+    'version': version,
     'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs', 'pyquaternion', 'coloredlogs', 'tqdm', 'typing'],
     'setup_requires': ['setuptools>=18.0'],
     'extras_require': {
@@ -62,7 +65,7 @@ config = {
     'scripts': [],
     'entry_points': {'gui_scripts': gui_scripts,
                      'console_scripts': console_scripts},
-    'package_data': {'': ['icons/*.png']},
+    'package_data': {'': ['VERSION', 'icons/*.png']},
     'ext_modules': ext_modules,
     'include_dirs': include_dirs
 }
