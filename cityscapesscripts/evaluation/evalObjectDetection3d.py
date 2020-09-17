@@ -452,7 +452,7 @@ class Box3dEvaluator:
                 boxes_2d_gt_ignores, boxes_2d_pred_fp)
 
             # get matches and convert to actual box idx
-            (_, pred_tp_col_idx, _) = self._getMatches(overlap_matrix)
+            (_, pred_tp_col_idx, _) = self._getMatches(overlap_matrix, matchIgnores=True)
             pred_tp_ignores_idx = [
                 pred_fp_idx_check_for_ignores[x] for x in pred_tp_col_idx]
             pred_fp_idx = [
@@ -468,13 +468,15 @@ class Box3dEvaluator:
 
     def _getMatches(
         self,
-        iou_matrix  # type: np.ndarray
+        iou_matrix,         # type: np.ndarray
+        matchIgnores=False  # type: bool
     ):
         # type: (...) -> Tuple[List[int], List[int], List[int]]
         """Internal method that gets the TP matches between the predictions and the GT data.
 
         Args:
             iou_matrix (np.ndarray): The NxM matrix containing the pairwise overlap or IoU
+            matchIgnores (bool): If set to True, allow multiple matches with ignore regions
 
         Returns:
             tuple(list[int],list[int],list[float]): A tuple containing the TP indices
@@ -502,7 +504,9 @@ class Box3dEvaluator:
             matched_preds.append(used_col)
             matched_ious.append(np.max(iou_matrix))
 
-            iou_matrix[used_row, ...] = 0.0
+            if matchIgnores is False:
+                iou_matrix[used_row, ...] = 0.0
+
             iou_matrix[..., used_col] = 0.0
 
             tmp_iou_max = np.max(iou_matrix)
