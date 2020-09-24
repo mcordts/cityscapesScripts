@@ -245,7 +245,7 @@ class Box3dImageTransform(object):
 
         return [front_side, back_side, top_side, bottom_side, left_side, right_side]
 
-    def get_full_box_2d(self):
+    def get_amodal_box_2d(self):
         corner_points_2d = np.array(self.get_all_side_polygons_2d()).reshape(-1, 2)
         return [
             np.amin(corner_points_2d[:, 0]),

@@ -23,6 +23,7 @@ class EvaluationParameters:
         step_size: step/bin size for DDTP metrics
         matching_method: use modal or amodal 2D boxes for matching
         cw: working confidence. If set to -1, it will be determined automatically
+        amodal_precalculated: Use precalculated amodal boxes instead of calculating them during runtime
         num_conf: number of different confidence thresholds used for AP calculation
     """
 
@@ -34,6 +35,7 @@ class EvaluationParameters:
         step_size=5.,                     # type: float
         matching_method=MATCHING_AMODAL,  # type: int
         cw=-1.,                           # type: float
+        amodal_precalculated=False,       # type: bool
         num_conf=50                       # type: int
     ):
         # type: (...) -> None
@@ -44,6 +46,7 @@ class EvaluationParameters:
         self._step_size = step_size
         self._matching_method = matching_method
         self._cw = cw
+        self._amodal_precalculated = amodal_precalculated
         self._num_conf = num_conf
 
     @property
@@ -73,6 +76,10 @@ class EvaluationParameters:
     @cw.setter
     def cw(self, cw):
         self._cw = cw
+
+    @property
+    def amodal_precalculated(self):
+        return self._amodal_precalculated
 
     @property
     def num_conf(self):
