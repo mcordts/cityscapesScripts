@@ -125,7 +125,7 @@ class Box3dEvaluator:
         )
 
         # the actual depth bins
-        self._depth_bins = np.arange(0, self.eval_params.max_depth + 1, self.eval_params.step_size)
+        self._depth_bins = range(0, self.eval_params.max_depth + 1, self.eval_params.step_size)
 
     def reset(self):
         # type: (...) -> None
@@ -1169,12 +1169,12 @@ def main():
                         help="Maximum depth for DDTP metrics. Default: {}".format(maxDepth),
                         default=maxDepth,
                         type=int)
-    stepSize = 5.
+    stepSize = 5
     parser.add_argument("--step-size",
                         dest="stepSize",
                         help="Step size for DDTP metrics. Default: {}".format(stepSize),
                         default=stepSize,
-                        type=float)
+                        type=int)
 
     cw = -1.
     parser.add_argument("--cw",
