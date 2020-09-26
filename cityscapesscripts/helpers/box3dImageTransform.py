@@ -68,12 +68,22 @@ def apply_transformation_points(points, transformation_matrix):
 
 
 class Camera(object):
-    def __init__(self, fx, fy, u0, v0, sensor_T_ISO_8855):
+    def __init__(
+        self,
+        fx,
+        fy,
+        u0,
+        v0,
+        sensor_T_ISO_8855,
+        imgWidth=2048,
+        imgHeight=1024):
         self.fx = fx
         self.fy = fy
         self.u0 = u0
         self.v0 = v0
         self.sensor_T_ISO_8855 = sensor_T_ISO_8855
+        self.imgWidth = imgWidth
+        self.imgHeight = imgHeight
 
 
 class Box3dImageTransform(object):
@@ -247,11 +257,12 @@ class Box3dImageTransform(object):
 
     def get_amodal_box_2d(self):
         corner_points_2d = np.array(self.get_all_side_polygons_2d()).reshape(-1, 2)
+        # return bbox clipped to img dimensions
         return [
-            np.amin(corner_points_2d[:, 0]),
-            np.amin(corner_points_2d[:, 1]),
-            np.amax(corner_points_2d[:, 0]),
-            np.amax(corner_points_2d[:, 1]),
+            min(self._camera.imgWidth, max(0, np.amin(corner_points_2d[:, 0]))),
+            min(self._camera.imgHeight, max(0, np.amin(corner_points_2d[:, 1]))),
+            min(self._camera.imgWidth, max(0, np.amax(corner_points_2d[:, 0]))),
+            min(self._camera.imgHeight, max(0, np.amax(corner_points_2d[:, 1]))),
         ]
 
     def _crop_side_polygon_and_project(self, side_point_indices=[], side_points=[]):
