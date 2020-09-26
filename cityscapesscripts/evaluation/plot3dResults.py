@@ -457,10 +457,7 @@ def plot_data(
     subplot_categories = ["PR"] + categories
     assert all([key in data_to_plot.keys() for key in categories])
 
-    accept_classes = []
-    for cat, count in data_to_plot["GT_stats"].items():
-        if count > 0:
-            accept_classes.append(cat)
+    accept_classes = data_to_plot["eval_params"]["labels"]
 
     plt.figure(figsize=(20, 12), dpi=100)
 
