@@ -18,7 +18,7 @@
 #                 "rotation": [q1, q2, q3, q4],
 #             },
 #             "label": str,
-#             "score": 1.0
+#             "score": float
 #         }
 #     ]
 # }
