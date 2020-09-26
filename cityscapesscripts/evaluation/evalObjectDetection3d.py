@@ -1112,7 +1112,7 @@ def evaluate3dObjectDetection(
     logger.info(" -> Labels       : {}".format(", ".join(eval_params.labels_to_evaluate)))
     logger.info(" -> Min IoU:     : {:.2f}".format(eval_params.min_iou_to_match))
     logger.info(" -> Max depth [m]: {}".format(eval_params.max_depth))
-    logger.info(" -> Step size [m]: {:.2f}".format(eval_params.step_size))
+    logger.info(" -> Step size [m]: {}".format(eval_params.step_size))
     if boxEvaluator.eval_params.cw == -1.0:
         logger.info(" -> cw           : -- automatically determined --")
     else:
