@@ -73,6 +73,7 @@ The installation installs the cityscapes scripts as a python module named `citys
 - `csCreateTrainIdLabelImgs`: Convert annotations in polygonal format to png images with label IDs, where pixels encode "train IDs" that you can define in `labels.py`.
 - `csCreateTrainIdInstanceImgs`: Convert annotations in polygonal format to png images with instance IDs, where pixels encode instance IDs composed of "train IDs".
 - `csCreatePanopticImgs`: Convert annotations in standard png format to [COCO panoptic segmentation format](http://cocodataset.org/#format-data).
+- `csPlot3dDetectionResults`: Visualize 3D object detection evaluation results stored in .json format.
 
 
 ### Package Content
