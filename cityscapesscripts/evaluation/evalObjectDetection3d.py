@@ -4,6 +4,33 @@
 # We use this script to evaluate your approach on the test set.
 # You can use the script to evaluate on the validation set.
 #
+# The evaluation script expects one json annotation file per image with the format:
+# {
+#     "objects": [
+#         {
+#             "2d": {
+#                 "modal": [xmin, ymin, w, h],
+#                 "amodal": [xmin, ymin, w, h]
+#             },
+#             "3d": {
+#                 "center": [x, y, z],
+#                 "dimensions": [length, width, height],
+#                 "rotation": [q1, q2, q3, q4],
+#             },
+#             "label": str,
+#             "score": float
+#         }
+#     ]
+# }
+#
+# Note: ["2d"]["modal"] and ["2d"]["amodal"] values are
+# clipped to the image dimensions.
+#
+# Note: ["2d"]["modal"] is optional. If not provided,
+# ["d"]["amodal"] is used for both type of boxes.
+#
+# Note: For images without a single predicted box, you still need to provide
+# a json file with content: {"objects": []}
 
 # python imports
 import coloredlogs
@@ -47,35 +74,6 @@ logging.basicConfig(filename='eval.log',
                     format='%(asctime)s.%(msecs)03d %(name)s %(levelname)s %(message)s',
                     datefmt='%H:%M:%S')
 coloredlogs.install(level='INFO')
-
-"""
-The evaluation script expects one json annotation
-file per image with the format:
-
-{
-    "objects": [
-        {
-            "2d": {
-                "modal": [xmin, ymin, w, h],
-                "amodal": [xmin, ymin, w, h]
-            },
-            "3d": {
-                "center": [x, y, z],
-                "dimensions": [length, width, height],
-                "rotation": [q1, q2, q3, q4],
-            },
-            "label": str,
-            "score": 1.0
-        }
-    ]
-}
-
-Note: ["2d"]["modal"] and ["2d"]["amodal"] values are
-clipped to the image dimensions.
-
-Note: ["2d"]["modal"] is optional. If not provided,
-["d"]["amodal"] is used for both type of boxes.
-"""
 
 
 def printErrorAndExit(msg):
