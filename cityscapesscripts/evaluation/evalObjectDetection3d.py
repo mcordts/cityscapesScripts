@@ -70,7 +70,10 @@ file per image with the format:
     ]
 }
 
-Please note, that ["2d"]["modal"] is optional. If not provided,
+Note: ["2d"]["modal"] and ["2d"]["amodal"] values are
+clipped to the image dimensions.
+
+Note: ["2d"]["modal"] is optional. If not provided,
 ["d"]["amodal"] is used for both type of boxes.
 """
 
@@ -1116,7 +1119,10 @@ def evaluate3dObjectDetection(
         logger.info(" -> cw           : -- automatically determined --")
     else:
         logger.info(" -> cw           : {:.2f}".format(boxEvaluator.eval_params.cw))
-    if boxEvaluator.eval_params.amodal_precalculated is True:
+    if (
+        boxEvaluator.eval_params.amodal_precalculated is True
+        and eval_params.matching_method == MATCHING_AMODAL
+    ):
         logger.warning("Use precalculated amodal bounding boxes")
 
     # load GT and predictions
