@@ -1,4 +1,6 @@
-import sys
+#!/usr/bin/env python
+
+import argparse
 import os
 import json
 from typing import (
@@ -498,12 +500,20 @@ def prepare_data(
     return data
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path",
+                        help='Path to result .json file as produced by 3D evaluation script. '
+                        'Can be downloaded from the evaluation server for test set results.')
+    args = parser.parse_args()
+
+    if not os.path.exists(args.path):
+        raise Exception("Result file not found!")
+
+    data = prepare_data(args.path)
+    plot_data(data)
+
+
 if __name__ == "__main__":
-    RESULT_PATH = sys.argv[1]
-
-    if not os.path.exists(RESULT_PATH):
-        raise Exception("File not found!")
-
-    DATA_TO_PLOT = prepare_data(RESULT_PATH)
-
-    plot_data(DATA_TO_PLOT)
+    # call the main method
+    main()

@@ -38,7 +38,8 @@ console_scripts = [
     'csCreateTrainIdLabelImgs = cityscapesscripts.preparation.createTrainIdLabelImgs:main',
     'csCreateTrainIdInstanceImgs = cityscapesscripts.preparation.createTrainIdInstanceImgs:main',
     'csCreatePanopticImgs = cityscapesscripts.preparation.createPanopticImgs:main',
-    'csDownload = cityscapesscripts.download.downloader:main'
+    'csDownload = cityscapesscripts.download.downloader:main',
+    'csPlot3dDetectionResults = cityscapesscripts.evaluation.plot3dResults:main'
 ]
 
 gui_scripts = [
