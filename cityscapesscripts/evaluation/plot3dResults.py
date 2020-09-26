@@ -46,19 +46,19 @@ def create_table_row(
 
     axis.text(x_pos, y_pos, title, fontdict={'weight': 'bold'})
     y_pos -= 0.1
-    delta_x_pos = 0.17
+    delta_x_pos = 0.2
 
     for (cat, valdict) in data_dict[key].items():
         val = valdict if subdict_key is None else valdict[subdict_key]
         axis.text(x_pos, y_pos, cat)
-        axis.text(x_pos+delta_x_pos, y_pos, "%.2f" % val)
+        axis.text(x_pos+delta_x_pos, y_pos, "{:.4f}".format(val * 100), ha="right")
         y_pos -= 0.1
 
     # add Mean
     y_pos -= 0.05
     axis.text(x_pos, y_pos, "Mean", fontdict={'weight': 'bold'})
-    axis.text(x_pos+delta_x_pos, y_pos, '%.2f' %
-              data_dict["m"+key], fontdict={'weight': 'bold'})
+    axis.text(x_pos+delta_x_pos, y_pos, "{:.4f}".format(
+              data_dict["m"+key] * 100), fontdict={'weight': 'bold'}, ha="right")
 
 
 def create_result_table_and_legend_plot(
@@ -217,7 +217,7 @@ def set_up_xaxis(
     """
     axis.set_xlim([0, max_depth])
     axis.set_xticks(np.linspace(0, max_depth, num_ticks + 1))
-    axis.set_xticklabels(["%.1f" % x for x in np.linspace(0, max_depth, num_ticks + 1)])
+    axis.set_xticklabels(["{:.1f}".format(x) for x in np.linspace(0, max_depth, num_ticks + 1)])
 
 
 def set_up_PR_plot_axis(
@@ -227,7 +227,7 @@ def set_up_PR_plot_axis(
 ):
     # type: (...) -> None
     """Sets up the axis for the precision plot."""
-    axis.set_title("PR Curve@%.2f (%s)" % (min_iou, matching_method))
+    axis.set_title("PR Curve@{:.2f} ({})".format(min_iou, matching_method))
     axis.set_xlabel("Recall")
     axis.set_ylabel("Precision")
     axis.set_xlim([0, 1.0])
@@ -366,7 +366,7 @@ def fill_and_finalize_subplot(
                 axis, x_vals, y_vals, label, available_items_scaling, max_depth)
 
     else:
-        raise ValueError("Unsupported category, got %s." % category)
+        raise ValueError("Unsupported category, got {}.".format(category))
 
 
 def fill_standard_subplot(
