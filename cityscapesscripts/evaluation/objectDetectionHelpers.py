@@ -31,7 +31,7 @@ class EvaluationParameters:
         labels_to_evaluate,               # type: List[str]
         min_iou_to_match=0.7,             # type: float
         max_depth=100,                    # type: int
-        step_size=5.,                     # type: float
+        step_size=5,                      # type: int
         matching_method=MATCHING_AMODAL,  # type: int
         cw=-1.,                           # type: float
         num_conf=50                       # type: int
