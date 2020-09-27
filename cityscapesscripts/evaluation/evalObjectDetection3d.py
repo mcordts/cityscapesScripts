@@ -27,7 +27,7 @@
 # clipped to the image dimensions.
 #
 # Note: ["2d"]["modal"] is optional. If not provided,
-# ["d"]["amodal"] is used for both type of boxes.
+# ["2d"]["amodal"] is used for both type of boxes.
 #
 # Note: For images without a single predicted box, you still need to provide
 # a json file with content: {"objects": []}
