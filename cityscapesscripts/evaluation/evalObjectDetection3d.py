@@ -353,12 +353,20 @@ class Box3dEvaluator:
         pred_boxes = self.preds[base]
         camera = self.cameras[base]
 
+        # recalculate the amodal bounding boxes
+        box3dTransform = Box3dImageTransform(camera)
+
+        for p in pred_boxes["objects"]:
+            box3dTransform.initialize_box_from_annotation(p)
+            p.bbox_2d.setAmodalBox(box3dTransform.get_amodal_box_2d())
+
+        # calculate PR stats for each conf threshold
         for s in self._conf_thresholds:
             tmp_stats[s] = {
                 "data": {}
             }
             (tp_idx_gt, tp_idx_pred, fp_idx_pred,
-             fn_idx_gt) = self._addImageEvaluation(gt_boxes, pred_boxes, camera, s)
+             fn_idx_gt) = self._addImageEvaluation(gt_boxes, pred_boxes, s)
 
             assert len(tp_idx_gt) == len(tp_idx_pred)
 
@@ -375,7 +383,6 @@ class Box3dEvaluator:
         self,
         gt_boxes,    # type: List[CsBbox3d]
         pred_boxes,  # type: List[CsBbox3d]
-        gt_camera,   # type: Camera
         min_score    # type: float
     ):
         # type: (...) -> Tuple[dict, dict, dict, dict]
@@ -397,8 +404,6 @@ class Box3dEvaluator:
         # pre-load all ignore regions as they are the same for all classes
         gt_idx_ignores = [idx for idx,
                           box in enumerate(gt_boxes["ignores"])]
-
-        box3dTransform = Box3dImageTransform(gt_camera)
 
         # calculate stats per class
         for i in self.eval_params.labels_to_evaluate:
@@ -424,18 +429,8 @@ class Box3dEvaluator:
             if len(pred_idx) > 0:
                 # get modal or amodal boxes depending on matching strategy
                 if self.eval_params.matching_method == MATCHING_AMODAL:
-                    if self.eval_params.amodal_precalculated is True:
-                        boxes_2d_pred = np.asarray(
-                            [pred_boxes["objects"][x].bbox_2d.bbox_amodal for x in pred_idx])
-                    else:
-                        boxes_2d_pred = []
-
-                        # calculate the amodal 2d bounding box
-                        for x in pred_idx:
-                            box3dTransform.initialize_box_from_annotation(pred_boxes["objects"][x])
-                            boxes_2d_pred.append(box3dTransform.get_amodal_box_2d())
-
-                        boxes_2d_pred = np.asarray(boxes_2d_pred)
+                    boxes_2d_pred = np.asarray(
+                        [pred_boxes["objects"][x].bbox_2d.bbox_amodal for x in pred_idx])
                 elif self.eval_params.matching_method == MATCHING_MODAL:
                     boxes_2d_pred = np.asarray(
                         [pred_boxes["objects"][x].bbox_2d.bbox_modal for x in pred_idx])
@@ -1117,11 +1112,6 @@ def evaluate3dObjectDetection(
         logger.info(" -> cw           : -- automatically determined --")
     else:
         logger.info(" -> cw           : {:.2f}".format(boxEvaluator.eval_params.cw))
-    if (
-        boxEvaluator.eval_params.amodal_precalculated is True
-        and eval_params.matching_method == MATCHING_AMODAL
-    ):
-        logger.warning("Use precalculated amodal bounding boxes")
 
     # load GT and predictions
     boxEvaluator.loadGT(gt_folder)
@@ -1230,13 +1220,6 @@ def main():
                         action="store_false",
                         help="Don't plot the graphical results")
 
-    parser.add_argument("--precalculated",
-                        dest="amodal_precalculated",
-                        action="store_true",
-                        help="Use amodal boxes from ['2d']['amodal'] instead of recalculating \
-                            from 3D during runtime. This will speed up the evaluation but is \
-                            not used in the official benchmark. Default: False")
-
     args = parser.parse_args()
 
     if not os.path.exists(args.gtFolder):
@@ -1260,8 +1243,7 @@ def main():
         max_depth=args.maxDepth,
         step_size=args.stepSize,
         matching_method=int(args.modal),
-        cw=args.cw,
-        amodal_precalculated=args.amodal_precalculated
+        cw=args.cw
     )
 
     evaluate3dObjectDetection(
