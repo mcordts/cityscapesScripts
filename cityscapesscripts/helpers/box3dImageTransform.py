@@ -256,15 +256,23 @@ class Box3dImageTransform(object):
         return [front_side, back_side, top_side, bottom_side, left_side, right_side]
 
     def get_amodal_box_2d(self):
-        side_polygons = [x for x in self.get_all_side_polygons_2d() if len(x) > 0]
-        corner_points_2d = np.array(side_polygons).reshape(-1, 2)
+        xs = []
+        ys = []
 
-        # return bbox clipped to img dimensions
+        for side_polygon in self.get_all_side_polygons_2d():
+            for [x, y] in side_polygon:
+                xs.append(x)
+                ys.append(y)
+
+        # if the whole box is behind the camera, return [0., 0., 0., 0.]
+        if len(xs) == 0:
+            return [0., 0., 0., 0.]
+
         return [
-            min(self._camera.imgWidth - 1, max(0, np.amin(corner_points_2d[:, 0]))),
-            min(self._camera.imgHeight - 1, max(0, np.amin(corner_points_2d[:, 1]))),
-            min(self._camera.imgWidth - 1, max(0, np.amax(corner_points_2d[:, 0]))),
-            min(self._camera.imgHeight - 1, max(0, np.amax(corner_points_2d[:, 1]))),
+            min(self._camera.imgWidth - 1, max(0, min(xs))),
+            min(self._camera.imgHeight - 1, max(0, min(ys))),
+            min(self._camera.imgWidth - 1, max(0, max(xs))),
+            min(self._camera.imgHeight - 1, max(0, max(ys)))
         ]
 
     def _crop_side_polygon_and_project(self, side_point_indices=[], side_points=[]):
