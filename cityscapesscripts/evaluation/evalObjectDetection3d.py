@@ -193,8 +193,21 @@ class Box3dEvaluator:
             base = os.path.basename(p)
             base = base[:base.rfind("_")]
 
-            with open(p) as f:
-                data = json.load(f)
+            # check for valid json file
+            try:
+                with open(p) as f:
+                    data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                logger.critical("Invalid GT json file: {}".format(p))
+                continue
+
+            # check for 'objects' and 'sensor'
+            if "objects" not in data.keys():
+                logger.critical("'objects' missing in GT json file: {}".format(p))
+                continue
+            if "sensor" not in data.keys():
+                logger.critical("'sensor' missing in GT json file: {}".format(p))
+                continue
 
             # load Camera object
             camera = Camera(
@@ -248,11 +261,20 @@ class Box3dEvaluator:
 
             # extract CITY_RECORDID_IMAGE from filepath
             base = os.path.basename(p)
-
             base = base[:base.rfind("_")]
 
-            with open(p) as f:
-                data = json.load(f)
+            # check for valid json file
+            try:
+                with open(p) as f:
+                    data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                logger.critical("Invalid prediction json file: {}".format(p))
+                continue
+
+            # check for 'objects'
+            if "objects" not in data.keys():
+                logger.critical("'objects' missing in prediction json file: {}".format(p))
+                continue
 
             for d in data["objects"]:
                 if (
