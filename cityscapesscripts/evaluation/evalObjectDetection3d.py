@@ -839,16 +839,16 @@ class Box3dEvaluator:
             self.results["Detection_Score"][label] = det_score
 
             logger.info(label)
-            logger.info(" -> 2D AP {:<6}                : {:.2f}".format(modal_amodal_modifier, vals["AP"]))
-            logger.info(" -> BEV Center Distance (DDTP)  : {:.2f}".format(vals["Center_Dist"]))
-            logger.info(" -> Yaw Similarity (DDTP)       : {:.2f}".format(vals["OS_Yaw"]))
-            logger.info(" -> Pitch/Roll Similarity (DDTP): {:.2f}".format(vals["OS_Pitch_Roll"]))
-            logger.info(" -> Size Similarity (DDTP)      : {:.2f}".format(vals["Size_Similarity"]))
-            logger.info(" -> Detection Score             : {:.2f}".format(det_score))
+            logger.info(" -> 2D AP {:<6}                : {:8.4f}".format(modal_amodal_modifier, vals["AP"] * 100))
+            logger.info(" -> BEV Center Distance (DDTP)  : {:8.4f}".format(vals["Center_Dist"] * 100))
+            logger.info(" -> Yaw Similarity (DDTP)       : {:8.4f}".format(vals["OS_Yaw"] * 100))
+            logger.info(" -> Pitch/Roll Similarity (DDTP): {:8.4f}".format(vals["OS_Pitch_Roll"] * 100))
+            logger.info(" -> Size Similarity (DDTP)      : {:8.4f}".format(vals["Size_Similarity"] * 100))
+            logger.info(" -> Detection Score             : {:8.4f}".format(det_score * 100))
 
         self.results["mDetection_Score"] = np.mean(
             [x for cat, x in self.results["Detection_Score"].items() if cat in accept_cats])
-        logger.info("Mean Detection Score: {:.2f}".format(self.results["mDetection_Score"]))
+        logger.info("Mean Detection Score: {:8.4f}".format(self.results["mDetection_Score"] * 100))
 
         # add mean evaluation results
         for parameter_name in parameters:
