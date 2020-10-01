@@ -198,16 +198,13 @@ class Box3dEvaluator:
                 with open(p) as f:
                     data = json.load(f)
             except json.decoder.JSONDecodeError:
-                logger.critical("Invalid GT json file: {}".format(p))
-                continue
+                printErrorAndExit("Invalid GT json file: {}".format(base))
 
             # check for 'objects' and 'sensor'
             if "objects" not in data.keys():
-                logger.critical("'objects' missing in GT json file: {}".format(p))
-                continue
+                printErrorAndExit("'objects' missing in GT json file: {}".format(base))
             if "sensor" not in data.keys():
-                logger.critical("'sensor' missing in GT json file: {}".format(p))
-                continue
+                printErrorAndExit("'sensor' missing in GT json file: {}".format(base))
 
             # load Camera object
             camera = Camera(
@@ -268,13 +265,11 @@ class Box3dEvaluator:
                 with open(p) as f:
                     data = json.load(f)
             except json.decoder.JSONDecodeError:
-                logger.critical("Invalid prediction json file: {}".format(p))
-                continue
+                printErrorAndExit("Invalid prediction json file: {}".format(base))
 
             # check for 'objects'
             if "objects" not in data.keys():
-                logger.critical("'objects' missing in prediction json file: {}".format(p))
-                continue
+                printErrorAndExit("'objects' missing in prediction json file: {}".format(base))
 
             for d in data["objects"]:
                 if (
