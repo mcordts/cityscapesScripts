@@ -27,7 +27,7 @@
 # clipped to the image dimensions.
 #
 # Note: ["2d"]["modal"] is optional. If not provided,
-# ["d"]["amodal"] is used for both type of boxes.
+# ["2d"]["amodal"] is used for both type of boxes.
 #
 # Note: For images without a single predicted box, you still need to provide
 # a json file with content: {"objects": []}
@@ -74,15 +74,6 @@ logging.basicConfig(filename='eval.log',
                     format='%(asctime)s.%(msecs)03d %(name)s %(levelname)s %(message)s',
                     datefmt='%H:%M:%S')
 coloredlogs.install(level='INFO')
-
-
-def printErrorAndExit(msg):
-    logger.error(msg)
-    logger.info("========================")
-    logger.info("=== Stop evaluation ====")
-    logger.info("========================")
-
-    exit(1)
 
 
 class Box3dEvaluator:
@@ -193,8 +184,23 @@ class Box3dEvaluator:
             base = os.path.basename(p)
             base = base[:base.rfind("_")]
 
-            with open(p) as f:
-                data = json.load(f)
+            # check for valid json file
+            try:
+                with open(p) as f:
+                    data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                logger.error("Invalid GT json file: {}".format(base))
+                raise
+
+            # check for 'objects' and 'sensor'
+            if "objects" not in data.keys():
+                msg = "'objects' missing in GT json file: {}".format(base)
+                logger.error(msg)
+                raise KeyError(msg)
+            if "sensor" not in data.keys():
+                msg = "'sensor' missing in GT json file: {}".format(base)
+                logger.error(msg)
+                raise KeyError(msg)
 
             # load Camera object
             camera = Camera(
@@ -248,11 +254,20 @@ class Box3dEvaluator:
 
             # extract CITY_RECORDID_IMAGE from filepath
             base = os.path.basename(p)
-
             base = base[:base.rfind("_")]
 
-            with open(p) as f:
-                data = json.load(f)
+            # check for valid json file
+            try:
+                with open(p) as f:
+                    data = json.load(f)
+            except json.decoder.JSONDecodeError:
+                logger.error("Invalid prediction json file: {}".format(base))
+                raise
+
+            # check for 'objects'
+            if "objects" not in data.keys():
+                logger.error("'objects' missing in prediction json file: {}".format(base))
+                raise
 
             for d in data["objects"]:
                 if (
@@ -353,12 +368,20 @@ class Box3dEvaluator:
         pred_boxes = self.preds[base]
         camera = self.cameras[base]
 
+        # recalculate the amodal bounding boxes
+        box3dTransform = Box3dImageTransform(camera)
+
+        for p in pred_boxes["objects"]:
+            box3dTransform.initialize_box_from_annotation(p)
+            p.bbox_2d.setAmodalBox(box3dTransform.get_amodal_box_2d())
+
+        # calculate PR stats for each conf threshold
         for s in self._conf_thresholds:
             tmp_stats[s] = {
                 "data": {}
             }
             (tp_idx_gt, tp_idx_pred, fp_idx_pred,
-             fn_idx_gt) = self._addImageEvaluation(gt_boxes, pred_boxes, camera, s)
+             fn_idx_gt) = self._addImageEvaluation(gt_boxes, pred_boxes, s)
 
             assert len(tp_idx_gt) == len(tp_idx_pred)
 
@@ -375,7 +398,6 @@ class Box3dEvaluator:
         self,
         gt_boxes,    # type: List[CsBbox3d]
         pred_boxes,  # type: List[CsBbox3d]
-        gt_camera,   # type: Camera
         min_score    # type: float
     ):
         # type: (...) -> Tuple[dict, dict, dict, dict]
@@ -397,8 +419,6 @@ class Box3dEvaluator:
         # pre-load all ignore regions as they are the same for all classes
         gt_idx_ignores = [idx for idx,
                           box in enumerate(gt_boxes["ignores"])]
-
-        box3dTransform = Box3dImageTransform(gt_camera)
 
         # calculate stats per class
         for i in self.eval_params.labels_to_evaluate:
@@ -424,18 +444,8 @@ class Box3dEvaluator:
             if len(pred_idx) > 0:
                 # get modal or amodal boxes depending on matching strategy
                 if self.eval_params.matching_method == MATCHING_AMODAL:
-                    if self.eval_params.amodal_precalculated is True:
-                        boxes_2d_pred = np.asarray(
-                            [pred_boxes["objects"][x].bbox_2d.bbox_amodal for x in pred_idx])
-                    else:
-                        boxes_2d_pred = []
-
-                        # calculate the amodal 2d bounding box
-                        for x in pred_idx:
-                            box3dTransform.initialize_box_from_annotation(pred_boxes["objects"][x])
-                            boxes_2d_pred.append(box3dTransform.get_amodal_box_2d())
-
-                        boxes_2d_pred = np.asarray(boxes_2d_pred)
+                    boxes_2d_pred = np.asarray(
+                        [pred_boxes["objects"][x].bbox_2d.bbox_amodal for x in pred_idx])
                 elif self.eval_params.matching_method == MATCHING_MODAL:
                     boxes_2d_pred = np.asarray(
                         [pred_boxes["objects"][x].bbox_2d.bbox_modal for x in pred_idx])
@@ -822,16 +832,16 @@ class Box3dEvaluator:
             self.results["Detection_Score"][label] = det_score
 
             logger.info(label)
-            logger.info(" -> 2D AP {:<6}                : {:.2f}".format(modal_amodal_modifier, vals["AP"]))
-            logger.info(" -> BEV Center Distance (DDTP)  : {:.2f}".format(vals["Center_Dist"]))
-            logger.info(" -> Yaw Similarity (DDTP)       : {:.2f}".format(vals["OS_Yaw"]))
-            logger.info(" -> Pitch/Roll Similarity (DDTP): {:.2f}".format(vals["OS_Pitch_Roll"]))
-            logger.info(" -> Size Similarity (DDTP)      : {:.2f}".format(vals["Size_Similarity"]))
-            logger.info(" -> Detection Score             : {:.2f}".format(det_score))
+            logger.info(" -> 2D AP {:<6}                : {:8.4f}".format(modal_amodal_modifier, vals["AP"] * 100))
+            logger.info(" -> BEV Center Distance (DDTP)  : {:8.4f}".format(vals["Center_Dist"] * 100))
+            logger.info(" -> Yaw Similarity (DDTP)       : {:8.4f}".format(vals["OS_Yaw"] * 100))
+            logger.info(" -> Pitch/Roll Similarity (DDTP): {:8.4f}".format(vals["OS_Pitch_Roll"] * 100))
+            logger.info(" -> Size Similarity (DDTP)      : {:8.4f}".format(vals["Size_Similarity"] * 100))
+            logger.info(" -> Detection Score             : {:8.4f}".format(det_score * 100))
 
         self.results["mDetection_Score"] = np.mean(
             [x for cat, x in self.results["Detection_Score"].items() if cat in accept_cats])
-        logger.info("Mean Detection Score: {:.2f}".format(self.results["mDetection_Score"]))
+        logger.info("Mean Detection Score: {:8.4f}".format(self.results["mDetection_Score"] * 100))
 
         # add mean evaluation results
         for parameter_name in parameters:
@@ -1117,11 +1127,6 @@ def evaluate3dObjectDetection(
         logger.info(" -> cw           : -- automatically determined --")
     else:
         logger.info(" -> cw           : {:.2f}".format(boxEvaluator.eval_params.cw))
-    if (
-        boxEvaluator.eval_params.amodal_precalculated is True
-        and eval_params.matching_method == MATCHING_AMODAL
-    ):
-        logger.warning("Use precalculated amodal bounding boxes")
 
     # load GT and predictions
     boxEvaluator.loadGT(gt_folder)
@@ -1162,23 +1167,21 @@ def main():
 
     parser = argparse.ArgumentParser()
     # setup location
-    parser.add_argument("-gt", "--gt-folder",
-                        dest="gtFolder",
-                        help='''path to folder that contains ground truth *.json files. If the
-                            argument is not provided this script will look for the *.json files in
-                            the 'gtBbox3d/val' folder in CITYSCAPES_DATASET.
-                        ''',
-                        default=gtFolder,
-                        type=str)
+    gt_folder_arg = parser.add_argument("-gt", "--gt-folder",
+                                        dest="gtFolder",
+                                        help="path to folder that contains ground truth *.json files. If the "
+                                        "argument is not provided this script will look for the *.json files in "
+                                        "the 'gtBbox3d/val' folder in CITYSCAPES_DATASET.",
+                                        default=gtFolder,
+                                        type=str)
 
-    parser.add_argument("-pred", "--prediction-folder",
-                        dest="predictionFolder",
-                        help='''path to folder that contains ground truth *.json files. If the
-                            argument is not provided this script will look for the *.json files in
-                            the 'predBbox3d' folder in CITYSCAPES_RESULTS.
-                        ''',
-                        default=predictionFolder,
-                        type=str)
+    pred_folder_arg = parser.add_argument("-pred", "--prediction-folder",
+                                          dest="predictionFolder",
+                                          help="path to folder that contains ground truth * .json files. If the "
+                                          "argument is not provided this script will look for the * .json files in "
+                                          "the 'predBbox3d' folder in CITYSCAPES_RESULTS.",
+                                          default=predictionFolder,
+                                          type=str)
 
     resultFolder = ""
     parser.add_argument("--results-folder",
@@ -1230,22 +1233,17 @@ def main():
                         action="store_false",
                         help="Don't plot the graphical results")
 
-    parser.add_argument("--precalculated",
-                        dest="amodal_precalculated",
-                        action="store_true",
-                        help="Use amodal boxes from ['2d']['amodal'] instead of recalculating \
-                            from 3D during runtime. This will speed up the evaluation but is \
-                            not used in the official benchmark. Default: False")
-
     args = parser.parse_args()
 
     if not os.path.exists(args.gtFolder):
-        printErrorAndExit(
-            "Could not find gt folder {}. Please run the script with '--help'".format(args.gtFolder))
+        msg = "Could not find gt folder {}. Please run the script with '--help'".format(args.gtFolder)
+        logger.error(msg)
+        raise argparse.ArgumentError(gt_folder_arg, msg)
 
     if not os.path.exists(args.predictionFolder):
-        printErrorAndExit(
-            "Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder))
+        msg = "Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder)
+        logger.error(msg)
+        raise argparse.ArgumentError(pred_folder_arg, msg)
 
     if resultFolder == "":
         resultFolder = args.predictionFolder
@@ -1260,8 +1258,7 @@ def main():
         max_depth=args.maxDepth,
         step_size=args.stepSize,
         matching_method=int(args.modal),
-        cw=args.cw,
-        amodal_precalculated=args.amodal_precalculated
+        cw=args.cw
     )
 
     evaluate3dObjectDetection(

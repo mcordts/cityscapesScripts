@@ -175,6 +175,15 @@ class CsBbox2d(CsObject):
             self.label, bboxAmodalText, bboxModalText)
         return text
 
+    def setAmodalBox(self, bbox_amodal):
+        # sets the amodal box if required
+        self.bbox_amodal_xywh = [
+            bbox_amodal[0],
+            bbox_amodal[1],
+            bbox_amodal[2] - bbox_amodal[0],
+            bbox_amodal[3] - bbox_amodal[1]
+        ]
+
     # access 2d boxes in [xmin, ymin, xmax, ymax] format
     @property
     def bbox_amodal(self):
