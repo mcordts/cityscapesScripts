@@ -76,15 +76,6 @@ logging.basicConfig(filename='eval.log',
 coloredlogs.install(level='INFO')
 
 
-def printErrorAndExit(msg):
-    logger.error(msg)
-    logger.info("========================")
-    logger.info("=== Stop evaluation ====")
-    logger.info("========================")
-
-    exit(1)
-
-
 class Box3dEvaluator:
     """The Box3dEvaluator object contains the data as well as the parameters
     for the evaluation of the dataset.
@@ -198,13 +189,18 @@ class Box3dEvaluator:
                 with open(p) as f:
                     data = json.load(f)
             except json.decoder.JSONDecodeError:
-                printErrorAndExit("Invalid GT json file: {}".format(base))
+                logger.error("Invalid GT json file: {}".format(base))
+                raise
 
             # check for 'objects' and 'sensor'
             if "objects" not in data.keys():
-                printErrorAndExit("'objects' missing in GT json file: {}".format(base))
+                msg = "'objects' missing in GT json file: {}".format(base)
+                logger.error(msg)
+                raise KeyError(msg)
             if "sensor" not in data.keys():
-                printErrorAndExit("'sensor' missing in GT json file: {}".format(base))
+                msg = "'sensor' missing in GT json file: {}".format(base)
+                logger.error(msg)
+                raise KeyError(msg)
 
             # load Camera object
             camera = Camera(
@@ -265,11 +261,13 @@ class Box3dEvaluator:
                 with open(p) as f:
                     data = json.load(f)
             except json.decoder.JSONDecodeError:
-                printErrorAndExit("Invalid prediction json file: {}".format(base))
+                logger.error("Invalid prediction json file: {}".format(base))
+                raise
 
             # check for 'objects'
             if "objects" not in data.keys():
-                printErrorAndExit("'objects' missing in prediction json file: {}".format(base))
+                logger.error("'objects' missing in prediction json file: {}".format(base))
+                raise
 
             for d in data["objects"]:
                 if (
@@ -1169,23 +1167,21 @@ def main():
 
     parser = argparse.ArgumentParser()
     # setup location
-    parser.add_argument("-gt", "--gt-folder",
-                        dest="gtFolder",
-                        help='''path to folder that contains ground truth *.json files. If the
-                            argument is not provided this script will look for the *.json files in
-                            the 'gtBbox3d/val' folder in CITYSCAPES_DATASET.
-                        ''',
-                        default=gtFolder,
-                        type=str)
+    gt_folder_arg = parser.add_argument("-gt", "--gt-folder",
+                                        dest="gtFolder",
+                                        help="path to folder that contains ground truth *.json files. If the "
+                                        "argument is not provided this script will look for the *.json files in "
+                                        "the 'gtBbox3d/val' folder in CITYSCAPES_DATASET.",
+                                        default=gtFolder,
+                                        type=str)
 
-    parser.add_argument("-pred", "--prediction-folder",
-                        dest="predictionFolder",
-                        help='''path to folder that contains ground truth *.json files. If the
-                            argument is not provided this script will look for the *.json files in
-                            the 'predBbox3d' folder in CITYSCAPES_RESULTS.
-                        ''',
-                        default=predictionFolder,
-                        type=str)
+    pred_folder_arg = parser.add_argument("-pred", "--prediction-folder",
+                                          dest="predictionFolder",
+                                          help="path to folder that contains ground truth * .json files. If the "
+                                          "argument is not provided this script will look for the * .json files in "
+                                          "the 'predBbox3d' folder in CITYSCAPES_RESULTS.",
+                                          default=predictionFolder,
+                                          type=str)
 
     resultFolder = ""
     parser.add_argument("--results-folder",
@@ -1240,12 +1236,14 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(args.gtFolder):
-        printErrorAndExit(
-            "Could not find gt folder {}. Please run the script with '--help'".format(args.gtFolder))
+        msg = "Could not find gt folder {}. Please run the script with '--help'".format(args.gtFolder)
+        logger.error(msg)
+        raise argparse.ArgumentError(gt_folder_arg, msg)
 
     if not os.path.exists(args.predictionFolder):
-        printErrorAndExit(
-            "Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder))
+        msg = "Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder)
+        logger.error(msg)
+        raise argparse.ArgumentError(pred_folder_arg, msg)
 
     if resultFolder == "":
         resultFolder = args.predictionFolder
