@@ -1183,11 +1183,10 @@ def main():
                                           default=predictionFolder,
                                           type=str)
 
-    resultFolder = ""
     parser.add_argument("--results-folder",
                         dest="resultsFolder",
                         help="File to store evaluation results. Default: prediction folder",
-                        default=resultFolder,
+                        default="",
                         type=str)
 
     # setup evaluation parameters
@@ -1245,11 +1244,12 @@ def main():
         logger.error(msg)
         raise argparse.ArgumentError(pred_folder_arg, msg)
 
-    if resultFolder == "":
-        resultFolder = args.predictionFolder
+    resultsFolder = args.resultsFolder
+    if not resultsFolder:
+        resultsFolder = args.predictionFolder
     # keep python 2 compatibility
-    if not os.path.exists(resultFolder):
-        os.makedirs(resultFolder)
+    if not os.path.exists(resultsFolder):
+        os.makedirs(resultsFolder)
 
     # setup the evaluation parameters
     eval_params = EvaluationParameters(
@@ -1264,7 +1264,7 @@ def main():
     evaluate3dObjectDetection(
         args.gtFolder,
         args.predictionFolder,
-        resultFolder,
+        resultsFolder,
         eval_params,
         plot=args.plot_results
     )
