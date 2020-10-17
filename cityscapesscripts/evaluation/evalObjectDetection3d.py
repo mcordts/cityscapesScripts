@@ -579,11 +579,11 @@ class Box3dEvaluator:
         pred_boxes = np.asarray([x.center for x in pred_boxes])
 
         gt_dists = np.sqrt(gt_boxes[..., 0]**2 +
-                           gt_boxes[..., 2]**2).astype(int)
+                           gt_boxes[..., 1]**2).astype(int)
 
         center_dists = gt_boxes - pred_boxes
         center_dists = np.sqrt(center_dists[..., 0]**2 +
-                               center_dists[..., 2]**2)
+                               center_dists[..., 1]**2)
 
         for gt_dist, center_dist in zip(gt_dists, center_dists):
             if gt_dist >= self.eval_params.max_depth:
