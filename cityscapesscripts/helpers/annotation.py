@@ -293,7 +293,8 @@ class CsBbox3d(CsObject):
 
     @property
     def depth(self):
-        return np.sqrt(self.center[0]**2 + self.center[2]**2).astype(int)
+        # returns the BEV depth
+        return np.sqrt(self.center[0]**2 + self.center[1]**2).astype(int)
 
 
 class CsIgnore2d(CsObject):
