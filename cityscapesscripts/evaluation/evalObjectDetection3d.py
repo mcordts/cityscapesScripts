@@ -1236,12 +1236,12 @@ def main():
     args = parser.parse_args()
 
     if not os.path.exists(args.gtFolder):
-        msg = "Could not find gt folder {}. Please run the script with '--help'".format(args.gtFolder)
+        msg = "Could not find gt folder '{}'. Please run the script with '--help'".format(args.gtFolder)
         logger.error(msg)
         raise argparse.ArgumentError(gt_folder_arg, msg)
 
     if not os.path.exists(args.predictionFolder):
-        msg = "Could not find prediction folder {}. Please run the script with '--help'".format(args.predictionFolder)
+        msg = "Could not find prediction folder '{}'. Please run the script with '--help'".format(args.predictionFolder)
         logger.error(msg)
         raise argparse.ArgumentError(pred_folder_arg, msg)
 
@@ -1264,7 +1264,7 @@ def main():
     evaluate3dObjectDetection(
         args.gtFolder,
         args.predictionFolder,
-        args.resultsFolder,
+        resultFolder,
         eval_params,
         plot=args.plot_results
     )

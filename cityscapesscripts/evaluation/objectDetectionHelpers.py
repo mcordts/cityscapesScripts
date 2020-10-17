@@ -143,8 +143,9 @@ def calcOverlapMatrix(
 
 
 def getFiles(
-    folder,         # type: str,
-    suffix=".json"  # type: str
+    folder,                     # type: str
+    suffix=".json",             # type: str
+    exclude=["results.json"]    # type: List[str]
 ):
     # type: (...) -> List[str]
     """Recursively walks through the folder and finds
@@ -153,14 +154,15 @@ def getFiles(
     Args:
         folder (str): the directory
         suffix (str): the suffix used for filtering
+        exclude (List[str]): filenames to exclude
 
     Returns:
         List[str]: list of all found files
     """
     file_list = []
-    for root, dirnames, filenames in os.walk(folder):
+    for root, _, filenames in os.walk(folder):
         for f in filenames:
-            if f.endswith(suffix):
+            if f.endswith(suffix) and f not in exclude:
                 file_list.append(os.path.join(root, f))
     file_list.sort()
 

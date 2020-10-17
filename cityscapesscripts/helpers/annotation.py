@@ -216,8 +216,8 @@ class CsBbox2d(CsObject):
             self.bbox_modal_xywh = jsonText['modal']
         # only amodal boxes are provided
         else:
-            self.bbox_modal_xywh = jsonText['2d']['amodal']
-            self.bbox_amodal_xywh = jsonText['2d']['amodal']
+            self.bbox_modal_xywh = jsonText['amodal']
+            self.bbox_amodal_xywh = jsonText['amodal']
 
         # load label and instanceId if available
         if 'label' in jsonText.keys() and 'instanceId' in jsonText.keys():
