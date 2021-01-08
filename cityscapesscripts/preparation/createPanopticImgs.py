@@ -31,7 +31,7 @@ from cityscapesscripts.helpers.labels import id2label, labels
 
 
 # The main method
-def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False):
+def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
     # Where to look for Cityscapes
     if cityscapesPath is None:
         if 'CITYSCAPES_DATASET' in os.environ:
@@ -53,9 +53,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False):
                            'supercategory': label.category,
                            'isthing': 1 if label.hasInstances else 0})
 
-    # if only val set needs the conversion.
-    # for setName in ["val"]:
-    for setName in ["val", "train", "test"]:
+    for setName in setNames:
         # how to search for all ground truth
         searchFine   = os.path.join(cityscapesPath, setName, "*", "*_instanceIds.png")
         # search files
@@ -170,9 +168,15 @@ def main():
                         default=None,
                         type=str)
     parser.add_argument("--use-train-id", action="store_true", dest="useTrainId")
+    parser.add_argument("--set-names",
+                        dest="setNames",
+                        help="set names to which apply the function to",
+                        nargs='+',
+                        default=["val", "train", "test"],
+                        type=str)
     args = parser.parse_args()
 
-    convert2panoptic(args.cityscapesPath, args.outputFolder, args.useTrainId)
+    convert2panoptic(args.cityscapesPath, args.outputFolder, args.useTrainId, args.setNames)
 
 
 # call the main
