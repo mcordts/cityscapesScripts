@@ -223,6 +223,7 @@ def pq_compute_multi_core(matched_annotations_list, gt_folder, pred_folder, cate
     pq_stat = PQStat()
     for p in processes:
         pq_stat += p.get()
+    workers.close()
     return pq_stat
 
 
