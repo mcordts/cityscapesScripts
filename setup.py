@@ -55,7 +55,7 @@ config = {
     'author': 'Marius Cordts',
     'url': 'https://github.com/mcordts/cityscapesScripts',
     'author_email': 'mail@cityscapes-dataset.net',
-    'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/license.txt',
+    'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/LICENSE',
     'version': version,
     'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs', 'pyquaternion', 'coloredlogs', 'tqdm', 'typing'],
     'setup_requires': ['setuptools>=18.0'],

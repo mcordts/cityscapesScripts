@@ -2,7 +2,7 @@
 
 This repository contains scripts for inspection, preparation, and evaluation of the Cityscapes dataset. This large-scale dataset contains a diverse set of stereo video sequences recorded in street scenes from 50 different cities, with high quality pixel-level annotations of 5 000 frames in addition to a larger set of 20 000 weakly annotated frames.
 
-Details and download are available at: www.cityscapes-dataset.net
+Details and download are available at: www.cityscapes-dataset.com
 
 
 ## Dataset Structure
@@ -95,7 +95,7 @@ Note that all files have a small documentation at the top. Most important files
 ## Evaluation
 
 Once you want to test your method on the test set, please run your approach on the provided test images and submit your results:
-[Submission Page](www.cityscapes-dataset.net/submit)
+[Submission Page](www.cityscapes-dataset.com/submit)
 
 The result format is described at the top of our evaluation scripts:
 - [Pixel Level Semantic Labeling](cityscapesscripts/evaluation/evalPixelLevelSemanticLabeling.py)
@@ -105,10 +105,16 @@ The result format is described at the top of our evaluation scripts:
 
 Note that our evaluation scripts are included in the scripts folder and can be used to test your approach on the validation set. For further details regarding the submission process, please consult our website.
 
+## License
+
+The dataset itself is released under custom [terms and conditions](https://www.cityscapes-dataset.com/license/).
+
+The Cityscapes Scripts are released under MIT license as found in the [license file](LICENSE).
+
 ## Contact
 
 Please feel free to contact us with any questions, suggestions or comments:
 
 * Marius Cordts, Mohamed Omran
 * mail@cityscapes-dataset.net
-* www.cityscapes-dataset.net
+* www.cityscapes-dataset.com
