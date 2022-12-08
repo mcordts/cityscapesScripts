@@ -521,7 +521,7 @@ def evaluateMatches(matches, args):
                         recall   [idxRes] = r
 
                     # first point in curve is artificial
-                    precision[-1] = 1.
+                    precision[-1] = precision[-2]
                     recall   [-1] = 0.
 
                     # compute average of precision-recall curve
