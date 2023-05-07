@@ -391,7 +391,7 @@ def evaluateMatches(matches, args):
 
     # Here we hold the results
     # First dimension is class, second overlap
-    ap = np.zeros( (len(distThs) , len(args.instLabels) , len(overlaps)) , np.float )
+    ap = np.zeros( (len(distThs) , len(args.instLabels) , len(overlaps)) , float )
 
     for dI,(minRegionSize,distanceTh,distanceConf) in enumerate(zip(minRegionSizes,distThs,distConfs)):
         for (oI,overlapTh) in enumerate(overlaps):
@@ -417,7 +417,7 @@ def evaluateMatches(matches, args):
 
                     curTrue  = np.ones ( len(gtInstances) )
                     curScore = np.ones ( len(gtInstances) ) * (-float("inf"))
-                    curMatch = np.zeros( len(gtInstances) , dtype=np.bool )
+                    curMatch = np.zeros( len(gtInstances) , dtype=bool )
 
                     # collect matches
                     for (gtI,gt) in enumerate(gtInstances):
