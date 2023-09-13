@@ -65,3 +65,5 @@ cityscapesLabelTool.conf
 
 # MAC OS
 .DS_Store
+cityscapesscripts/evaluation/envrc
+.hypothesis/unicode_data/12.1.0/charmap.json.gz
