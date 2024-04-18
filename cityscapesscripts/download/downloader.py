@@ -67,7 +67,7 @@ def get_available_packages(*, session):
     return r.json()
 
 
-def list_available_packages(*, session):
+def list_available_packages(*, session, output = True):
     packages = get_available_packages(session=session)
     print("The following packages are available for download.")
     print("Please refer to https://www.cityscapes-dataset.com/downloads/ "
@@ -76,8 +76,23 @@ def list_available_packages(*, session):
         info = ' {} -> {}'.format(p['name'], p['size'])
         if p['thirdparty'] == '1':
             info += " (third party)"
-        print(info)
+        if output:
+            print(info)
+    return packages
 
+
+def parse_size_to_bytes(size_str):
+    size_str = size_str.upper()
+    if size_str.endswith("KB"):
+        size_bytes = float(size_str[:-2]) * 1024
+    elif size_str.endswith("MB"):
+        size_bytes = float(size_str[:-2]) * 1024 * 1024
+    elif size_str.endswith("GB"):
+        size_bytes = float(size_str[:-2]) * 1024 * 1024 * 1024
+    else:
+        raise ValueError("Invalid size format. Use 'KB', 'MB', or 'GB'.")
+
+    return size_bytes
 
 def download_packages(*, session, package_names, destination_path, resume=False):
     if not os.path.isdir(destination_path):
@@ -112,6 +127,21 @@ def download_packages(*, session, package_names, destination_path, resume=False)
         r.raise_for_status()
         md5sum = r.text.split()[0]
 
+        # get the file size
+        packages = list_available_packages(session=session, output=False)
+        size_bytes = 0
+        for i in packages:
+            if package_names[0] == i['name']:
+                print(f"Total size: {i['size']}")
+                size_bytes = parse_size_to_bytes(i['size'])
+                break
+            else:
+                pass
+        if size_bytes == 0:
+            print("Not found the file in the packages list")
+        file_size = size_bytes
+        chunk_size = 1024
+
         # download in chunks, support resume
         url = "https://www.cityscapes-dataset.com/file-handling/?packageID={}".format(
             package_id)
@@ -122,7 +152,14 @@ def download_packages(*, session, package_names, destination_path, resume=False)
                 r.raise_for_status()
                 assert r.status_code in [200, 206]
 
-                shutil.copyfileobj(r.raw, f)
+                downloaded = 0
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    progress = float(downloaded / file_size)
+                    print(f"Downloading progress: {round(progress*100, 2)} % [{'#' * int(progress*50)}{ ' '*(50-int(progress*50))}]  ", end='\r', flush=False)
+                print(f"Downloading progress: 100.00 % [{'#' * 50}]  ",end='\n', flush=True)
+                print("Download success")
 
         # verify md5sum
         hash_md5 = hashlib.md5()
