@@ -57,7 +57,7 @@ config = {
     'author_email': 'mail@cityscapes-dataset.net',
     'license': 'https://github.com/mcordts/cityscapesScripts/blob/master/LICENSE',
     'version': version,
-    'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs', 'pyquaternion', 'coloredlogs', 'tqdm', 'typing'],
+    'install_requires': ['numpy', 'matplotlib', 'pillow', 'appdirs', 'pyquaternion', 'coloredlogs', 'tqdm', 'typing', 'requests', 'tqdm'],
     'setup_requires': ['setuptools>=18.0'],
     'extras_require': {
         'gui': ['PyQt5']

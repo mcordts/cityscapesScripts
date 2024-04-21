@@ -11,6 +11,7 @@ import os
 import requests
 import shutil
 import stat
+from tqdm import tqdm
 
 from builtins import input
 
@@ -79,6 +80,20 @@ def list_available_packages(*, session):
         print(info)
 
 
+def parse_size_to_bytes(size_str):
+    size_str = size_str.upper()
+    if size_str.endswith("KB"):
+        size_bytes = float(size_str[:-2]) * 1024
+    elif size_str.endswith("MB"):
+        size_bytes = float(size_str[:-2]) * 1024 * 1024
+    elif size_str.endswith("GB"):
+        size_bytes = float(size_str[:-2]) * 1024 * 1024 * 1024
+    else:
+        raise ValueError("Invalid size format. Use 'KB', 'MB', or 'GB'.")
+
+    return size_bytes
+
+
 def download_packages(*, session, package_names, destination_path, resume=False):
     if not os.path.isdir(destination_path):
         raise Exception(
@@ -86,6 +101,7 @@ def download_packages(*, session, package_names, destination_path, resume=False)
 
     packages = get_available_packages(session=session)
     name_to_id = {p['name']: p['packageID'] for p in packages}
+    name_to_bytes = {p['name']: parse_size_to_bytes(p['size']) for p in packages}
     invalid_names = [n for n in package_names if n not in name_to_id]
     if invalid_names:
         raise Exception(
@@ -122,7 +138,18 @@ def download_packages(*, session, package_names, destination_path, resume=False)
                 r.raise_for_status()
                 assert r.status_code in [200, 206]
 
-                shutil.copyfileobj(r.raw, f)
+                # progress bar
+                with tqdm(desc="Download progress",
+                          total=name_to_bytes[package_name],
+                          miniters=1,
+                          unit='B',
+                          unit_scale=True,
+                          unit_divisor=1024,
+                          initial=f.tell() if resume else 0
+                          ) as pbar:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        f.write(chunk)
+                        pbar.update(len(chunk))
 
         # verify md5sum
         hash_md5 = hashlib.md5()
