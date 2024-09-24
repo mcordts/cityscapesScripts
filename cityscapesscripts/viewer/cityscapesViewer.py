@@ -1093,8 +1093,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         # Here we can draw
         rect = QtCore.QRect()
-        rect.setTopLeft(QtCore.QPoint(mouse.x()-200, top))
-        rect.setBottomRight(QtCore.QPoint(mouse.x()+200, btm))
+        rect.setTopLeft(QtCore.QPoint(int(mouse.x())-200, int(top)))
+        rect.setBottomRight(QtCore.QPoint(int(mouse.x())+200, int(btm)))
 
         # The color
         qp.setPen(QtGui.QColor('white'))
