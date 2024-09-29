@@ -710,7 +710,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         qp.save()
         # Draw the image
         qp.drawImage(QtCore.QRect(self.xoff, self.yoff,
-                                  self.w, self.h), self.image)
+                                  int(self.w), int(self.h)), self.image)
         # Restore the saved setting from the stack
         qp.restore()
 
@@ -737,7 +737,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         # The image that is used to draw the overlays
         overlay = QtGui.QImage(
-            self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied)
+            int(self.w), int(self.h), QtGui.QImage.Format_ARGB32_Premultiplied)
         # Fill the image with the default color
         defaultLabel = name2label[self.defaultLabel]
         col = QtGui.QColor(*defaultLabel.color)
@@ -1093,8 +1093,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         # Here we can draw
         rect = QtCore.QRect()
-        rect.setTopLeft(QtCore.QPoint(mouse.x()-200, top))
-        rect.setBottomRight(QtCore.QPoint(mouse.x()+200, btm))
+        rect.setTopLeft(QtCore.QPoint(int(mouse.x())-200, int(top)))
+        rect.setBottomRight(QtCore.QPoint(int(mouse.x())+200, int(btm)))
 
         # The color
         qp.setPen(QtGui.QColor('white'))
