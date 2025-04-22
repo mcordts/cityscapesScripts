@@ -1,0 +1,302 @@
+import os
+import gym
+import math
+import random
+import numpy as np
+from PIL import Image
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+
+# Constants and hyperparameters
+CITYSCAPES_ROOT = "/path/to/cityscapes"  # Root directory for Cityscapes dataset
+IMG_HEIGHT = 256   # Resized image height
+IMG_WIDTH  = 512   # Resized image width
+NUM_CLASSES = 19   # Number of segmentation classes in Cityscapes
+IGNORE_LABEL = 255 # Label value in Cityscapes masks to ignore
+LEARNING_RATE = 1e-4
+MAX_EPISODES = 1000    # Total training episodes
+LOG_INTERVAL = 10      # Print training info every this many episodes
+SAVE_VIS_INTERVAL = 50 # Save visualization every this many episodes (if VISUALIZE is True)
+VISUALIZE = False      # If True, save segmentation overlay images during training
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+class CityscapesSegmentationEnv(gym.Env):
+    """
+    Custom Gym-like environment for Cityscapes semantic segmentation.
+    Each episode provides one image and expects an output segmentation mask as the action.
+    The reward is the mean Intersection-over-Union (IoU) between the predicted mask and ground truth mask.
+    """
+    def __init__(self, root_dir=CITYSCAPES_ROOT, split='train'):
+        super(CityscapesSegmentationEnv, self).__init__()
+        # Paths for images and segmentation masks
+        self.split = split
+        self.img_dir = os.path.join(root_dir, "leftImg8bit", split)
+        self.mask_dir = os.path.join(root_dir, "gtFine", split)
+        # Collect all image file paths
+        self.image_paths = []
+        self.mask_paths = []
+        for city in os.listdir(self.img_dir) if os.path.isdir(self.img_dir) else []:
+            city_img_dir = os.path.join(self.img_dir, city)
+            city_mask_dir = os.path.join(self.mask_dir, city)
+            if not os.path.isdir(city_img_dir):
+                continue
+            for file_name in os.listdir(city_img_dir):
+                if file_name.endswith("_leftImg8bit.png"):
+                    img_path = os.path.join(city_img_dir, file_name)
+                    # Construct corresponding mask file path
+                    mask_name = file_name.replace("_leftImg8bit.png", "_gtFine_labelTrainIds.png")
+                    mask_path = os.path.join(city_mask_dir, mask_name)
+                    if os.path.exists(mask_path):
+                        self.image_paths.append(img_path)
+                        self.mask_paths.append(mask_path)
+        # If no images found, alert the user
+        if len(self.image_paths) == 0:
+            raise FileNotFoundError(f"No images found in {self.img_dir}. "
+                                     "Please ensure Cityscapes dataset is downloaded and path is correct.")
+        # Dataset size
+        self.length = len(self.image_paths)
+        # Image transformation: Resize and normalize images to 0-1 range with mean/std
+        # (Using Image from PIL for loading)
+        self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)  # typical ImageNet mean
+        self.std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)  # typical ImageNet std
+        self.current_index = None   # index of current image in episode
+        self.current_image = None   # will hold the current image as numpy array or tensor
+        self.current_mask = None    # ground truth mask as numpy array (H x W)
+        # Define observation and action spaces for compatibility (optional)
+        self.observation_space = gym.spaces.Box(low=0.0, high=1.0, shape=(3, IMG_HEIGHT, IMG_WIDTH), dtype=np.float32)
+        # Action is a segmentation mask with class indices for each pixel
+        self.action_space = gym.spaces.Box(low=0, high=NUM_CLASSES-1, shape=(IMG_HEIGHT, IMG_WIDTH), dtype=np.int64)
+
+    def reset(self):
+        """Start a new episode by selecting a random image. Returns the image as the initial state."""
+        # Randomly select an image from the dataset
+        self.current_index = random.randrange(0, self.length)
+        img_path = self.image_paths[self.current_index]
+        mask_path = self.mask_paths[self.current_index]
+        # Load image and mask
+        image = Image.open(img_path).convert('RGB')
+        mask = Image.open(mask_path)
+        # Resize image and mask to target dimensions
+        image = image.resize((IMG_WIDTH, IMG_HEIGHT), Image.BILINEAR)
+        mask = mask.resize((IMG_WIDTH, IMG_HEIGHT), Image.NEAREST)  # use nearest for mask to keep labels
+        # Convert to numpy arrays
+        image_np = np.array(image, dtype=np.float32) / 255.0  # scale to [0,1]
+        mask_np = np.array(mask, dtype=np.int64)
+        # Normalize image (channel-wise)
+        image_np = (image_np - self.mean) / self.std
+        # Transpose to shape (3, H, W) for PyTorch
+        image_np = image_np.transpose(2, 0, 1)
+        # Store current mask for reward computation
+        self.current_mask = mask_np
+        # Return state as a torch tensor (for convenience we can return tensor directly)
+        state = torch.from_numpy(image_np).float()
+        return state
+
+    def step(self, action):
+        """
+        Take an action (predicted segmentation mask) and return (next_state, reward, done, info).
+        In this single-step episode, next_state is always None and done is True after one step.
+        """
+        # Ensure action (predicted mask) is in numpy format for evaluation
+        if isinstance(action, torch.Tensor):
+            pred_mask = action.cpu().numpy()
+        else:
+            pred_mask = np.array(action)
+        # Compute reward as mean IoU between pred_mask and ground truth
+        reward = self._compute_mean_iou(pred_mask, self.current_mask)
+        # Episode done after one step
+        done = True
+        info = {}
+        # No next state in a single-step episode (could return None or dummy value)
+        next_state = None
+        return next_state, reward, done, info
+
+    def _compute_mean_iou(self, pred_mask, true_mask):
+        """
+        Compute mean Intersection-over-Union (IoU) between predicted mask and true mask.
+        Ignores pixels with label == IGNORE_LABEL in the true mask.
+        """
+        # Flatten arrays for easier computation (optional)
+        pred_mask = pred_mask.reshape(-1)
+        true_mask = true_mask.reshape(-1)
+        # Create a mask of valid (non-ignored) pixels
+        valid = (true_mask != IGNORE_LABEL)
+        iou_sum = 0.0
+        class_count = 0
+        for c in range(NUM_CLASSES):
+            # Consider pixels of this class in either pred or true (and not ignored in true)
+            pred_c = (pred_mask == c) & valid
+            true_c = (true_mask == c) & valid
+            if not np.any(pred_c) and not np.any(true_c):
+                # Class not present in pred or true (or all ignored), skip it in IoU calculation
+                continue
+            # Compute intersection and union
+            intersection = np.logical_and(pred_c, true_c).sum().item()
+            union = np.logical_or(pred_c, true_c).sum().item()
+            if union > 0:
+                iou = intersection / union
+            else:
+                iou = 0.0
+            iou_sum += iou
+            class_count += 1
+        if class_count == 0:
+            # If no classes were present (all pixels ignored), define IoU as 0
+            return 0.0
+        mean_iou = iou_sum / class_count
+        return mean_iou
+
+
+class ActorCriticSegmentation(nn.Module):
+    """
+    Actor-Critic model for semantic segmentation.
+    - The actor outputs segmentation logits for each class at each pixel (policy).
+    - The critic outputs a scalar state-value for the input image.
+    """
+    def __init__(self, num_classes=NUM_CLASSES):
+        super(ActorCriticSegmentation, self).__init__()
+        # Simple convolutional encoder
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2, padding=2)   # output: 16 x (H/2) x (W/2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2, padding=2)  # output: 32 x (H/4) x (W/4)
+        self.conv3 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1)  # keep same res (H/4 x W/4)
+        # Actor head: upsample back to original resolution with transposed convs
+        self.deconv1 = nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1)  # upsample 2x (to H/2 x W/2)
+        self.deconv2 = nn.ConvTranspose2d(16, num_classes, kernel_size=4, stride=2, padding=1)  # upsample 2x (to H x W)
+        # Critic head: value prediction
+        # We use a global average pooling and a linear layer for value
+        self.value_head = nn.Linear(32 * (IMG_HEIGHT // 4) * (IMG_WIDTH // 4), 1)
+        # Initialize weights (optional: can use default or better initialization)
+        # Here, just use default initialization for simplicity.
+
+    def forward(self, x):
+        """
+        Forward pass: returns a tuple (segmentation_logits, state_value).
+        segmentation_logits: tensor of shape (batch, NUM_CLASSES, H, W)
+        state_value: tensor of shape (batch, 1)
+        """
+        # Feature extractor
+        x = F.relu(self.conv1(x))   # -> (16, H/2, W/2)
+        x = F.relu(self.conv2(x))   # -> (32, H/4, W/4)
+        features = F.relu(self.conv3(x))  # -> (32, H/4, W/4)
+        # Actor: segmentation logits
+        up1 = F.relu(self.deconv1(features))    # -> (16, H/2, W/2)
+        seg_logits = self.deconv2(up1)          # -> (NUM_CLASSES, H, W)
+        # Critic: value
+        # Global average pooling or flatten features to feed linear layer
+        # Let's use flatten (we could also do features.mean([2,3]) for GAP)
+        flat_features = features.view(features.size(0), -1)
+        state_value = self.value_head(flat_features)  # -> (1) scalar value
+        return seg_logits, state_value
+
+
+def save_segmentation_visual(image_tensor, pred_mask, true_mask, episode):
+    """
+    Save a visualization of the segmentation by overlaying the predicted mask on the image.
+    Produces an image file combining the original image, predicted segmentation, and ground truth segmentation.
+    """
+    # Ensure input image is in CPU numpy
+    image = image_tensor.cpu().numpy()
+    # image_tensor is normalized; de-normalize it for visualization
+    img = (image * np.expand_dims(env.std, axis=(1,2)) + np.expand_dims(env.mean, axis=(1,2)))  # shape (3,H,W)
+    img = np.clip(img, 0, 1)  # ensure valid range
+    img = (img * 255).astype(np.uint8).transpose(1, 2, 0)  # to HxWx3 uint8
+    # Get predicted and true mask as numpy arrays
+    pred_mask = np.array(pred_mask, dtype=np.uint8)
+    true_mask = np.array(true_mask, dtype=np.uint8)
+    # Define a color palette for the segmentation classes (19 classes).
+    # We'll create a simple color map: just use a fixed random or distinct colors for each class.
+    palette = np.random.RandomState(0).randint(0, 256, size=(NUM_CLASSES, 3), dtype=np.uint8)
+    palette[IGNORE_LABEL if IGNORE_LABEL < 256 else 0] = [0, 0, 0]  # ensure ignore (255) maps to black if applicable
+    # Create color images for pred and true masks
+    pred_color = palette[pred_mask.flatten()].reshape(img.shape)  # colorize each pixel
+    true_color = palette[true_mask.flatten()].reshape(img.shape)
+    # Blend the color mask with the original image for overlay effect
+    overlay_pred = (0.5 * img + 0.5 * pred_color).astype(np.uint8)
+    overlay_true = (0.5 * img + 0.5 * true_color).astype(np.uint8)
+    # Concatenate original, overlay_pred, overlay_true side by side
+    vis_img = np.concatenate((img, overlay_pred, overlay_true), axis=1)
+    # Save to file
+    os.makedirs("visualizations", exist_ok=True)
+    vis_path = os.path.join("visualizations", f"episode_{episode}_seg_visual.png")
+    Image.fromarray(vis_img).save(vis_path)
+
+
+# Main training loop
+if __name__ == "__main__":
+    # Initialize environment and model
+    env = CityscapesSegmentationEnv(root_dir=CITYSCAPES_ROOT, split='train')
+    model = ActorCriticSegmentation(num_classes=NUM_CLASSES).to(DEVICE)
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    print("Starting training... device:", DEVICE)
+    running_reward = 0.0  # for tracking average reward
+    for episode in range(1, MAX_EPISODES + 1):
+        # Reset environment to get initial state (image)
+        state = env.reset()  # state is a torch tensor of shape (3,H,W)
+        # Add batch dimension and send to device
+        state = state.unsqueeze(0).to(DEVICE)
+        # Run the actor-critic model to get segmentation logits and value estimate
+        logits, value = model(state)  # logits shape: (1, NUM_CLASSES, H, W), value shape: (1,1)
+        # Sample a segmentation mask action from the logits (stochastic policy)
+        # Compute pixel-wise probabilities using softmax for each pixel location
+        prob_maps = F.softmax(logits, dim=1)  # shape: (1, NUM_CLASSES, H, W)
+        # Sample each pixel's class from the distribution
+        # Flatten the spatial dimensions for sampling
+        prob_maps_flat = prob_maps.view(NUM_CLASSES, -1).permute(1, 0)  # shape: (H*W, NUM_CLASSES)
+        # Use torch.multinomial to sample one class index for each pixel distribution
+        pred_indices_flat = torch.multinomial(prob_maps_flat, num_samples=1).squeeze(1)  # shape: (H*W)
+        # Reshape back to (H, W)
+        pred_mask = pred_indices_flat.view(IMG_HEIGHT, IMG_WIDTH)
+        # Compute reward from environment by taking a step with this action
+        _, reward, done, _ = env.step(pred_mask)
+        # Convert reward to a float
+        reward = float(reward)
+        running_reward += reward
+
+        # Compute advantage = reward - value_predicted
+        # value is a tensor of shape (1,1); get scalar
+        value_pred = value.item()
+        advantage = reward - value_pred
+
+        # Compute policy loss: negative log-likelihood * advantage (with sign flipped for gradient ascent of reward)
+        # We need log probability of the sampled mask. We can compute it as sum of log probs of each pixel's chosen class.
+        # Get log probabilities of chosen classes:
+        log_probs_flat = torch.log(prob_maps_flat + 1e-8)
+        # Gather log-prob for each pixel's chosen class
+        chosen_log_probs = log_probs_flat[torch.arange(pred_indices_flat.numel(), device=DEVICE), pred_indices_flat]
+        total_log_prob = chosen_log_probs.sum()
+        policy_loss = - advantage * total_log_prob
+
+        # Compute value loss (MSE between predicted value and actual reward)
+        value_target = torch.tensor([[reward]], dtype=torch.float32, device=DEVICE)
+        value_loss = F.mse_loss(value, value_target)
+
+        # (Optional) entropy bonus to encourage exploration (calculate average entropy per pixel distribution)
+        entropy = - (prob_maps_flat * log_probs_flat).sum()  # entropy of the joint distribution (sum of pixel entropies)
+        entropy_loss = -0.001 * entropy  # small coefficient for entropy bonus (negative because we add to loss as negative entropy)
+
+        # Combine losses (policy + value + entropy)
+        loss = policy_loss + value_loss + entropy_loss
+
+        # Backpropagation and optimization step
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # If done (always True in single-step), optionally do any end-of-episode bookkeeping
+        # Log training information at intervals
+        if episode % LOG_INTERVAL == 0:
+            avg_reward = running_reward / LOG_INTERVAL
+            print(f"Episode {episode}/{MAX_EPISODES}, Avg Reward (IoU) last {LOG_INTERVAL}: {avg_reward:.3f}")
+            running_reward = 0.0  # reset running reward
+
+        # Save visualization of segmentation overlays at intervals (if enabled)
+        if VISUALIZE and episode % SAVE_VIS_INTERVAL == 0:
+            # state is the input image tensor (with batch dim); take first image and unnormalize for visualization
+            input_image = state[0].to('cpu')  # shape (3, H, W)
+            # env.current_mask holds the ground truth mask for this episode
+            true_mask = env.current_mask
+            save_segmentation_visual(input_image, pred_mask.cpu().numpy(), true_mask, episode)
+
+    print("Training completed.")
