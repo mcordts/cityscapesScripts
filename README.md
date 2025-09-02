@@ -95,7 +95,7 @@ Note that all files have a small documentation at the top. Most important files
 ## Evaluation
 
 Once you want to test your method on the test set, please run your approach on the provided test images and submit your results:
-[Submission Page](www.cityscapes-dataset.com/submit)
+[Submission Page](https://cityscapes-dataset.com/submit)
 
 The result format is described at the top of our evaluation scripts:
 - [Pixel Level Semantic Labeling](cityscapesscripts/evaluation/evalPixelLevelSemanticLabeling.py)
