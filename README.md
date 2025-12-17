@@ -105,6 +105,10 @@ The result format is described at the top of our evaluation scripts:
 
 Note that our evaluation scripts are included in the scripts folder and can be used to test your approach on the validation set. For further details regarding the submission process, please consult our website.
 
+### Benchmark Results / SOTA Tracking
+
+For an overview of historical and current state-of-the-art results on the Cityscapes semantic segmentation benchmark, see [here](https://wizwand.com/sota/semantic-segmentation/cityscapes). This page aggregates reported results across papers and provides links to the original publications.
+
 ## License
 
 The dataset itself is released under custom [terms and conditions](https://www.cityscapes-dataset.com/license/).
