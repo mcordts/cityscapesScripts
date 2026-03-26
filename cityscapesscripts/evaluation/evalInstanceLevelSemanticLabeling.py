@@ -277,7 +277,7 @@ def assignGt2Preds(gtInstancesOrig, gtImage, predInfo, args):
     for label in labels:
         if label.ignoreInEval:
             voidLabelIDList.append(label.id)
-    boolVoid = np.in1d(gtNp, voidLabelIDList).reshape(gtNp.shape)
+    boolVoid = np.isin(gtNp, voidLabelIDList).reshape(gtNp.shape)
 
     # Loop through all prediction masks
     for predImageFile in predInfo:
