@@ -643,7 +643,7 @@ def evaluatePair(predictionImgFileName, groundTruthImgFileName, confMatrix, inst
 
     if args.evalPixelAccuracy:
         notIgnoredLabels = [l for l in args.evalLabels if not id2label[l].ignoreInEval]
-        notIgnoredPixels = np.in1d( groundTruthNp , notIgnoredLabels , invert=True ).reshape(groundTruthNp.shape)
+        notIgnoredPixels = np.isin( groundTruthNp , notIgnoredLabels , invert=True ).reshape(groundTruthNp.shape)
         erroneousPixels = np.logical_and( notIgnoredPixels , ( predictionNp != groundTruthNp ) )
         perImageStats[predictionImgFileName] = {}
         perImageStats[predictionImgFileName]["nbNotIgnoredPixels"] = np.count_nonzero(notIgnoredPixels)
