@@ -57,6 +57,8 @@ class CsLabelType():
 
     DISPARITY = 7
 
+    VALIDATED_BBOX2D = 8
+
 #################
 # Main GUI class
 #################
@@ -160,6 +162,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         self.dispPath = None
         # Disparity extension
         self.dispExt = "_disparity.png"
+        # Color of objects whose most likely soft label is 'cantsolve'
+        self.cantsolveColor = (255, 255, 255)
         # Available label types
         self.labelTypes = {
             CsLabelType.POLY_FINE: LabelType("gtFine", "gtFine", CsObjectType.POLY),
@@ -168,6 +172,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             CsLabelType.CS3D_BBOX2D_MODAL: LabelType("CS3D: Modal 2D Boxes", "gtBbox3d", CsObjectType.BBOX3D),
             CsLabelType.CS3D_BBOX2D_AMODAL: LabelType("CS3D: Amodal 2D Boxes", "gtBbox3d", CsObjectType.BBOX3D),
             CsLabelType.CITYPERSONS_BBOX2D: LabelType("Citypersons", "gtBboxCityPersons", CsObjectType.BBOX2D),
+            CsLabelType.VALIDATED_BBOX2D: LabelType("Validated 2D Boxes", "gtBboxValidated", CsObjectType.BBOX2D_SOFT),
             CsLabelType.DISPARITY: LabelType("Stereo Disparity", "disparity", CsObjectType.POLY)
         }
 
@@ -648,6 +653,8 @@ class CityscapesViewer(QtWidgets.QMainWindow):
             overlay = self.drawLabels(qp)
         elif self.gtType == CsLabelType.CITYPERSONS_BBOX2D:
             overlay = self.drawBboxes(qp)
+        elif self.gtType == CsLabelType.VALIDATED_BBOX2D:
+            overlay = self.drawSoftBboxes(qp)
         elif self.gtType == CsLabelType.DISPARITY:
             overlay = self.drawDisp(qp)
         # Draw the label name next to the mouse
@@ -1052,6 +1059,68 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         return overlay
 
+    # Draw the bounding boxes with soft labels in the given QPainter qp
+    # The color is given by the most likely class, 'cantsolve' objects are drawn dashed
+    # Objects added from the original Cityscapes annotations are drawn dotted
+    def drawSoftBboxes(self, qp):
+        if self.image.isNull() or self.w <= 0 or self.h <= 0:
+            return
+        if not self.annotation:
+            return
+
+        # The image that is used to draw the overlays
+        overlay = QtGui.QImage(
+            int(self.w), int(self.h), QtGui.QImage.Format_ARGB32_Premultiplied)
+        # Fill the image
+        col = QtGui.QColor(0, 0, 0, 0)
+        overlay.fill(col)
+        # Create a new QPainter that draws in the overlay image
+        qp2 = QtGui.QPainter()
+        qp2.begin(overlay)
+
+        # Draw all objects
+        for obj in self.annotation.objects:
+            bbox, _ = self.getBoundingBox(obj)
+            bboxToDraw = self.scaleBoundingBox(bbox)
+            # The most likely label of the object
+            name = obj.label
+            if name == 'cantsolve':
+                col = QtGui.QColor(*self.cantsolveColor)
+                style = QtCore.Qt.DashLine
+            elif name in name2label:
+                col = QtGui.QColor(*name2label[name].color)
+                style = QtCore.Qt.DotLine if obj.added_from_original_annotations else QtCore.Qt.SolidLine
+            else:
+                print("The annotations contain unknown labels. This should not happen. "
+                      "Please inform the datasets authors. Thank you!")
+                print("Details: label '{}', file '{}'".format(
+                    name, self.currentLabelFile))
+                continue
+
+            if self.highlightObj and obj == self.highlightObj:
+                pen = QtGui.QPen(QtGui.QBrush(col), 5.0, style=style)
+                qp2.setBrush(QtGui.QBrush(QtCore.Qt.NoBrush))
+            else:
+                pen = QtGui.QPen(QtGui.QBrush(col), 3.0, style=style)
+                fill = QtGui.QColor(col)
+                fill.setAlpha(60)
+                qp2.setBrush(QtGui.QBrush(fill, QtCore.Qt.SolidPattern))
+            qp2.setPen(pen)
+            qp2.drawRect(bboxToDraw)
+
+        # End the drawing of the overlay
+        qp2.end()
+        # Save QPainter settings to stack
+        qp.save()
+        # Define transparency
+        qp.setOpacity(self.transp)
+        # Draw the overlay image
+        qp.drawImage(self.xoff, self.yoff, overlay)
+        # Restore settings
+        qp.restore()
+
+        return overlay
+
     # Draw the label name next to the mouse
     def drawLabelAtMouse(self, qp):
         # Nothing to do without a highlighted object
@@ -1072,6 +1141,9 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         # The text that is written next to the mouse
         mouseText = self.highlightObj.label
+        # For soft labels, show all most likely classes and their probability
+        if self.highlightObj.objectType == CsObjectType.BBOX2D_SOFT:
+            mouseText = "{} ({:.0%})".format(" / ".join(self.highlightObj.labels), self.highlightObj.score)
 
         # Where to write the text
         # Depends on the zoom (additional offset to mouse to make space for zoom?)
@@ -1259,7 +1331,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
                 if self.getPolygon(obj).containsPoint(self.mousePosScaled, QtCore.Qt.OddEvenFill):
                     self.mouseObj = idx
                     break
-            elif obj.objectType in [CsObjectType.BBOX2D, CsObjectType.IGNORE2D]:
+            elif obj.objectType in [CsObjectType.BBOX2D, CsObjectType.BBOX2D_SOFT, CsObjectType.IGNORE2D]:
                 bbox, _ = self.getBoundingBox(obj)
                 if bbox.contains(self.mousePosScaled):
                     self.mouseObj = idx

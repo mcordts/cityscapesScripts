@@ -26,6 +26,7 @@ class CsObjectType():
     BBOX2D = 2  # bounding box
     BBOX3D = 3  # 3d bounding box
     IGNORE2D = 4  # 2d ignore region
+    BBOX2D_SOFT = 5  # bounding box with soft class label
 
 
 class CsObject:
@@ -234,6 +235,69 @@ class CsBbox2d(CsObject):
         return objDict
 
 
+class CsBbox2dSoft(CsBbox2d):
+    """Class that contains the information of a single annotated object as bounding box
+    with a soft class label, e.g. as provided in gtBboxValidated"""
+
+    # Constructor
+    def __init__(self, classes=[]):
+        CsBbox2d.__init__(self)
+        self.objectType = CsObjectType.BBOX2D_SOFT
+        # the ordered list of classes that defines the indexing of soft_label
+        self.classes = list(classes)
+        # the probability distribution over classes
+        self.soft_label = []
+        # the raw number of annotator responses per class
+        self.vote_counts = {}
+        # all classes with the highest probability, more than one in case of a tie
+        self.labels = []
+        # whether the object was added from the original Cityscapes annotations
+        self.added_from_original_annotations = False
+
+    def __str__(self):
+        bboxText = '[(x1: {}, y1: {}), (w: {}, h: {})]'.format(
+            self.bbox_amodal_xywh[0], self.bbox_amodal_xywh[1], self.bbox_amodal_xywh[2], self.bbox_amodal_xywh[3])
+        text = "Object: {} ({:.2f})\n - Box: {}".format(" / ".join(self.labels), self.score, bboxText)
+        return text
+
+    def fromJsonText(self, jsonText, objId=-1):
+        # boxes are given as [x1, y1, x2, y2]
+        x1, y1, x2, y2 = jsonText['bbox']
+        self.bbox_amodal_xywh = [x1, y1, x2 - x1, y2 - y1]
+        self.bbox_modal_xywh = self.bbox_amodal_xywh
+
+        self.soft_label = jsonText['soft_label']
+        self.vote_counts = jsonText.get('vote_counts', {})
+        self.added_from_original_annotations = jsonText.get('added_from_original_annotations', False)
+        self.instanceId = objId
+
+        # the hard label is the class with the highest probability
+        # in case of a tie, all these classes are kept and the first one is used as label
+        maxProb = max(self.soft_label)
+        self.labels = [str(c) for c, p in zip(self.classes, self.soft_label) if p == maxProb]
+        self.label = self.labels[0]
+
+    def toJsonText(self):
+        objDict = {}
+        objDict['bbox'] = self.bbox_xyxy
+        objDict['soft_label'] = self.soft_label
+        objDict['vote_counts'] = self.vote_counts
+        if self.added_from_original_annotations:
+            objDict['added_from_original_annotations'] = True
+
+        return objDict
+
+    @property
+    def bbox_xyxy(self):
+        """Returns the 2d box as [xmin, ymin, xmax, ymax]"""
+        return self.bbox_amodal
+
+    @property
+    def score(self):
+        """Returns the probability of the hard label"""
+        return max(self.soft_label)
+
+
 class CsBbox3d(CsObject):
     """Class that contains the information of a single annotated object as 3D bounding box"""
 
@@ -376,6 +440,9 @@ class Annotation:
         self.imgWidth = int(jsonDict['imgWidth'])
         self.imgHeight = int(jsonDict['imgHeight'])
         self.objects = []
+        # the class list of soft labels
+        if self.objectType == CsObjectType.BBOX2D_SOFT:
+            self.classes = jsonDict['classes']
         # load objects
         if self.objectType != CsObjectType.IGNORE2D:
             for objId, objIn in enumerate(jsonDict['objects']):
@@ -385,6 +452,8 @@ class Annotation:
                     obj = CsBbox2d()
                 elif self.objectType == CsObjectType.BBOX3D:
                     obj = CsBbox3d()
+                elif self.objectType == CsObjectType.BBOX2D_SOFT:
+                    obj = CsBbox2dSoft(self.classes)
                 obj.fromJsonText(objIn, objId)
                 self.objects.append(obj)
 
@@ -407,6 +476,8 @@ class Annotation:
         jsonDict = {}
         jsonDict['imgWidth'] = self.imgWidth
         jsonDict['imgHeight'] = self.imgHeight
+        if self.objectType == CsObjectType.BBOX2D_SOFT:
+            jsonDict['classes'] = self.classes
         jsonDict['objects'] = []
         for obj in self.objects:
             objDict = obj.toJsonText()
