@@ -830,7 +830,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         # The image that is used to draw the overlays
         overlay = QtGui.QImage(
-            self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied)
+            int(self.w), int(self.h), QtGui.QImage.Format_ARGB32_Premultiplied)
 
         # Fill the image with the default color
         col = QtGui.QColor(0, 0, 0, 0)
@@ -980,7 +980,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
 
         # The image that is used to draw the overlays
         overlay = QtGui.QImage(
-            self.w, self.h, QtGui.QImage.Format_ARGB32_Premultiplied)
+            int(self.w), int(self.h), QtGui.QImage.Format_ARGB32_Premultiplied)
         # Fill the image
         col = QtGui.QColor(0, 0, 0, 0)
         overlay.fill(col)
@@ -1232,7 +1232,7 @@ class CityscapesViewer(QtWidgets.QMainWindow):
         qp.setOpacity(self.transp)
         # Draw the overlay image
         qp.drawImage(QtCore.QRect(self.xoff, self.yoff,
-                                  self.w, self.h), self.dispOverlay)
+                                  int(self.w), int(self.h)), self.dispOverlay)
         # Restore settings
         qp.restore()
 
